@@ -1,0 +1,290 @@
+---
+sidebar: sidebar 
+permalink: automation/automation-ora-clone-gcnv-asm.html 
+keywords: Oracle, GCP, GCNV, Database, clone 
+summary: 该解决方案提供了一个基于 Ansible 的自动化工具包，用于从托管在 Google Cloud 中的 Oracle Data Guard 的物理备用数据库（在具有 ASM 配置的Google Cloud NetApp Volumes存储上）设置、克隆和刷新 Oracle 克隆数据库。 
+---
+= 使用 ASM 在 GCNV 上实现 Oracle 克隆生命周期自动化
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+Allen Cao、Niyaz Mohamed， NetApp
+
+[role="lead"]
+该解决方案提供了一个基于 Ansible 的自动化工具包，用于从托管在 Google Cloud 中的 Oracle Data Guard 的物理备用数据库（在具有 ASM 配置的Google Cloud NetApp Volumes存储上）设置、克隆和刷新 Oracle 克隆数据库。
+
+
+
+== 目的
+
+利用 Oracle Data Guard 配置中的物理备用 Oracle 数据库的快速克隆来实现其他用例可以实现多种目的。它提供了接近实时的报告数据库以及用于开发或 UAT 目的的生产数据库的可写副本。因此，如果可以接受短暂的报告延迟（10-15分钟），则可以消除昂贵的 Active Data Guard 许可证成本。它可以节省存储成本，特别是当可以选择主数据卷的精简克隆时。这个基于 Ansible 的自动化工具包使用户能够根据用户计划设置、克隆和刷新克隆的 Oracle 数据库，从而简化生命周期管理。该工具包适用于使用Google Cloud NetApp Volumes (GCNV) 存储和 Data Guard 配置中的 Oracle 数据库设置部署到 Google 公共云的 Oracle 数据库。
+
+此解决方案适用于以下用例：
+
+* 为 Ansible 自动化设置 Oracle 备用数据库克隆配置文件。
+* 按照用户定义的计划，使用 Ansible 剧本从 Data Guard 备用数据库创建或刷新克隆 Oracle 数据库。
+
+
+
+
+== 受众
+
+此解决方案适用于以下人群：
+
+* 管理 Google 云中的 Oracle 数据库的 DBA。
+* 管理 Google NetApp Volumes 存储的存储管理员。
+* 喜欢从 Data Guard 备用数据库克隆 Oracle 数据库以用于其他用例的应用程序所有者。
+
+
+
+
+== 许可证
+
+通过访问、下载、安装或使用此 GitHub 存储库中的内容，您同意link:https://github.com/NetApp/na_ora_hadr_failover_resync/blob/master/LICENSE.TXT["许可证文件"^]。
+
+
+NOTE: 制作和/或共享此 GitHub 存储库中内容的任何衍生作品都受到某些限制。请确保在使用该内容之前阅读许可条款。如果您不同意所有条款，请不要访问、下载或使用此存储库中的内容。
+
+
+
+== 解决方案部署
+
+
+
+=== 部署先决条件
+
+[%collapsible%open]
+====
+部署需要以下先决条件。
+
+....
+Ansible controller:
+  Ansible v.2.10 and higher
+  ONTAP collection 21.19.1
+  Python 3
+  Python libraries:
+    netapp-lib
+    xmltodict
+    jmespath
+....
+....
+Oracle servers:
+  Physical standby Oracle servers in Data Guard configuration
+  Clone target Oracle servers with ASM configuration
+....
+
+NOTE: 为了简化，克隆目标 Oracle 服务器的配置应与备用 Oracle 服务器相同，例如 Oracle 软件堆栈以及 Oracle Home 的目录布局等。
+
+====
+
+
+=== 下载工具包
+
+[%collapsible%open]
+====
+[source, cli]
+----
+https://bitbucket.ngage.netapp.com/projects/NS-BB/repos/na_oracle_clone_gcnv/browse
+----
+
+NOTE: 目前，只有具有 bitbucket 访问权限的NetApp内部用户才能访问该工具包。对于感兴趣的外部用户，请向您的客户团队请求访问权限或联系NetApp解决方案工程团队。
+
+====
+
+
+=== Ansible 源和目标 hosts 文件配置
+
+[%collapsible%open]
+====
+该工具包包含一个 hosts 文件，该文件定义了 Ansible playbook 运行的源 Oracle 主机和目标 Oracle 主机。通常，它包括 Data Guard 设置中的备用 DB 主机和目标 Oracle 克隆主机。以下是示例文件。主机条目包括目标主机 IP 地址以及 ssh 密钥，以便用户访问主机执行克隆或刷新命令。通过 gcloud cli 访问和管理Google Cloud NetApp Volumes存储。
+
+....
+[ora_stdby]
+oras ansible_host=172.179.119.75 ansible_ssh_private_key_file=oras.pem
+....
+....
+[ora_clone]
+orac ansible_host=52.148.142.212 ansible_ssh_private_key_file=orac.pem
+....
+....
+[gcp]
+localhost ansible_connection=local
+....
+====
+
+
+=== 全局变量配置
+
+[%collapsible%open]
+====
+下面是典型的全局变量文件 vars.yml 的示例，其中包括适用于全局级别的变量。
+
+....
+######################################################################
+###### Oracle DB clone on GCNV user configuration variables     ######
+###### Consolidate all variables from GCNV, linux and oracle    ######
+######################################################################
+....
+....
+############################################
+### ONTAP/GCNV specific config variables ###
+############################################
+....
+....
+# GCNV credential
+key_file: /home/admin/google-cloud-sdk/service_key.json
+....
+....
+# Cloned DB volumes from standby DB
+project_id: cvs-pm-host-1p
+location: us-west4
+protocol: nfsv3
+data_vols:
+  - "{{ groups.ora_stdby[0] }}-u02"
+  - "{{ groups.ora_stdby[0] }}-u03"
+  - "{{ groups.ora_stdby[0] }}-u04"
+  - "{{ groups.ora_stdby[0] }}-u05"
+  - "{{ groups.ora_stdby[0] }}-u06"
+  - "{{ groups.ora_stdby[0] }}-u07"
+  - "{{ groups.ora_stdby[0] }}-u08"
+....
+....
+nfs_lifs:
+  - 10.165.128.197
+  - 10.165.128.196
+  - 10.165.128.197
+  - 10.165.128.197
+  - 10.165.128.197
+  - 10.165.128.197
+  - 10.165.128.197
+....
+ nfs_client: 0.0.0.0/0
+....
+###########################################
+### Linux env specific config variables ###
+###########################################
+....
+....
+####################################################
+### DB env specific install and config variables ###
+####################################################
+....
+....
+# Standby DB configuration
+oracle_user: oracle
+oracle_base: /u01/app/oracle
+oracle_sid: NTAP
+db_unique_name: NTAP_LA
+oracle_home: '{{ oracle_base }}/product/19.0.0/{{ oracle_sid }}'
+spfile: '+DATA/{{ db_unique_name }}/PARAMETERFILE/spfile.289.1198520783'
+adump: '{{ oracle_base }}/admin/{{ db_unique_name }}/adump'
+grid_home: /u01/app/oracle/product/19.0.0/grid
+asm_disk_groups:
+  - DATA
+  - LOGS
+....
+....
+# Clond DB configuration
+clone_sid: NTAPDEV
+sys_pwd: "XXXXXXXX"
+....
+....
+# Data Guard mode - MaxAvailability or MaxPerformance
+dg_mode: MaxAvailability
+....
+
+NOTE: 为了实现更安全的自动化部署，可以使用 Ansible vault 来加密敏感信息，例如密码、访问令牌或密钥等。该解决方案不涵盖 Ansible vault 的实施，但在 Ansible 文档中有详细记录。请参阅link:https://docs.ansible.com/ansible/latest/vault_guide/index.html["使用 Ansible Vault 保护敏感数据"^]了解详情。
+
+====
+
+
+=== 主机变量配置
+
+[%collapsible%open]
+====
+主机变量在 host_vars 目录中定义，名为 {{ host_name }}.yml，仅适用于特定主机。对于此解决方案，仅配置目标克隆DB主机参数文件。 Oracle 备用数据库参数在全局 vars 文件中配置。下面是目标 Oracle 克隆 DB 主机变量文件 orac.yml 的示例，显示了典型配置。
+
+ # User configurable Oracle clone host specific parameters
+....
+# Database SID - clone DB SID
+oracle_base: /u01/app/oracle
+oracle_user: oracle
+clone_sid: NTAPDEV
+oracle_home: '{{ oracle_base }}/product/19.0.0/{{ oracle_sid }}'
+clone_adump: '{{ oracle_base }}/admin/{{ clone_sid }}/adump'
+....
+....
+grid_user: oracle
+grid_home: '{{ oracle_base }}/product/19.0.0/grid'
+asm_sid: +ASM
+....
+====
+
+
+=== 额外的克隆目标 Oracle 服务器配置
+
+[%collapsible%open]
+====
+克隆目标 Oracle 服务器应安装并修补与源 Oracle 服务器相同的 Oracle 软件堆栈。 Oracle 用户 .bash_profile 已配置 $ORACLE_BASE 和 $ORACLE_HOME。此外，$ORACLE_HOME 变量应与源 Oracle 服务器设置相匹配。如果目标 ORACLE_HOME 设置与备用 Oracle 服务器配置不同，请创建一个符号链接来解决这些差异。以下是一个例子。
+
+ # .bash_profile
+....
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+       . ~/.bashrc
+fi
+....
+ # User specific environment and startup programs
+....
+export ORACLE_BASE=/u01/app/oracle
+export GRID_HOME=/u01/app/oracle/product/19.0.0/grid
+export ORACLE_HOME=/u01/app/oracle/product/19.0.0/NTAP
+alias asm='export ORACLE_HOME=$GRID_HOME;export PATH=$PATH:$GRID_HOME/bin;export ORACLE_SID=+ASM'
+....
+
+NOTE: 确保 DB 克隆主机上的 asm_diskstring 配置参数包含所有克隆卷的 NFS 挂载点和磁盘设备的目录路径。
+
+====
+
+
+=== 剧本执行
+
+[%collapsible%open]
+====
+总共有两个剧本来执行 Oracle 数据库克隆生命周期。数据库克隆或刷新可以按需执行或作为 crontab 作业安排。
+
+. 安装 Ansible 控制器先决条件 - 仅需一次。
++
+[source, cli]
+----
+ansible-playbook -i hosts ansible_requirements.yml
+----
+. 使用 shell 脚本按需或定期从 crontab 创建和刷新克隆数据库以调用克隆或刷新剧本。
++
+[source, cli]
+----
+ansible-playbook -i oracle_clone_asm_gcnv.yml -u admin -e @vars/vars.yml
+----
++
+[source, cli]
+----
+0 */2 * * * /home/admin/na_oracle_clone_gcnv/oracle_clone_asm_gcnv.sh
+----
+
+
+要克隆任何其他数据库，请创建单独的 oracle_clone_n_asm_gcnv.yml 和 oracle_clone_n_asm_gcnv.sh。相应地配置 Ansible 目标主机、全局 vars.yml 和 host_vars 目录中的 hostname.yml 文件。
+
+
+NOTE: 工具包的执行在各个阶段都会暂停以允许特定任务完成。例如，它会暂停两分钟以允许 DB 卷克隆完成。一般来说，默认值就足够了，但根据特殊情况或实施情况，可能需要调整时间。
+
+====
+
+
+== 在哪里可以找到更多信息
+
+要了解有关NetApp解决方案自动化的更多信息，请访问以下网站link:https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/automation-introduction.html["NetApp解决方案自动化^"^]

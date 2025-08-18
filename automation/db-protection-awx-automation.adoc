@@ -1,0 +1,706 @@
+---
+sidebar: sidebar 
+permalink: automation/db-protection-awx-automation.html 
+keywords: Linux, RHEL Oracle19c, NFS, ONTAP 
+summary: 本页介绍了NetApp ONTAP存储上的 Oracle19c 的自动数据保护。 
+---
+= 分步部署过程
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本页介绍了NetApp ONTAP存储上的 Oracle19c 的自动数据保护。
+
+
+
+== AWX/Tower Oracle 数据保护
+
+
+
+=== 为您的环境创建清单、组、主机和凭证
+
+本节介绍 AWX/Ansible Tower 中的库存、组、主机和访问凭据的设置，为使用NetApp自动化解决方案准备环境。
+
+. 配置库存。
++
+.. 导航至资源 → 库存 → 添加，然后单击添加库存。
+.. 提供姓名和组织详细信息，然后单击“保存”。
+.. 在库存页面上，单击创建的库存。
+.. 导航到“组”子菜单并单击“添加”。
+.. 为您的第一个组提供名称 oracle 并单击保存。
+.. 对第二个名为 dr_oracle 的组重复此过程。
+.. 选择创建的oracle组，进入Hosts子菜单，点击Add New Host。
+.. 提供源 Oracle 主机的管理 IP 的 IP 地址，然后单击“保存”。
+.. 必须对 dr_oracle 组重复此过程并添加 DR/目标 Oracle 主机的管理 IP/主机名。
+
+
+
+
+
+NOTE: 以下是使用ONTAP的 On-Prem 或 AWS 上的 CVO 创建凭证类型和凭证的说明。
+
+[role="tabbed-block"]
+====
+.本地部署
+--
+. 配置凭据。
+. 创建凭证类型。对于涉及ONTAP的解决方案，您必须配置凭证类型以匹配用户名和密码条目。
++
+.. 导航到管理 → 凭证类型，然后单击添加。
+.. 提供名称和描述。
+.. 在输入配置中粘贴以下内容：
++
+[source, cli]
+----
+fields:
+  - id: dst_cluster_username
+    type: string
+    label: Destination Cluster Username
+  - id: dst_cluster_password
+    type: string
+    label: Destination Cluster Password
+    secret: true
+  - id: src_cluster_username
+    type: string
+    label: Source Cluster Username
+  - id: src_cluster_password
+    type: string
+    label: Source Cluster Password
+    secret: true
+----
+.. 将以下内容粘贴到 Injector Configuration 中，然后单击 Save：
++
+[source, cli]
+----
+extra_vars:
+  dst_cluster_username: '{{ dst_cluster_username }}'
+  dst_cluster_password: '{{ dst_cluster_password }}'
+  src_cluster_username: '{{ src_cluster_username }}'
+  src_cluster_password: '{{ src_cluster_password }}'
+----
+
+
+. 为ONTAP创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入ONTAP凭证的名称和组织详细信息
+.. 选择上一步中创建的凭证类型。
+.. 在类型详细信息下，输入源集群和目标集群的用户名和密码。
+.. 点击“保存”
+
+
+. 为 Oracle 创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入 Oracle 的名称和组织详细信息
+.. 选择机器凭证类型。
+.. 在类型详细信息下，输入 Oracle 主机的用户名和密码。
+.. 选择正确的权限提升方法，并输入用户名和密码。
+.. 点击“保存”
+.. 如果需要 dr_oracle 主机的不同凭证，请重复此过程。
+
+
+
+
+--
+.CVO
+--
+. 配置凭据。
+. 创建凭证类型。对于涉及ONTAP的解决方案，您必须配置凭证类型以匹配用户名和密码条目，我们还将为 Cloud Central 和 AWS 添加条目。
++
+.. 导航到管理 → 凭证类型，然后单击添加。
+.. 提供名称和描述。
+.. 在输入配置中粘贴以下内容：
++
+[source, cli]
+----
+fields:
+  - id: dst_cluster_username
+    type: string
+    label: CVO Username
+  - id: dst_cluster_password
+    type: string
+    label: CVO Password
+    secret: true
+  - id: cvo_svm_password
+    type: string
+    label: CVO SVM Password
+    secret: true
+  - id: src_cluster_username
+    type: string
+    label: Source Cluster Username
+  - id: src_cluster_password
+    type: string
+    label: Source Cluster Password
+    secret: true
+  - id: regular_id
+    type: string
+    label: Cloud Central ID
+    secret: true
+  - id: email_id
+    type: string
+    label: Cloud Manager Email
+    secret: true
+  - id: cm_password
+    type: string
+    label: Cloud Manager Password
+    secret: true
+  - id: access_key
+    type: string
+    label: AWS Access Key
+    secret: true
+  - id: secret_key
+    type: string
+    label: AWS Secret Key
+    secret: true
+  - id: token
+    type: string
+    label: Cloud Central Refresh Token
+    secret: true
+----
+.. 将以下内容粘贴到 Injector Configuration 中，然后单击“保存”：
++
+[source, cli]
+----
+extra_vars:
+  dst_cluster_username: '{{ dst_cluster_username }}'
+  dst_cluster_password: '{{ dst_cluster_password }}'
+  cvo_svm_password: '{{ cvo_svm_password }}'
+  src_cluster_username: '{{ src_cluster_username }}'
+  src_cluster_password: '{{ src_cluster_password }}'
+  regular_id: '{{ regular_id }}'
+  email_id: '{{ email_id }}'
+  cm_password: '{{ cm_password }}'
+  access_key: '{{ access_key }}'
+  secret_key: '{{ secret_key }}'
+  token: '{{ token }}'
+----
+
+
+. 为ONTAP/CVO/AWS 创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入ONTAP凭证的名称和组织详细信息
+.. 选择上一步中创建的凭证类型。
+.. 在类型详细信息下，输入源和 CVO 集群、Cloud Central/Manager、AWS 访问/密钥和 Cloud Central 刷新令牌的用户名和密码。
+.. 点击“保存”
+
+
+. 为 Oracle 创建凭证（来源）
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入 Oracle 主机的名称和组织详细信息
+.. 选择机器凭证类型。
+.. 在类型详细信息下，输入 Oracle 主机的用户名和密码。
+.. 选择正确的权限提升方法，并输入用户名和密码。
+.. 点击“保存”
+
+
+. 为 Oracle 目标创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入 DR Oracle 主机的名称和组织详细信息
+.. 选择机器凭证类型。
+.. 在类型详细信息下，输入用户名（ec2-user，或者如果您已将其从默认设置更改，请输入该用户名）和 SSH 私钥
+.. 选择正确的权限提升方法（sudo），并根据需要输入用户名和密码。
+.. 点击“保存”
+
+
+
+
+--
+====
+
+
+=== 创建项目
+
+. 转到资源 → 项目，然后单击添加。
++
+.. 输入姓名和组织详细信息。
+.. 在源代码控制凭证类型字段中选择 Git。
+.. 进入 `\https://github.com/NetApp-Automation/na_oracle19c_data_protection.git`作为源代码控制 URL。
+.. 单击“Save”。
+.. 当源代码发生变化时，项目可能需要偶尔同步。
+
+
+
+
+
+
+=== 配置全局变量
+
+本节中定义的变量适用于所有 Oracle 主机、数据库和ONTAP集群。
+
+. 在以下嵌入式全局变量或 vars 形式中输入特定于环境的参数。
+
+
+
+NOTE: 必须更改蓝色项目以匹配您的环境。
+
+[role="tabbed-block"]
+====
+.本地部署
+--
+[source, shell]
+----
+# Oracle Data Protection global user configuration variables
+# Ontap env specific config variables
+hosts_group: "ontap"
+ca_signed_certs: "false"
+
+# Inter-cluster LIF details
+src_nodes:
+  - "AFF-01"
+  - "AFF-02"
+
+dst_nodes:
+  - "DR-AFF-01"
+  - "DR-AFF-02"
+
+create_source_intercluster_lifs: "yes"
+
+source_intercluster_network_port_details:
+  using_dedicated_ports: "yes"
+  using_ifgrp: "yes"
+  using_vlans: "yes"
+  failover_for_shared_individual_ports: "yes"
+  ifgrp_name: "a0a"
+  vlan_id: "10"
+  ports:
+    - "e0b"
+    - "e0g"
+  broadcast_domain: "NFS"
+  ipspace: "Default"
+  failover_group_name: "iclifs"
+
+source_intercluster_lif_details:
+  - name: "icl_1"
+    address: "10.0.0.1"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "AFF-01"
+  - name: "icl_2"
+    address: "10.0.0.2"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "AFF-02"
+
+create_destination_intercluster_lifs: "yes"
+
+destination_intercluster_network_port_details:
+  using_dedicated_ports: "yes"
+  using_ifgrp: "yes"
+  using_vlans: "yes"
+  failover_for_shared_individual_ports: "yes"
+  ifgrp_name: "a0a"
+  vlan_id: "10"
+  ports:
+    - "e0b"
+    - "e0g"
+  broadcast_domain: "NFS"
+  ipspace: "Default"
+  failover_group_name: "iclifs"
+
+destination_intercluster_lif_details:
+  - name: "icl_1"
+    address: "10.0.0.3"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "DR-AFF-01"
+  - name: "icl_2"
+    address: "10.0.0.4"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "DR-AFF-02"
+
+# Variables for SnapMirror Peering
+passphrase: "your-passphrase"
+
+# Source & Destination List
+dst_cluster_name: "dst-cluster-name"
+dst_cluster_ip: "dst-cluster-ip"
+dst_vserver: "dst-vserver"
+dst_nfs_lif: "dst-nfs-lif"
+src_cluster_name: "src-cluster-name"
+src_cluster_ip: "src-cluster-ip"
+src_vserver: "src-vserver"
+
+# Variable for Oracle Volumes and SnapMirror Details
+cg_snapshot_name_prefix: "oracle"
+src_orabinary_vols:
+  - "binary_vol"
+src_db_vols:
+  - "db_vol"
+src_archivelog_vols:
+  - "log_vol"
+snapmirror_policy: "async_policy_oracle"
+
+# Export Policy Details
+export_policy_details:
+  name: "nfs_export_policy"
+  client_match: "0.0.0.0/0"
+  ro_rule: "sys"
+  rw_rule: "sys"
+
+# Linux env specific config variables
+mount_points:
+  - "/u01"
+  - "/u02"
+  - "/u03"
+hugepages_nr: "1234"
+redhat_sub_username: "xxx"
+redhat_sub_password: "xxx"
+
+# DB env specific install and config variables
+recovery_type: "scn"
+control_files:
+  - "/u02/oradata/CDB2/control01.ctl"
+  - "/u03/orareco/CDB2/control02.ctl"
+----
+--
+.CVO
+--
+[source, shell]
+----
+###########################################
+### Ontap env specific config variables ###
+###########################################
+
+#Inventory group name
+#Default inventory group name - "ontap"
+#Change only if you are changing the group name either in inventory/hosts file or in inventory groups in case of AWX/Tower
+hosts_group: "ontap"
+
+#CA_signed_certificates (ONLY CHANGE to "true" IF YOU ARE USING CA SIGNED CERTIFICATES)
+ca_signed_certs: "false"
+
+#Names of the Nodes in the Source ONTAP Cluster
+src_nodes:
+  - "AFF-01"
+  - "AFF-02"
+
+#Names of the Nodes in the Destination CVO Cluster
+dst_nodes:
+  - "DR-AFF-01"
+  - "DR-AFF-02"
+
+#Define whether or not to create intercluster lifs on source cluster (ONLY CHANGE to "No" IF YOU HAVE ALREADY CREATED THE INTERCLUSTER LIFS)
+create_source_intercluster_lifs: "yes"
+
+source_intercluster_network_port_details:
+  using_dedicated_ports: "yes"
+  using_ifgrp: "yes"
+  using_vlans: "yes"
+  failover_for_shared_individual_ports: "yes"
+  ifgrp_name: "a0a"
+  vlan_id: "10"
+  ports:
+    - "e0b"
+    - "e0g"
+  broadcast_domain: "NFS"
+  ipspace: "Default"
+  failover_group_name: "iclifs"
+
+source_intercluster_lif_details:
+  - name: "icl_1"
+    address: "10.0.0.1"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "AFF-01"
+  - name: "icl_2"
+    address: "10.0.0.2"
+    netmask: "255.255.255.0"
+    home_port: "a0a-10"
+    node: "AFF-02"
+
+###########################################
+### CVO Deployment Variables ###
+###########################################
+
+####### Access Keys Variables ######
+
+# Region where your CVO will be deployed.
+region_deploy: "us-east-1"
+
+########### CVO and Connector Vars ########
+
+# AWS Managed Policy required to give permission for IAM role creation.
+aws_policy: "arn:aws:iam::1234567:policy/OCCM"
+
+# Specify your aws role name, a new role is created if one already does not exist.
+aws_role_name: "arn:aws:iam::1234567:policy/OCCM"
+
+# Name your connector.
+connector_name: "awx_connector"
+
+# Name of the key pair generated in AWS.
+key_pair: "key_pair"
+
+# Name of the Subnet that has the range of IP addresses in your VPC.
+subnet: "subnet-12345"
+
+# ID of your AWS secuirty group that allows access to on-prem resources.
+security_group: "sg-123123123"
+
+# You Cloud Manager Account ID.
+account: "account-A23123A"
+
+# Name of the your CVO instance
+cvo_name: "test_cvo"
+
+# ID of the VPC in AWS.
+vpc: "vpc-123123123"
+
+###################################################################################################
+# Variables for - Add on-prem ONTAP to Connector in Cloud Manager
+###################################################################################################
+
+# For Federated users, Client ID from API Authentication Section of Cloud Central to generate access token.
+sso_id: "123123123123123123123"
+
+# For regular access with username and password, please specify "pass" as the connector_access. For SSO users, use "refresh_token" as the variable.
+connector_access: "pass"
+
+####################################################################################################
+# Variables for SnapMirror Peering
+####################################################################################################
+passphrase: "your-passphrase"
+
+#####################################################################################################
+# Source & Destination List
+#####################################################################################################
+#Please Enter Destination Cluster Name
+dst_cluster_name: "dst-cluster-name"
+
+#Please Enter Destination Cluster (Once CVO is Created Add this Variable to all templates)
+dst_cluster_ip: "dst-cluster-ip"
+
+#Please Enter Destination SVM to create mirror relationship
+dst_vserver: "dst-vserver"
+
+#Please Enter NFS Lif for dst vserver (Once CVO is Created Add this Variable to all templates)
+dst_nfs_lif: "dst-nfs-lif"
+
+#Please Enter Source Cluster Name
+src_cluster_name: "src-cluster-name"
+
+#Please Enter Source Cluster
+src_cluster_ip: "src-cluster-ip"
+
+#Please Enter Source SVM
+src_vserver: "src-vserver"
+
+#####################################################################################################
+# Variable for Oracle Volumes and SnapMirror Details
+#####################################################################################################
+#Please Enter Source Snapshot Prefix Name
+cg_snapshot_name_prefix: "oracle"
+
+#Please Enter Source Oracle Binary Volume(s)
+src_orabinary_vols:
+  - "binary_vol"
+#Please Enter Source Database Volume(s)
+src_db_vols:
+  - "db_vol"
+#Please Enter Source Archive Volume(s)
+src_archivelog_vols:
+  - "log_vol"
+#Please Enter Destination Snapmirror Policy
+snapmirror_policy: "async_policy_oracle"
+
+#####################################################################################################
+# Export Policy Details
+#####################################################################################################
+#Enter the destination export policy details (Once CVO is Created Add this Variable to all templates)
+export_policy_details:
+  name: "nfs_export_policy"
+  client_match: "0.0.0.0/0"
+  ro_rule: "sys"
+  rw_rule: "sys"
+
+#####################################################################################################
+### Linux env specific config variables ###
+#####################################################################################################
+
+#NFS Mount points for Oracle DB volumes
+mount_points:
+  - "/u01"
+  - "/u02"
+  - "/u03"
+
+# Up to 75% of node memory size divided by 2mb. Consider how many databases to be hosted on the node and how much ram to be allocated to each DB.
+# Leave it blank if hugepage is not configured on the host.
+hugepages_nr: "1234"
+
+# RedHat subscription username and password
+redhat_sub_username: "xxx"
+redhat_sub_password: "xxx"
+
+####################################################
+### DB env specific install and config variables ###
+####################################################
+#Recovery Type (leave as scn)
+recovery_type: "scn"
+
+#Oracle Control Files
+control_files:
+  - "/u02/oradata/CDB2/control01.ctl"
+  - "/u03/orareco/CDB2/control02.ctl"
+----
+--
+====
+
+
+=== 自动化剧本
+
+有四个单独的剧本需要运行。
+
+. 用于设置您的环境（On-Prem 或 CVO）的剧本。
+. 按计划复制 Oracle 二进制文件和数据库的剧本
+. 按计划复制 Oracle 日志的剧本
+. 在目标主机上恢复数据库的剧本
+
+
+[role="tabbed-block"]
+====
+.ONTAP/CVO 设置
+--
+[.underline]* ONTAP和 CVO 设置*
+
+*配置并启动作业模板。*
+
+. 创建作业模板。
++
+.. 导航到资源 → 模板 → 添加，然后单击添加作业模板。
+.. 输入名称ONTAP/CVO 设置
+.. 选择作业类型；运行根据剧本配置系统。
+.. 为剧本选择相应的库存、项目、剧本和凭证。
+.. 为 On-Prem 环境选择 ontap_setup.yml 剧本，或选择 cvo_setup.yml 复制到 CVO 实例。
+.. 将从步骤 4 复制的全局变量粘贴到 YAML 选项卡下的模板变量字段中。
+.. 单击“Save”。
+
+
+. 启动作业模板。
++
+.. 导航至资源 → 模板。
+.. 单击所需的模板，然后单击启动。
++
+
+NOTE: 我们将使用此模板并将其复制出来用于其他剧本。
+
+
+
+
+
+--
+.二进制和数据库卷的复制
+--
+[.underline]*安排二进制和数据库复制剧本*
+
+*配置并启动作业模板。*
+
+. 复制先前创建的作业模板。
++
+.. 导航至资源 → 模板。
+.. 找到ONTAP/CVO 设置模板，然后在最右侧单击“复制模板”
+.. 在复制的模板上单击编辑模板，并将名称更改为二进制和数据库复制剧本。
+.. 为模板保留相同的库存、项目和凭证。
+.. 选择 ora_replication_cg.yml 作为要执行的剧本。
+.. 变量将保持不变，但需要在变量 dst_cluster_ip 中设置 CVO 集群 IP。
+.. 单击“Save”。
+
+
+. 安排工作模板。
++
+.. 导航至资源 → 模板。
+.. 单击二进制和数据库复制剧本模板，然后单击顶部选项集中的计划。
+.. 单击添加，添加二进制和数据库复制的名称计划，选择小时开始时的开始日期/时间，选择本地时区和运行频率。运行频率将经常更新SnapMirror复制。
++
+
+NOTE: 将为日志卷复制创建单独的计划，以便可以更频繁地进行复制。
+
+
+
+
+
+--
+.日志卷的复制
+--
+[.underline]*调度日志复制剧本*
+
+*配置并启动作业模板*
+
+. 复制先前创建的作业模板。
++
+.. 导航至资源 → 模板。
+.. 找到ONTAP/CVO 设置模板，然后在最右侧单击“复制模板”
+.. 在复制的模板上单击编辑模板，并将名称更改为日志复制剧本。
+.. 为模板保留相同的库存、项目和凭证。
+.. 选择 ora_replication_logs.yml 作为要执行的剧本。
+.. 变量将保持不变，但需要在变量 dst_cluster_ip 中设置 CVO 集群 IP。
+.. 单击“Save”。
+
+
+. 安排工作模板。
++
+.. 导航至资源 → 模板。
+.. 单击“日志复制手册”模板，然后单击顶部选项集中的“计划”。
+.. 单击添加，添加日志复制的名称计划，选择小时开始时的开始日期/时间，选择本地时区和运行频率。运行频率将经常更新SnapMirror复制。
+
+
++
+
+NOTE: 建议将日志计划设置为每小时更新一次，以确保恢复到上次每小时更新。
+
+
+
+--
+.还原和恢复数据库
+--
+[.underline]*调度日志复制剧本*
+
+*配置并启动作业模板。*
+
+. 复制先前创建的作业模板。
++
+.. 导航至资源 → 模板。
+.. 找到ONTAP/CVO 设置模板，然后在最右侧单击“复制模板”
+.. 在复制的模板上单击“编辑模板”，并将名称更改为“还原和恢复手册”。
+.. 为模板保留相同的库存、项目和凭证。
+.. 选择 ora_recovery.yml 作为要执行的剧本。
+.. 变量将保持不变，但需要在变量 dst_cluster_ip 中设置 CVO 集群 IP。
+.. 单击“Save”。
+
+
++
+
+NOTE: 直到您准备好在远程站点恢复数据库时，才会运行此剧本。
+
+
+
+--
+====
+
+
+=== 恢复 Oracle 数据库
+
+. 本地生产 Oracle 数据库数据卷通过NetApp SnapMirror复制到二级数据中心的冗余ONTAP集群或公共云中的 Cloud Volume ONTAP进行保护。在完全配置的灾难恢复环境中，辅助数据中心或公共云中的恢复计算实例处于待命状态，并准备在发生灾难时恢复生产数据库。通过对操作系统内核补丁进行并行更新或同步升级，备用计算实例与本地实例保持同步。
+. 在此演示的解决方案中，Oracle 二进制卷被复制到目标并安装在目标实例上以启动 Oracle 软件堆栈。这种恢复 Oracle 的方法比灾难发生时最后一刻全新安装 Oracle 更有优势。它保证 Oracle 安装与当前的内部生产软件安装和补丁级别等完全同步。但是，这可能会或可能不会对恢复站点上复制的 Oracle 二进制卷产生额外的软件许可影响，具体取决于 Oracle 的软件许可结构。建议用户在决定使用相同方法之前，先咨询其软件许可人员，以评估潜在的 Oracle 许可要求。
+. 目标位置的备用 Oracle 主机已配置 Oracle 先决条件配置。
+. SnapMirror 已损坏，卷变为可写并安装到备用 Oracle 主机。
+. 在备用计算实例上安装所有数据库卷后，Oracle 恢复模块执行以下任务以在恢复站点恢复和启动 Oracle。
++
+.. 同步控制文件：我们在不同的数据库卷上部署了重复的 Oracle 控制文件，以保护关键的数据库控制文件。一个位于数据卷上，另一个位于日志卷上。由于数据和日志卷以不同的频率复制，因此在恢复时它们将不同步。
+.. 重新链接 Oracle 二进制文件：由于 Oracle 二进制文件已重新定位到新主机，因此需要重新链接。
+.. 恢复 Oracle 数据库：恢复机制从控制文件中检索 Oracle 日志卷中最后一个可用存档日志中的最后一个系统更改编号，并恢复 Oracle 数据库以收回故障时能够复制到 DR 站点的所有业务交易。然后，数据库以新形式启动，以在恢复站点进行用户连接和业务交易。
+
+
+
+
+
+NOTE: 在运行恢复剧本之前，请确保您具有以下内容：确保它将 /etc/oratab 和 /etc/oraInst.loc 从源 Oracle 主机复制到目标主机

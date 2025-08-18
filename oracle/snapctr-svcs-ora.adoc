@@ -1,0 +1,460 @@
+---
+sidebar: sidebar 
+permalink: oracle/snapctr-svcs-ora.html 
+keywords: Oracle, Database, SnapCenter, SnapShot, FlexClone, BlueXP, Database Backup, Database Restore, Database Clone 
+summary: 该解决方案提供了使用 Azure 云中的BlueXP控制台使用NetApp SnapCenter SaaS 进行 Oracle 数据库备份、恢复和克隆的概述和详细信息。 
+---
+= TR-4964：使用SnapCenter服务备份、恢复和克隆 Oracle 数据库 - AWS
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+该解决方案提供了使用 Azure 云中的BlueXP控制台使用NetApp SnapCenter SaaS 进行 Oracle 数据库备份、恢复和克隆的概述和详细信息。
+
+Allen Cao、Niyaz Mohamed， NetApp
+
+
+
+== 目的
+
+SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本，可通过NetApp BlueXP云管理控制台使用。它是NetApp云备份、数据保护产品的重要组成部分，适用于在NetApp云存储上运行的 Oracle 和 HANA 等数据库。这项基于 SaaS 的服务简化了传统的SnapCenter独立服务器部署，该部署通常需要在 Windows 域环境中运行的 Windows 服务器。
+
+在本文档中，我们演示了如何设置SnapCenter服务来备份、还原和克隆部署到Amazon FSx ONTAP存储和 EC2 计算实例的 Oracle 数据库。尽管设置和使用起来更容易，但SnapCenter服务提供了旧版SnapCenter UI 工具中可用的关键功能。
+
+此解决方案适用于以下用例：
+
+* 使用快照对Amazon FSx ONTAP中托管的 Oracle 数据库进行数据库备份
+* Oracle数据库故障时的恢复
+* 为开发/测试环境或其他用例快速且高效地克隆主数据库
+
+
+
+
+== 受众
+
+此解决方案适用于以下受众：
+
+* 管理在Amazon FSx ONTAP存储上运行的 Oracle 数据库的 DBA
+* 有兴趣在公共 AWS 云中测试 Oracle 数据库备份、恢复和克隆的解决方案架构师
+* 支持和管理Amazon FSx ONTAP存储的存储管理员
+* 拥有部署到Amazon FSx ONTAP存储的应用程序的应用程序所有者
+
+
+
+
+== 解决方案测试和验证环境
+
+该解决方案的测试和验证是在可能与最终部署环境不匹配的 AWS FSx 和 EC2 环境中进行的。有关更多信息，请参阅<<部署考虑的关键因素>> 。
+
+
+
+=== 架构
+
+image:snapctr-svcs-architecture.png["此图提供了BlueXP控制台内应用程序的BlueXP backup and recovery的详细图片，包括其管理的 UI、连接器和资源。"]
+
+此图提供了BlueXP控制台内应用程序的BlueXP backup and recovery的详细图片，包括 UI、连接器及其管理的资源。
+
+
+
+=== 硬件和软件组件
+
+*硬件*
+
+[cols="33%, 33%, 33%"]
+|===
+
+
+| FSx ONTAP存储 | AWS 提供的当前版本 | 同一 VPC 和可用区中的一个 FSx HA 集群 
+
+
+| 用于计算的 EC2 实例 | t2.xlarge/4vCPU/16G | 两个 EC2 T2 xlarge EC2 实例，一个作为主数据库服务器，另一个作为克隆数据库服务器 
+|===
+*软件*
+
+[cols="33%, 33%, 33%"]
+|===
+
+
+| 红帽Linux | RHEL-8.6.0_HVM-20220503-x86_64-2-Hourly2-GP2 | 部署 RedHat 订阅进行测试 
+
+
+| Oracle 网格基础设施 | 19.18 版 | 已应用RU补丁p34762026_190000_Linux-x86-64.zip 
+
+
+| Oracle 数据库 | 19.18 版 | 已应用RU补丁p34765931_190000_Linux-x86-64.zip 
+
+
+| Oracle OPatch | 版本 12.2.0.1.36 | 最新补丁 p6880880_190000_Linux-x86-64.zip 
+
+
+| SnapCenter服务 | 版本 | v2.3.1.2324 
+|===
+
+
+=== 部署考虑的关键因素
+
+* *连接器将与数据库和 FSx 部署在同一个 VPC 中。*如果可能，连接器应部署在同一个 AWS VPC 中，以便能够连接到 FSx 存储和 EC2 计算实例。
+* *为SnapCenter连接器创建的 AWS IAM 策略。* JSON 格式的策略可在详细的SnapCenter服务文档中找到。当您使用BlueXP控制台启动连接器部署时，系统还会提示您设置先决条件，并以 JSON 格式提供所需权限的详细信息。该策略应分配给拥有连接器的 AWS 用户账户。
+* *AWS 账户访问密钥和在 AWS 账户中创建的 SSH 密钥对。* SSH 密钥对分配给 ec2-user，用于登录连接器主机，然后将数据库插件部署到 EC2 DB 服务器主机。访问密钥授予使用上述 IAM 策略配置所需连接器的权限。
+* *已将凭证添加到BlueXP控制台设置。*要将Amazon FSx ONTAP添加到BlueXP工作环境，需要在BlueXP控制台设置中设置授予BlueXP访问Amazon FSx ONTAP 的权限的凭证。
+* *java-11-openjdk 安装在 EC2 数据库实例主机上。* SnapCenter服务安装需要 Java 版本 11。在尝试部署插件之前，需要在应用程序主机上安装它。
+
+
+
+
+== 解决方案部署
+
+NetApp拥有大量内容更丰富的文档，可以帮助您保护云原生应用程序数据。本文档的目标是提供分步程序，涵盖使用BlueXP控制台部署SnapCenter服务，以保护部署到Amazon FSx ONTAP和 EC2 计算实例的 Oracle 数据库。本文档补充了一般说明中可能缺少的某些细节。
+
+首先，请完成以下步骤：
+
+* 阅读一般说明link:https://docs.netapp.com/us-en/bluexp-backup-recovery/["保护您的云原生应用程序数据"^]以及与 Oracle 和Amazon FSx ONTAP相关的部分。
+* 观看以下视频演示。
+
+
+.解决方案部署
+video::4b0fd212-7641-46b8-9e55-b01200f9383a[panopto]
+
+
+=== SnapCenter服务部署的先决条件
+
+[%collapsible%open]
+====
+部署需要以下先决条件。
+
+. EC2 实例上的主 Oracle 数据库服务器，其中已完全部署并正在运行 Oracle 数据库。
+. 在 AWS 中部署的Amazon FSx ONTAP集群，托管上述数据库卷。
+. EC2 实例上的可选数据库服务器，可用于测试将 Oracle 数据库克隆到备用主机，以支持开发/测试工作负载或任何需要生产 Oracle 数据库完整数据集的用例。
+. 如果您需要帮助以满足在Amazon FSx ONTAP和 EC2 计算实例上部署 Oracle 数据库的上述先决条件，请参阅link:aws-ora-fsx-ec2-iscsi-asm.html["使用 iSCSI/ASM 在 AWS FSx/EC2 中部署和保护 Oracle 数据库"^]或白皮书link:aws-ora-fsx-ec2-deploy-intro.html["EC2 上的 Oracle 数据库部署和 FSx 最佳实践"^]
+
+
+====
+
+
+=== 加入BlueXP准备
+
+[%collapsible%open]
+====
+. 使用链接link:https://console.bluexp.netapp.com/["NetApp BlueXP"]注册BlueXP控制台访问。
+. 登录您的 AWS 账户以创建具有适当权限的 IAM 策略，并将该策略分配给将用于BlueXP连接器部署的 AWS 账户。
++
+image:snapctr-svcs-connector-001-policy.png["屏幕截图显示了 GUI 中的此步骤。"]
+
++
+该策略应使用NetApp文档中提供的 JSON 字符串进行配置。当启动连接器配置并提示您分配先决条件权限时，也可以从页面中检索 JSON 字符串。
+
+. 您还需要 AWS VPC、子网、安全组、AWS 用户帐户访问密钥和机密、ec2-user 的 SSH 密钥等，以准备好连接器配置。
+
+
+====
+
+
+=== 为SnapCenter服务部署连接器
+
+[%collapsible%open]
+====
+. 登录BlueXP控制台。对于共享帐户，最佳做法是通过单击 *帐户* > *管理帐户* > *工作区* 来添加新的工作区，从而创建单独的工作区。
++
+image:snapctr-svcs-connector-002-wspace.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 单击“*添加连接器*”以启动连接器配置工作流程。
+
+
+image:snapctr-svcs-connector-003-add.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择您的云提供商（在本例中为*Amazon Web Services*）。
+
+
+image:snapctr-svcs-connector-004-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 如果您已经在 AWS 账户中设置了*权限*、*身份验证*和*网络*步骤，请跳过这些步骤。如果没有，您必须先配置这些才能继续。从这里，您还可以检索上一节中引用的 AWS 策略的权限“<<加入BlueXP准备>> “
+
+
+image:snapctr-svcs-connector-005-remind.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 使用 *访问密钥* 和 *密钥* 输入您的 AWS 账户身份验证。
++
+image:snapctr-svcs-connector-006-auth.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 命名连接器实例并选择*详细信息*下的*创建角色*。
+
+
+image:snapctr-svcs-connector-007-details.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 使用适当的 *VPC*、*Subnet* 和 SSH *Key Pair* 配置网络以进行连接器访问。
++
+image:snapctr-svcs-connector-008-network.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 为连接器设置*安全组*。
++
+image:snapctr-svcs-connector-009-security.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 查看摘要页面并单击“*添加*”以开始创建连接器。部署完成一般需要10分钟左右。完成后，连接器实例将出现在 AWS EC2 仪表板中。
+
+
+image:snapctr-svcs-connector-010-review.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+====
+
+
+=== 在BlueXP中定义凭证以访问 AWS 资源
+
+[%collapsible%open]
+====
+. 首先，从 AWS EC2 控制台，在 *身份和访问管理 (IAM)* 菜单 *角色*、*创建角色* 中创建一个角色，以启动角色创建工作流程。
++
+image:snapctr-svcs-credential-001-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 在*选择受信任实体*页面中，选择*AWS 账户*、*另一个 AWS 账户*，然后粘贴BlueXP账户 ID，该 ID 可从BlueXP控制台中检索。
++
+image:snapctr-svcs-credential-002-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 通过 fsx 过滤权限策略并将*权限策略*添加到角色。
++
+image:snapctr-svcs-credential-003-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 在*角色详情*页面中，命名角色，添加描述，然后单击*创建角色*。
++
+image:snapctr-svcs-credential-004-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 返回BlueXP控制台，点击控制台右上角的设置图标打开 *帐户凭据* 页面，点击 *添加凭据* 启动凭据配置工作流程。
++
+image:snapctr-svcs-credential-005-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择凭证位置为 - *Amazon Web Services - BlueXP*。
++
+image:snapctr-svcs-credential-006-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 使用适当的*角色 ARN*定义 AWS 凭证，可以从上面第一步中创建的 AWS IAM 角色中检索。  BlueXP *账户 ID*，用于在第一步创建 AWS IAM 角色。
++
+image:snapctr-svcs-credential-007-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 审查并*添加*。image:snapctr-svcs-credential-008-aws.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+
+====
+
+
+=== SnapCenter服务设置
+
+[%collapsible%open]
+====
+部署连接器并添加凭据后，现在可以按照以下步骤设置SnapCenter服务：
+
+. 从*我的工作环境*单击*添加工作环境*以发现部署在 AWS 中的 FSx。
+
+
+image:snapctr-svcs-setup-001.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择*Amazon Web Services*作为位置。
+
+
+image:snapctr-svcs-setup-002.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 单击 * Amazon FSx ONTAP* 旁边的 *发现现有*。
+
+
+image:snapctr-svcs-setup-003.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择您在上一节中创建的 *Credentials Name*，以授予BlueXP管理 FSx ONTAP所需的权限。如果您尚未添加凭据，您可以从BlueXP控制台右上角的“设置”菜单添加。
++
+image:snapctr-svcs-setup-004.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择部署Amazon FSx ONTAP 的AWS 区域，选择托管 Oracle 数据库的 FSx 集群，然后单击添加。
+
+
+image:snapctr-svcs-setup-005.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 发现的Amazon FSx ONTAP实例现在出现在工作环境中。
+
+
+image:snapctr-svcs-setup-006.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 您可以使用 fsxadmin 帐户凭据登录 FSx 集群。
+
+
+image:snapctr-svcs-setup-007.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 登录Amazon FSx ONTAP后，检查数据库存储信息（例如数据库卷）。
+
+
+image:snapctr-svcs-setup-008.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 从控制台左侧边栏，将鼠标悬停在保护图标上，然后单击*保护*>*应用程序*以打开应用程序启动页面。单击“发现应用程序”。
+
+
+image:snapctr-svcs-setup-009.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择“Cloud Native”作为应用程序源类型。
+
+
+image:snapctr-svcs-setup-010.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择*Oracle*作为应用程序类型。
+
+
+image:snapctr-svcs-setup-013.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 填写 AWS EC2 Oracle 应用程序主机详细信息。选择*使用 SSH*作为*主机安装类型*，以进行一步插件安装和数据库发现。然后，点击*添加 SSH 私钥*。
++
+image:snapctr-svcs-setup-014.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 粘贴数据库 EC2 主机的 ec2-user SSH 密钥，然后单击 *验证* 继续。
++
+image:snapctr-svcs-setup-014-a.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 系统将提示您“验证指纹”以继续。
++
+image:snapctr-svcs-setup-014-b.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 单击“*下一步*”安装 Oracle 数据库插件并发现 EC2 主机上的 Oracle 数据库。发现的数据库被添加到*应用程序*。最初发现时，数据库*保护状态*显示为*不受保护*。
++
+image:snapctr-svcs-setup-017.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+
+
+这完成了 Oracle 的SnapCenter服务的初始设置。本文档的接下来三节介绍 Oracle 数据库的备份、恢复和克隆操作。
+
+====
+
+
+=== Oracle数据库备份
+
+[%collapsible%open]
+====
+. 单击数据库*保护状态*旁边的三个点，然后单击*策略*以查看可应用来保护 Oracle 数据库的默认预加载数据库保护策略。
+
+
+image:snapctr-svcs-bkup-001.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 您还可以创建自己的策略，自定义备份频率和备份数据保留窗口。
+
+
+image:snapctr-svcs-bkup-002.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 当您对策略配置感到满意时，您可以分配您选择的策略来保护数据库。
+
+
+image:snapctr-svcs-bkup-003.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择要分配给数据库的策略。
+
+
+image:snapctr-svcs-bkup-004.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 应用策略后，数据库保护状态变为*受保护*，并带有绿色复选标记。
+
+
+image:snapctr-svcs-bkup-005.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 数据库备份按照预定的时间表运行。您还可以运行一次性按需备份，如下所示。
+
+
+image:snapctr-svcs-bkup-006.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 可以通过单击菜单列表中的“查看详细信息”来查看数据库备份详细信息。这包括备份名称、备份类型、SCN 和备份日期。备份集涵盖数据卷和日志卷的快照。日志卷快照在数据库卷快照之后立即发生。如果您要在长列表中寻找特定的备份，则可以应用过滤器。
+
+
+image:snapctr-svcs-bkup-007.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+====
+
+
+=== Oracle 数据库还原和恢复
+
+[%collapsible%open]
+====
+. 对于数据库恢复，请选择正确的备份，可以通过 SCN 或备份时间。单击数据库数据备份中的三个点，然后单击*恢复*以启动数据库恢复和恢复。
+
+
+image:snapctr-svcs-restore-001.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 选择您的恢复设置。如果您确定备份后物理数据库结构没有任何变化（例如添加了数据文件或磁盘组），则可以使用*强制就地还原*选项，这通常速度更快。否则，请不要选中此框。
+
+
+image:snapctr-svcs-restore-002.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 审查并开始数据库还原和恢复。
+
+
+image:snapctr-svcs-restore-003.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+. 从“作业监控”选项卡中，您可以查看还原作业的状态以及运行时的任何详细信息。
+
+
+image:snapctr-svcs-restore-005.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+image:snapctr-svcs-restore-004.png["屏幕截图显示了 GUI 中的此步骤。"]
+
+====
+
+
+=== Oracle 数据库克隆
+
+[%collapsible%open]
+====
+要克隆数据库，请从同一数据库备份详细信息页面启动克隆工作流。
+
+. 选择正确的数据库备份副本，单击三个点查看菜单，然后选择*克隆*选项。
+
+
+image:snapctr-svcs-clone-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 如果您不需要更改任何克隆数据库参数，请选择“*基本*”选项。
+
+
+image:snapctr-svcs-clone-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 或者，选择*规范文件*，它为您提供了下载当前初始化文件、进行更改然后将其上传回作业的选项。
+
+
+image:snapctr-svcs-clone-003-a.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 审查并启动该工作。
+
+
+image:snapctr-svcs-clone-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从“*作业监控*”选项卡监控克隆作业状态。
+
+
+image:snapctr-svcs-clone-007-status.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 验证 EC2 实例主机上的克隆数据库。
+
+
+image:snapctr-svcs-clone-008-crs.png["该图显示输入/输出对话框或表示书面内容"]
+
+image:snapctr-svcs-clone-008-db.png["该图显示输入/输出对话框或表示书面内容"]
+
+====
+
+
+== 追加信息
+
+要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：
+
+* 设置和管理BlueXP
+
+
+link:https://docs.netapp.com/us-en/cloud-manager-setup-admin/index.html["https://docs.netapp.com/us-en/cloud-manager-setup-admin/index.html"^]
+
+* BlueXP backup and recovery文档
+
+
+link:https://docs.netapp.com/us-en/cloud-manager-backup-restore/index.html["https://docs.netapp.com/us-en/cloud-manager-backup-restore/index.html"^]
+
+* Amazon FSx ONTAP
+
+
+link:https://aws.amazon.com/fsx/netapp-ontap/["https://aws.amazon.com/fsx/netapp-ontap/"^]
+
+* Amazon EC2
+
+
+link:https://aws.amazon.com/pm/ec2/?trk=36c6da98-7b20-48fa-8225-4784bced9843&sc_channel=ps&s_kwcid=AL!4422!3!467723097970!e!!g!!aws%20ec2&ef_id=Cj0KCQiA54KfBhCKARIsAJzSrdqwQrghn6I71jiWzSeaT9Uh1-vY-VfhJixF-xnv5rWwn2S7RqZOTQ0aAh7eEALw_wcB:G:s&s_kwcid=AL!4422!3!467723097970!e!!g!!aws%20ec2["https://aws.amazon.com/pm/ec2/?trk=36c6da98-7b20-48fa-8225-4784bced9843&sc_channel=ps&s_kwcid=AL!4422!3!467723097970!e!!g!!aws%20ec2&ef_id=Cj0KCQiA54KfBhCKARIsAJzSrdqwQrghn6I71jiWzSeaT9Uh1-vY-VfhJixF-xnv5rWwn2S7RqZOTQ0aAh7eEALw_wcB:G:s&s_kwcid=AL!4422!3!467723097970!e!!g!!aws%20ec2"^]

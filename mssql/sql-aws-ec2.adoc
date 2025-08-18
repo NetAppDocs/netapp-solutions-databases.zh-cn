@@ -1,0 +1,739 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-aws-ec2.html 
+keywords: microsoft SQL server, AWS, EC2, FSx ONTAP 
+summary:  
+---
+= TR-4923：使用Amazon FSx ONTAP在 AWS EC2 上执行 SQL Server
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+该解决方案涵盖使用Amazon FSx ONTAP在 AWS EC2 上部署 SQL Server。
+
+
+
+== 简介
+
+许多希望将应用程序从本地迁移到云端的公司发现，本地存储系统和云存储服务所提供的功能差异阻碍了这一努力。这种差距使得迁移 Microsoft SQL Server 等企业应用程序变得更加困难。特别是，运行企业应用程序所需的服务（例如强大的快照、存储效率功能、高可用性、可靠性和一致性能）的差距迫使客户做出设计权衡或放弃应用程序迁移。有了 FSx ONTAP，客户不再需要妥协。 FSx ONTAP是一项原生（第一方）AWS 服务，由 AWS 销售、支持、计费和完全管理。它利用NetApp ONTAP的强大功能来提供与NetApp三十年来在 AWS 中作为托管服务提供的相同的企业级存储和数据管理功能。
+
+借助 EC2 实例上的 SQL Server，数据库管理员可以访问和自定义其数据库环境和底层操作系统。 EC2 实例上的 SQL Server 与 https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/what-is-fsx-ontap.html["AWS FSx ONTAP"^]存储数据库文件，实现高性能、数据管理以及使用块级复制的简单易行的迁移路径。因此，您可以通过简单的提升和转移方法、更少的点击次数以及无需模式转换在 AWS VPC 上运行复杂的数据库。
+
+
+
+== 将Amazon FSx ONTAP与 SQL Server 结合使用的优势
+
+Amazon FSx ONTAP是 AWS 中 SQL Server 部署的理想文件存储。其优势包括：
+
+* 持续的高性能和吞吐量以及低延迟
+* 利用 NVMe 缓存进行智能缓存，提高性能
+* 灵活的大小调整，以便您可以随时增加或缩减容量、吞吐量和 IOP
+* 高效的本地到 AWS 块复制
+* 使用 iSCSI（一种著名的数据库环境协议）
+* 存储效率功能，例如精简配置和零占用空间克隆
+* 备份时间从几小时缩短至几分钟，从而降低 RTO
+* 使用直观的NetApp SnapCenter UI 对 SQL 数据库进行精细备份和恢复
+* 在实际迁移之前执行多次测试迁移的能力
+* 通过文件级或 I/O 级复制缩短迁移期间的停机时间并克服迁移挑战
+* 通过在主要版本或补丁更新后找到根本原因来减少 MTTR
+
+
+使用 iSCSI 协议在 FSx ONTAP上部署 SQL Server 数据库（如在本地常用）可提供具有卓越性能、存储效率和数据管理功能的理想数据库存储环境。使用多个 iSCSI 会话，假设工作集大小为 5%，安装闪存缓存可通过 FSx ONTAP服务提供超过 100K IOP。此配置为最苛刻的应用程序提供了对性能的完全控制。连接到 FSx ONTAP的较小 EC2 实例上运行的 SQL Server 的性能可以与在更大的 EC2 实例上运行的 SQL Server 相同，因为仅对 FSx ONTAP应用网络带宽限制。减少实例的大小也会降低计算成本，从而提供 TCO 优化的部署。使用 iSCSI、SMB3.0 的 SQL 与 FSx ONTAP上的多通道、持续可用性共享相结合，为 SQL 工作负载提供了巨大优势。
+
+
+
+== 开始之前
+
+EC2 实例上的Amazon FSx ONTAP和 SQL Server 的结合使得创建企业级数据库存储设计能够满足当今最苛刻的应用程序要求。为了优化这两种技术，了解 SQL Server I/O 模式和特性至关重要。精心设计的 SQL Server 数据库存储布局支持 SQL Server 的性能和 SQL Server 基础架构的管理。良好的存储布局还可以使初始部署成功，并且随着业务的增长，环境可以顺利增长。
+
+
+
+=== 前提条件
+
+在完成本文档中的步骤之前，您应该满足以下先决条件：
+
+* 一个 AWS 账户
+* 适当的 IAM 角色来配置 EC2 和 FSx ONTAP
+* EC2 上的 Windows Active Directory 域
+* 所有 SQL Server 节点必须能够相互通信
+* 确保 DNS 解析有效并且主机名可以解析。如果没有，请使用主机文件条目。
+* SQL Server 安装的一般知识
+
+
+此外，请参阅NetApp SQL Server 环境最佳实践，以确保最佳存储配置。
+
+.EC2 上 SQL Server 环境的最佳实践配置
+[%collapsible%open]
+====
+使用 FSx ONTAP，获取存储是最简单的任务，可以通过更新文件系统来执行。这个简单的过程可以根据需要实现动态成本和性能优化，有助于平衡 SQL 工作负载，也是精简配置的重要推动因素。 FSx ONTAP精简配置旨在为运行 SQL Server 的 EC2 实例提供比文件系统中配置的更多的逻辑存储。存储空间不是预先分配空间，而是在写入数据时动态分配给每个卷或 LUN。在大多数配置中，当卷或 LUN 中的数据被删除（并且不被任何 Snapshot 副本持有）时，可用空间也会被释放回来。下表提供了动态分配存储的配置设置。
+
+[cols="40%, 60%"]
+|===
+
+
+| 设置 | 配置 
+
+
+| 数量保证 | 无（默认设置） 
+
+
+| LUN 预留 | 已启用 
+
+
+| 部分储备 | 0%（默认设置） 
+
+
+| snap_reserve | 0% 
+
+
+| 自动删除 | 卷/oldest_first 
+
+
+| 自动调整大小 | 打开 
+
+
+| 尝试先行 | 自动增长 
+
+
+| 卷分层策略 | 仅快照 
+
+
+| Snapshot 策略 | 无 
+|===
+通过这种配置，卷的总大小可以大于文件系统中可用的实际存储空间。如果 LUN 或 Snapshot 副本需要的空间超过卷中的可用空间，则卷会自动增大，从而占用包含的文件系统的更多空间。自动增长允许 FSx ONTAP自动将卷的大小增加到您预先确定的最大大小。包含文件系统中必须有可用空间来支持卷的自动增长。因此，启用自动增长后，您应该监视包含文件系统中的可用空间并在需要时更新文件系统。
+
+与此同时，设置 https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_does_the_LUN_option_space_alloc_do%3F["空间分配"^]启用 LUN 上的选项，以便当卷空间不足且卷中的 LUN 无法接受写入时，FSx ONTAP会通知 EC2 主机。此外，当 EC2 主机上的 SQL Server 删除数据时，此选项可使 FSx ONTAP自动回收空间。空间分配选项默认设置为禁用。
+
+
+NOTE: 如果在无保证的卷中创建了空间预留的 LUN，则该 LUN 的行为与非空间预留的 LUN 相同。这是因为无保证的卷没有空间分配给 LUN；由于无保证，卷本身只能在写入时分配空间。
+
+通过此配置，FSx ONTAP管理员通常可以调整卷的大小，以便他们必须管理和监控主机端和文件系统中的 LUN 中使用的空间。
+
+
+NOTE: NetApp建议对 SQL 服务器工作负载使用单独的文件系统。如果文件系统用于多个应用程序，请监视文件系统和文件系统内卷的空间使用情况，以确保卷不会争夺可用空间。
+
+
+NOTE: 自动删除选项不会删除用于创建FlexClone卷的 Snapshot 副本。
+
+
+NOTE: 对于关键任务应用程序（例如 SQL 服务器）来说，必须仔细考虑和管理存储的过度承诺，因为即使是最小的中断也是不能容忍的。在这种情况下，最好监控存储消耗趋势，以确定可以接受的过度承诺程度（如果有的话）。
+
+最佳实践
+
+. 为了获得最佳存储性能，请将文件系统容量配置为数据库总使用量的 1.35 倍。
+. 使用精简配置时需要适当的监控和有效的行动计划来避免应用程序停机。
+. 确保设置 Cloudwatch 和其他监控工具警报，以便在存储空间填满时有足够的时间联系人们并做出反应。
+
+
+====
+
+
+== 为 SQL Server 配置存储并部署 Snapcenter 以进行备份、恢复和克隆操作
+
+为了使用SnapCenter执行 SQL 服务器操作，您必须首先为 SQL 服务器创建卷和 LUN。
+
+.为 SQL Server 创建卷和 LUN
+[%collapsible%open]
+====
+要为 SQL Server 创建卷和 LUN，请完成以下步骤：
+
+. 打开Amazon FSx控制台 https://console.aws.amazon.com/fsx/[]
+. 使用创建方法下的标准创建选项为NetApp ONTAP文件系统创建Amazon FSx 。这允许您定义 FSxadmin 和 vsadmin 凭据。
++
+image:sql-awsec2-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 指定 fsxadmin 的密码。
++
+image:sql-awsec2-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 指定 SVM 的密码。
++
+image:sql-awsec2-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 按照列出的步骤创建卷 https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/creating-volumes.html["在 FSx ONTAP上创建卷"^]。
++
+最佳实践
+
++
+** 禁用存储快照副本计划和保留策略。相反，使用NetApp SnapCenter来协调 SQL Server 数据和日志卷的 Snapshot 副本。
+** 在不同卷上的各个 LUN 上配置数据库，以利用快速且精细的还原功能。
+** 将用户数据文件（.mdf）放在单独的卷上，因为它们是随机读/写工作负载。创建事务日志备份的频率通常高于创建数据库备份的频率。因此，将事务日志文件 (.ldf) 放在与数据文件不同的卷上，以便可以为每个文件创建独立的备份计划。这种分离还将日志文件的顺序写入 I/O 与数据文件的随机读/写 I/O 隔离开来，并显著提高 SQL Server 的性能。
+** Tempdb 是 Microsoft SQL Server 用作临时工作区的系统数据库，特别适用于 I/O 密集型 DBCC CHECKDB 操作。因此，将此数据库放在专用卷上。在卷数量是一项挑战的大型环境中，您可以在仔细规划后将 tempdb 合并到更少的卷中，并将其存储在与其他系统数据库相同的卷中。  tempdb 的数据保护并不是一个高优先级，因为每次重新启动 Microsoft SQL Server 时都会重新创建此数据库。
+
+
+. 使用以下 SSH 命令创建卷：
++
+....
+vol create -vserver svm001 -volume vol_awssqlprod01_data -aggregate aggr1 -size 800GB -state online -tiering-policy snapshot-only -percent-snapshot-space 0 -autosize-mode grow -snapshot-policy none -security-style ntfs
+volume modify -vserver svm001 -volume vol_awssqlprod01_data -fractional-reserve 0
+volume modify -vserver svm001 -volume vol_awssqlprod01_data -space-mgmt-try-first vol_grow
+volume snapshot autodelete modify -vserver svm001 -volume vol_awssqlprod01_data -delete-order oldest_first
+....
+. 在 Windows 服务器中使用提升的权限通过 PowerShell 启动 iSCSI 服务。
++
+....
+Start-service -Name msiscsi
+Set-Service -Name msiscsi -StartupType Automatic
+....
+. 在 Windows 服务器中使用提升的权限通过 PowerShell 安装 Multipath-IO。
++
+....
+ Install-WindowsFeature -name Multipath-IO -Restart
+....
+. 在 Windows 服务器中使用提升的权限通过 PowerShell 查找 Windows 启动器名称。
++
+....
+Get-InitiatorPort | select NodeAddress
+....
++
+image:sql-awsec2-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 使用 Putty 连接到存储虚拟机 (SVM) 并创建 iGroup。
++
+....
+igroup create -igroup igrp_ws2019sql1 -protocol iscsi -ostype windows -initiator iqn.1991-05.com.microsoft:ws2019-sql1.contoso.net
+....
+. 使用以下 SSH 命令创建 LUN：
++
+....
+lun create -path /vol/vol_awssqlprod01_data/lun_awssqlprod01_data -size 700GB -ostype windows_2008 -space-allocation enabled lun create -path /vol/vol_awssqlprod01_log/lun_awssqlprod01_log -size 100GB -ostype windows_2008 -space-allocation enabled
+....
++
+image:sql-awsec2-005.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 为了实现与操作系统分区方案的 I/O 对齐，请使用 windows_2008 作为推荐的 LUN 类型。参考 https://docs.netapp.com/us-en/ontap/san-admin/io-misalignments-properly-aligned-luns-concept.html["此处"^]了解更多信息。
+. 使用以下 SSH 命令将 igroup 映射到您刚刚创建的 LUN。
++
+....
+lun show
+lun map -path /vol/vol_awssqlprod01_data/lun_awssqlprod01_data -igroup igrp_awssqlprod01lun map -path /vol/vol_awssqlprod01_log/lun_awssqlprod01_log -igroup igrp_awssqlprod01
+....
++
+image:sql-awsec2-006.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 对于使用 Windows 故障转移群集的共享磁盘，运行 SSH 命令将相同的 LUN 映射到属于参与 Windows 故障转移群集的所有服务器的 igroup。
+. 通过 iSCSI 目标将 Windows Server 连接到 SVM。从 AWS 门户查找目标 IP 地址。
++
+image:sql-awsec2-007.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从服务器管理器和工具菜单中，选择 iSCSI 启动器。选择“发现”选项卡，然后选择“发现门户”。提供上一步中的 iSCSI IP 地址并选择“高级”。从本地适配器中，选择 Microsoft iSCSI Initiator。从启动器 IP 中，选择服务器的 IP。然后选择“确定”关闭所有窗口。
++
+image:sql-awsec2-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 对 SVM 中的第二个 iSCSI IP 重复步骤 12。
+. 选择“*目标*”选项卡，选择“*连接*”，然后选择“*启用多路径*”。
++
+image:sql-awsec2-009.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 为了获得最佳性能，请添加更多会话； NetApp建议创建五个 iSCSI 会话。选择*属性*> *添加会话*> *高级*并重复步骤 12。
++
+....
+$TargetPortals = ('10.2.1.167', '10.2.2.12')
+foreach ($TargetPortal in $TargetPortals) {New-IscsiTargetPortal -TargetPortalAddress $TargetPortal}
+....
++
+image:sql-awsec2-010.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+最佳实践
+
+* 每个目标接口配置五个 iSCSI 会话以获得最佳性能。
+* 配置循环策略以获得最佳的整体 iSCSI 性能。
+* 格式化 LUN 时，请确保将分区的分配单元大小设置为 64K
++
+.. 运行以下 PowerShell 命令以确保 iSCSI 会话持久化。
++
+....
+$targets = Get-IscsiTarget
+foreach ($target in $targets)
+{
+Connect-IscsiTarget -IsMultipathEnabled $true -NodeAddress $target.NodeAddress -IsPersistent $true
+}
+....
++
+image:sql-awsec2-011.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 使用以下 PowerShell 命令初始化磁盘。
++
+....
+$disks = Get-Disk | where PartitionStyle -eq raw
+foreach ($disk in $disks) {Initialize-Disk $disk.Number}
+....
++
+image:sql-awsec2-012.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 使用 PowerShell 运行创建分区和格式化磁盘命令。
++
+....
+New-Partition -DiskNumber 1 -DriveLetter F -UseMaximumSize
+Format-Volume -DriveLetter F -FileSystem NTFS -AllocationUnitSize 65536
+New-Partition -DiskNumber 2 -DriveLetter G -UseMaximumSize
+Format-Volume -DriveLetter G -FileSystem NTFS -AllocationUnitSize 65536
+....
+
+
+
+
+您可以使用附录 B 中的 PowerShell 脚本自动创建卷和 LUN。也可以使用SnapCenter创建 LUN。
+
+====
+一旦定义了卷和 LUN，您就需要设置SnapCenter才能执行数据库操作。
+
+.SnapCenter概述
+[%collapsible%open]
+====
+NetApp SnapCenter是针对一级企业应用程序的下一代数据保护软件。  SnapCenter具有单一玻璃管理界面，可自动化和简化与多个数据库和其他应用程序工作负载的备份、恢复和克隆相关的手动、复杂且耗时的过程。 SnapCenter利用NetApp技术，包括NetApp Snapshots、 NetApp SnapMirror、 SnapRestore和NetApp FlexClone。通过这种集成，IT 组织可以扩展其存储基础架构，满足日益严格的 SLA 承诺，并提高整个企业内管理员的工作效率。
+
+====
+.SnapCenter服务器要求
+[%collapsible%open]
+====
+下表列出了在 Microsoft Windows Server 上安装SnapCenter服务器和插件的最低要求。
+
+[cols="50%, 50%"]
+|===
+| 成分 | 需求 
+
+
+ a| 
+最小 CPU 数量
+ a| 
+四个核心/vCPU
+
+
+
+ a| 
+内存
+ a| 
+最低：8GB 建议：32GB
+
+
+
+ a| 
+存储空间
+ a| 
+安装所需的最小空间：10GB 存储库所需的最小空间：10GB
+
+
+
+| 支持的操作系统  a| 
+* Windows Server 2012
+* Windows Server 2012 R2
+* Windows Server 2016
+* Windows Server 2019
+
+
+
+
+| 软件包  a| 
+* .NET 4.5.2 或更高版本
+* Windows 管理框架 (WMF) 4.0 或更高版本
+* PowerShell 4.0 或更高版本
+
+
+|===
+有关详细信息，请参阅link:https://docs.netapp.com/us-en/snapcenter/protect-scsql/task_install_snapcenter_plug_in_for_microsoft_sql_server_database.html["空间和尺寸要求"]。
+
+有关版本兼容性，请参阅 https://mysupport.netapp.com/matrix/["NetApp 互操作性表工具"^]。
+
+====
+.数据库存储布局
+[%collapsible%open]
+====
+下图描述了使用SnapCenter备份时创建 Microsoft SQL Server 数据库存储布局的一些注意事项。
+
+image:sql-awsec2-013.png["该图显示输入/输出对话框或表示书面内容"]
+
+最佳实践
+
+. 将具有 I/O 密集型查询或大型数据库（例如 500GB 或更多）的数据库放在单独的卷上，以便更快地恢复。该卷也应由单独的作业进行备份。
+. 将不太重要或 I/O 要求较少的中小型数据库整合到单个卷。备份位于同一卷中的大量数据库可以减少需要维护的 Snapshot 副本数量。最佳做法是整合 Microsoft SQL Server 实例以使用相同的卷来控制所创建的备份 Snapshot 副本的数量。
+. 创建单独的 LUN 来存储全文相关文件和文件流相关文件。
+. 为每个主机分配单独的 LUN 来存储 Microsoft SQL Server 日志备份。
+. 存储数据库服务器元数据配置和作业详细信息的系统数据库不会频繁更新。将系统数据库/tempdb 放置在单独的驱动器或 LUN 中。不要将系统数据库与用户数据库放在同一卷中。用户数据库有不同的备份策略，并且用户数据库备份的频率与系统数据库不一样。
+. 对于 Microsoft SQL Server 可用性组设置，将副本的数据和日志文件放在所有节点上的相同文件夹结构中。
+
+
+除了将用户数据库布局分成不同的卷所带来的性能优势之外，数据库还会显著影响备份和恢复所需的时间。与托管多个用户数据文件的卷相比，拥有单独的数据和日志文件卷可以显著缩短恢复时间。同样，具有高 I/O 密集型应用程序的用户数据库也容易增加备份时间。本文档后面将提供有关备份和恢复实践的更详细说明。
+
+
+NOTE: 从 SQL Server 2012 (11.x) 开始，系统数据库（Master、Model、MSDB 和 TempDB）和数据库引擎用户数据库可以使用 SMB 文件服务器作为存储选项进行安装。这适用于独立 SQL Server 和 SQL Server 故障转移群集安装。这使您能够使用 FSx ONTAP的所有性能和数据管理功能，包括卷容量、性能可扩展性和数据保护功能，SQL Server 可以利用这些功能。应用程序服务器使用的共享必须配置连续可用的属性集，并且应使用 NTFS 安全样式创建卷。  NetApp Snapcenter 不能与 FSx ONTAP上放置在 SMB 共享上的数据库一起使用。
+
+
+NOTE: 对于不使用SnapCenter执行备份的 SQL Server 数据库，Microsoft 建议将数据和日志文件放在单独的驱动器上。对于同时更新和请求数据的应用程序，日志文件是写密集型的，而数据文件（取决于您的应用程序）是读/写密集型的。对于数据检索，不需要日志文件。因此，数据请求可以通过放置在其自身驱动器上的数据文件来满足。
+
+
+NOTE: 当您创建新数据库时，Microsoft 建议为数据和日志指定单独的驱动器。要在创建数据库后移动文件，必须使数据库脱机。有关更多 Microsoft 建议，请参阅将数据和日志文件放在单独的驱动器上。
+
+====
+.SnapCenter的安装和设置
+[%collapsible%open]
+====
+关注 https://docs.netapp.com/us-en/snapcenter/install/task_install_the_snapcenter_server_using_the_install_wizard.html["安装SnapCenter服务器"^]和 https://docs.netapp.com/us-en/snapcenter/protect-scsql/task_add_hosts_and_install_snapcenter_plug_ins_package_for_windows.html["安装适用于 Microsoft SQL Server 的SnapCenter插件"^]安装和设置SnapCenter。
+
+安装SnapCenter后，完成以下步骤进行设置。
+
+. 要设置凭证，请选择*设置* > *新建*，然后输入凭证信息。
++
+image:sql-awsec2-014.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 通过选择存储系统>新建来添加存储系统，并提供适当的 FSx ONTAP存储信息。
++
+image:sql-awsec2-015.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 通过选择“*主机*”>“*添加*”来添加主机，然后提供主机信息。  SnapCenter会自动安装 Windows 和 SQL Server 插件。此过程可能需要一些时间。
++
+image:sql-awsec2-016.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+所有插件安装完成后，必须配置日志目录。这是事务日志备份所在的位置。您可以通过选择主机，然后选择配置日志目录来配置日志目录。
+
+
+NOTE: SnapCenter使用主机日志目录来存储事务日志备份数据。这是在主机和实例级别。  SnapCenter使用的每个 SQL Server 主机都必须配置一个主机日志目录来执行日志备份。  SnapCenter有一个数据库存储库，因此与备份、恢复或克隆操作相关的元数据存储在中央数据库存储库中。
+
+主机日志目录的大小计算如下：
+
+主机日志目录大小 = ((系统数据库大小 + (最大 DB LDF 大小 × 每日日志变化率 %)) × (Snapshot 副本保留) ÷ (1 - LUN 开销空间 %)
+
+主机日志目录大小计算公式假设如下：
+
+* 不包含 tempdb 数据库的系统数据库备份
+* 10% 的 LUN 开销空间将主机日志目录放在专用卷或 LUN 上。主机日志目录中的数据量取决于备份的大小和保留备份的天数。
++
+image:sql-awsec2-017.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+如果 LUN 已经配置，您可以选择挂载点来代表主机日志目录。
+
++
+image:sql-awsec2-018.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+现在您已准备好对 SQL Server 执行备份、恢复和克隆操作。
+
+.使用SnapCenter备份数据库
+[%collapsible%open]
+====
+将数据库和日志文件放置在 FSx ONTAP LUN 上后，可以使用SnapCenter备份数据库。以下过程用于创建完整备份。
+
+最佳实践
+
+* 在SnapCenter术语中，RPO 可以定义为备份频率，例如，您希望安排备份的频率，以便将数据丢失减少到几分钟内。 SnapCenter允许您每五分钟安排一次备份。然而，在交易高峰期或给定时间内数据变化率较大时，备份可能无法在五分钟内完成。最佳做法是安排频繁的事务日志备份，而不是完整备份。
+* 有许多方法可以处理 RPO 和 RTO。这种备份方法的替代方法是针对不同的间隔针对数据和日志制定单独的备份策略。例如，从SnapCenter中，以 15 分钟的间隔安排日志备份，以 6 小时的间隔安排数据备份。
+* 使用资源组进行快照优化的备份配置和要管理的作业数量。
++
+.. 选择*资源*，然后在左上角的下拉菜单中选择*Microsoft SQL Server*。选择*刷新资源*。
++
+image:sql-awsec2-019.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 选择要备份的数据库，然后选择*下一步*和（**）添加策略（如果尚未创建）。按照*新的 SQL Server 备份策略*创建新策略。
++
+image:sql-awsec2-020.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 如果需要，请选择验证服务器。此服务器是SnapCenter在创建完整备份后运行 DBCC CHECKDB 的服务器。单击“*下一步*”获取通知，然后选择“*摘要*”进行查看。检查完毕后，单击“完成”。
++
+image:sql-awsec2-021.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 单击*立即备份*以测试备份。在弹出的窗口中，选择*备份*。
++
+image:sql-awsec2-022.png["该图显示输入/输出对话框或表示书面内容"]
+
+.. 选择*监控*来验证备份是否已完成。
++
+image:sql-awsec2-023.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+最佳实践
+
+* 从SnapCenter备份事务日志备份，以便在恢复过程中， SnapCenter可以读取所有备份文件并自动按顺序恢复。
+* 如果使用第三方产品进行备份，请选择SnapCenter中的复制备份以避免日志序列问题，并在投入生产之前测试恢复功能。
+
+
+====
+.使用SnapCenter还原数据库
+[%collapsible%open]
+====
+在 EC2 上将 FSx ONTAP与 SQL Server 结合使用的主要优势之一是它能够在每个数据库级别执行快速且细粒度的恢复。
+
+完成以下步骤，使用SnapCenter将单个数据库还原到特定时间点或最新时间点。
+
+. 选择资源，然后选择您想要恢复的数据库。
++
+image:sql-awsec2-024.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择需要恢复数据库的备份名称，然后选择恢复。
+. 按照*恢复*弹出窗口恢复数据库。
+. 选择*监控*来验证恢复过程是否成功。
++
+image:sql-awsec2-025.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+.具有大量小型到大型数据库的实例的注意事项
+[%collapsible%open]
+====
+SnapCenter可以备份资源组内一个实例或一组实例中的大量大型数据库。数据库的大小不是备份时间的主要因素。备份持续时间可能因每个卷的 LUN 数量、Microsoft SQL Server 上的负载、每个实例的数据库总数以及具体而言的 I/O 带宽和使用情况而异。在配置从实例或资源组备份数据库的策略时， NetApp建议将每个 Snapshot 副本备份的最大数据库数量限制为每个主机 100 个。确保 Snapshot 副本总数不超过 1,023 个副本的限制。
+
+NetApp还建议您通过对数据库数量进行分组来限制并行运行的备份作业，而不是为每个数据库或实例创建多个作业。为了获得最佳的备份持续时间性能，请将备份作业的数量减少到一次可以备份大约 100 个或更少的数据库的数量。
+
+如前所述，I/O 使用率是备份过程中的一个重要因素。备份过程必须等待数据库上的所有 I/O 操作完成才能静止。对于I/O操作高度密集的数据库，应该推迟到其他备份时间，或者与其他备份作业隔离，以避免影响同一资源组内要备份的其他资源。
+
+对于具有六台 Microsoft SQL Server 主机且每个实例托管 200 个数据库的环境，假设每台主机有四个 LUN，每个卷创建一个 LUN，则将完整备份策略设置为每个 Snapshot 副本备份的最大数据库数为 100。每个实例上的 200 个数据库被布局为平均分布在两个 LUN 上的 200 个数据文件，并且 200 个日志文件也平均分布在两个 LUN 上，即每个卷每个 LUN 100 个文件。
+
+通过创建三个资源组来安排三个备份作业，每个资源组包含两个实例，总共包含 400 个数据库。
+
+并行运行所有三个备份作业可同时备份 1,200 个数据库。根据服务器的负载和 I/O 使用情况，每个实例的开始和结束时间可能会有所不同。在此实例中，总共创建了 24 个 Snapshot 副本。
+
+除了完整备份之外， NetApp还建议您为关键数据库配置事务日志备份。确保数据库属性设置为完整恢复模型。
+
+最佳实践
+
+. 不要在备份中包含 tempdb 数据库，因为它包含的数据是临时的。将 tempdb 放置在不会创建 Snapshot 副本的存储系统卷中的 LUN 或 SMB 共享上。
+. 具有高 I/O 密集型应用程序的 Microsoft SQL Server 实例应在不同的备份作业中隔离，以减少其他资源的总体备份时间。
+. 将需要同时备份的数据库数量限制为大约 100 个，并错开剩余的数据库备份，以避免同时进行。
+. 在资源组中使用 Microsoft SQL Server 实例名称而不是多个数据库，因为每当在 Microsoft SQL Server 实例中创建新数据库时， SnapCenter都会自动考虑备份新数据库。
+. 如果更改数据库配置，例如将数据库恢复模式更改为完整恢复模式，请立即执行备份以允许最新的还原操作。
+. SnapCenter无法恢复在SnapCenter之外创建的事务日志备份。
+. 克隆FlexVol卷时，请确保有足够的空间用于克隆元数据。
+. 恢复数据库时，请确保卷上有足够的可用空间。
+. 创建单独的策略来每周至少管理和备份一次系统数据库。
+
+
+====
+.使用SnapCenter克隆数据库
+[%collapsible%open]
+====
+要将数据库恢复到开发或测试环境中的另一个位置，或者为了业务分析目的创建副本， NetApp 的最佳实践是利用克隆方法在同一实例或备用实例上创建数据库的副本。
+
+在 FSx ONTAP环境中托管的 iSCSI 磁盘上克隆 500GB 的数据库通常需要不到五分钟的时间。克隆完成后，用户就可以对克隆的数据库执行所有需要的读/写操作。大部分时间都消耗在磁盘扫描（diskpart）上。无论数据库的大小如何， NetApp克隆过程通常只需不到 2 分钟。
+
+数据库的克隆可以通过双重方法执行：您可以从最新的备份创建克隆，也可以使用克隆生命周期管理，通过该管理可以在辅助实例上提供最新的副本。
+
+SnapCenter允许您将克隆副本挂载到所需的磁盘上，以维护辅助实例上的文件夹结构的格式并继续安排备份作业。
+
+.将数据库克隆到同一实例中的新数据库名称
+[%collapsible%open]
+=====
+以下步骤可用于在 EC2 上运行的同一 SQL 服务器实例中将数据库克隆到新的数据库名称：
+
+. 选择资源，然后选择需要克隆的数据库。
+. 选择您想要克隆的备份名称，然后选择克隆。
+. 按照备份窗口中的克隆说明完成克隆过程。
+. 选择监视器以确保克隆已完成。
+
+
+=====
+.将数据库克隆到在 EC2 上运行的新 SQL Server 实例中
+[%collapsible%open]
+=====
+以下步骤用于将数据库克隆到在 EC2 上运行的新 SQL 服务器实例：
+
+. 在同一 VPC 中的 EC2 上创建一个新的 SQL Server。
+. 启用 iSCSI 协议和 MPIO，然后按照“为 SQL Server 创建卷和 LUN”部分中的步骤 3 和 4 设置与 FSx ONTAP的 iSCSI 连接。
+. 按照“安装和设置SnapCenter ”部分中的步骤 3，将 EC2 上的新 SQL Server 添加到SnapCenter中。
+. 选择资源 > 查看实例，然后选择刷新资源。
+. 选择资源，然后选择您想要克隆的数据库。
+. 选择您想要克隆的备份名称，然后选择克隆。
++
+image:sql-awsec2-026.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 按照从备份克隆的说明，提供 EC2 上的新 SQL Server 实例和实例名称来完成克隆过程。
+. 选择监视器以确保克隆已完成。
++
+image:sql-awsec2-027.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+=====
+====
+要了解有关此过程的更多信息，请观看以下视频：
+
+.将数据库克隆到在 EC2 上运行的新 SQL Server 实例中
+video::27f28284-433d-4273-8748-b01200fb3cd7[panopto]
+
+
+== 附录
+
+.附录 A：用于云形成模板的 YAML 文件
+[%collapsible%open]
+====
+以下 .yaml 文件可与 AWS 控制台中的云形成模板一起使用。
+
+* https://github.com/NetApp/fsxn-iscsisetup-cft["https://github.com/NetApp/fsxn-iscsisetup-cft"^]
+
+
+要使用 PowerShell 自动创建 ISCSI LUN 并安装NetApp SnapCenter ，请从 https://github.com/NetApp/fsxn-iscsisetup-ps["此 GitHub 链接"^]。
+
+====
+.附录 B：用于配置卷和 LUN 的 Powershell 脚本
+[%collapsible%open]
+====
+以下脚本用于配置卷和 LUN，并根据上面提供的说明设置 iSCSI。有两个 PowerShell 脚本：
+
+* `_EnableMPIO.ps1`
+
+
+[source, shell]
+----
+Function Install_MPIO_ssh {
+    $hostname = $env:COMPUTERNAME
+    $hostname = $hostname.Replace('-','_')
+
+    #Add schedule action for the next step
+    $path = Get-Location
+    $path = $path.Path + '\2_CreateDisks.ps1'
+    $arg = '-NoProfile -WindowStyle Hidden -File ' +$path
+    $schAction = New-ScheduledTaskAction -Execute "Powershell.exe" -Argument $arg
+    $schTrigger = New-ScheduledTaskTrigger -AtStartup
+    $schPrincipal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    $return = Register-ScheduledTask -Action $schAction -Trigger $schTrigger -TaskName "Create Vols and LUNs" -Description "Scheduled Task to run configuration Script At Startup" -Principal $schPrincipal
+    #Install -Module Posh-SSH
+    Write-host 'Enable MPIO and SSH for PowerShell' -ForegroundColor Yellow
+    $return = Find-PackageProvider -Name 'Nuget' -ForceBootstrap -IncludeDependencies
+    $return = Find-Module PoSH-SSH | Install-Module -Force
+    #Install Multipath-IO with PowerShell using elevated privileges in Windows Servers
+    Write-host 'Enable MPIO' -ForegroundColor Yellow
+    $return = Install-WindowsFeature -name Multipath-IO -Restart
+}
+Install_MPIO_ssh
+Remove-Item -Path $MyInvocation.MyCommand.Source
+----
+* `_CreateDisks.ps1`
+
+
+[listing]
+----
+....
+#Enable MPIO and Start iSCSI Service
+Function PrepISCSI {
+    $return = Enable-MSDSMAutomaticClaim -BusType iSCSI
+    #Start iSCSI service with PowerShell using elevated privileges in Windows Servers
+    $return = Start-service -Name msiscsi
+    $return = Set-Service -Name msiscsi -StartupType Automatic
+}
+Function Create_igroup_vols_luns ($fsxN){
+    $hostname = $env:COMPUTERNAME
+    $hostname = $hostname.Replace('-','_')
+    $volsluns = @()
+    for ($i = 1;$i -lt 10;$i++){
+        if ($i -eq 9){
+            $volsluns +=(@{volname=('v_'+$hostname+'_log');volsize=$fsxN.logvolsize;lunname=('l_'+$hostname+'_log');lunsize=$fsxN.loglunsize})
+        } else {
+            $volsluns +=(@{volname=('v_'+$hostname+'_data'+[string]$i);volsize=$fsxN.datavolsize;lunname=('l_'+$hostname+'_data'+[string]$i);lunsize=$fsxN.datalunsize})
+        }
+    }
+    $secStringPassword = ConvertTo-SecureString $fsxN.password -AsPlainText -Force
+    $credObject = New-Object System.Management.Automation.PSCredential ($fsxN.login, $secStringPassword)
+    $igroup = 'igrp_'+$hostname
+    #Connect to FSx N filesystem
+    $session = New-SSHSession -ComputerName $fsxN.svmip -Credential $credObject -AcceptKey:$true
+    #Create igroup
+    Write-host 'Creating igroup' -ForegroundColor Yellow
+    #Find Windows initiator Name with PowerShell using elevated privileges in Windows Servers
+    $initport = Get-InitiatorPort | select -ExpandProperty NodeAddress
+    $sshcmd = 'igroup create -igroup ' + $igroup + ' -protocol iscsi -ostype windows -initiator ' + $initport
+    $ret = Invoke-SSHCommand -Command $sshcmd -SSHSession $session
+    #Create vols
+    Write-host 'Creating Volumes' -ForegroundColor Yellow
+    foreach ($vollun in $volsluns){
+        $sshcmd = 'vol create ' + $vollun.volname + ' -aggregate aggr1 -size ' + $vollun.volsize #+ ' -vserver ' + $vserver
+        $return = Invoke-SSHCommand -Command $sshcmd -SSHSession $session
+    }
+    #Create LUNs and mapped LUN to igroup
+    Write-host 'Creating LUNs and map to igroup' -ForegroundColor Yellow
+    foreach ($vollun in $volsluns){
+        $sshcmd = "lun create -path /vol/" + $vollun.volname + "/" + $vollun.lunname + " -size " + $vollun.lunsize + " -ostype Windows_2008 " #-vserver " +$vserver
+        $return = Invoke-SSHCommand -Command $sshcmd -SSHSession $session
+        #map all luns to igroup
+        $sshcmd = "lun map -path /vol/" + $vollun.volname + "/" + $vollun.lunname + " -igroup " + $igroup
+        $return = Invoke-SSHCommand -Command $sshcmd -SSHSession $session
+    }
+}
+Function Connect_iSCSI_to_SVM ($TargetPortals){
+    Write-host 'Online, Initialize and format disks' -ForegroundColor Yellow
+    #Connect Windows Server to svm with iSCSI target.
+    foreach ($TargetPortal in $TargetPortals) {
+        New-IscsiTargetPortal -TargetPortalAddress $TargetPortal
+        for ($i = 1; $i -lt 5; $i++){
+            $return = Connect-IscsiTarget -IsMultipathEnabled $true -IsPersistent $true -NodeAddress (Get-iscsiTarget | select -ExpandProperty NodeAddress)
+        }
+    }
+}
+Function Create_Partition_Format_Disks{
+
+    #Create Partion and format disk
+    $disks = Get-Disk | where PartitionStyle -eq raw
+    foreach ($disk in $disks) {
+        $return = Initialize-Disk $disk.Number
+        $partition = New-Partition -DiskNumber $disk.Number -AssignDriveLetter -UseMaximumSize | Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 -Confirm:$false -Force
+        #$return = Format-Volume -DriveLetter $partition.DriveLetter -FileSystem NTFS -AllocationUnitSize 65536
+    }
+}
+Function UnregisterTask {
+    Unregister-ScheduledTask -TaskName "Create Vols and LUNs" -Confirm:$false
+}
+Start-Sleep -s 30
+$fsxN = @{svmip ='198.19.255.153';login = 'vsadmin';password='net@pp11';datavolsize='10GB';datalunsize='8GB';logvolsize='8GB';loglunsize='6GB'}
+$TargetPortals = ('10.2.1.167', '10.2.2.12')
+PrepISCSI
+Create_igroup_vols_luns $fsxN
+Connect_iSCSI_to_SVM $TargetPortals
+Create_Partition_Format_Disks
+UnregisterTask
+Remove-Item -Path $MyInvocation.MyCommand.Source
+....
+----
+运行文件 `EnableMPIO.ps1`第一个和第二个脚本在服务器重启后自动执行。由于对 SVM 具有凭证访问权，这些 PowerShell 脚本可以在执行后被删除。
+
+====
+
+
+== 在哪里可以找到更多信息
+
+* Amazon FSx ONTAP
+
+
+https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/what-is-fsx-ontap.html["https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/what-is-fsx-ontap.html"^]
+
+* FSx ONTAP入门
+
+
+https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/getting-started.html["https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/getting-started.html"^]
+
+* SnapCenter界面概述
+
+
+https://www.youtube.com/watch?v=8s-rV5X43iQ&t=0s["https://www.youtube.com/watch?v=8s-rV5X43iQ&t=0s"^]
+
+* 浏览SnapCenter导航窗格选项
+
+
+https://www.youtube.com/watch?v=_lDKt-koySQ["https://www.youtube.com/watch?v=_lDKt-koySQ"^]
+
+* 为 SQL Server 插件设置SnapCenter 4.0
+
+
+https://www.youtube.com/watch?v=6jgjIx276no["https://www.youtube.com/watch?v=6jgjIx276no"^]
+
+* 如何使用带有 SQL Server 插件的SnapCenter备份和还原数据库
+
+
+https://www.youtube.com/watch?v=unKwtT-BSsc["https://www.youtube.com/watch?v=unKwtT-BSsc"^]
+
+* 如何使用带有 SQL Server 插件的SnapCenter克隆数据库
+
+
+https://www.youtube.com/watch?v=Od6QWYgpFFc["https://www.youtube.com/watch?v=Od6QWYgpFFc"^]

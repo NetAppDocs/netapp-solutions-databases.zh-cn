@@ -1,0 +1,43 @@
+---
+sidebar: sidebar 
+permalink: dbops/hybrid-dbops-snapcenter-usecases.html 
+summary: 该解决方案为NetApp现场和客户提供使用基于NetApp SnapCenter GUI 的工具和公共云中的NetApp存储服务 CVO 配置、操作和迁移数据库到混合云环境的说明和指导。 
+keywords: tr-4908, tr4908, 4908, hybrid cloud, database, snapcenter, gui 
+---
+= TR-4908：采用SnapCenter的混合云数据库解决方案概述
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+曹艾伦、菲利克斯·梅里根、 NetApp
+
+[role="lead"]
+该解决方案为NetApp现场和客户提供了使用基于NetApp SnapCenter GUI 的工具和公共云中的NetApp存储服务 CVO 配置、操作和迁移数据库到混合云环境的说明和指导，适用于以下用例：
+
+* 混合云中的数据库开发/测试操作
+* 混合云中的数据库灾难恢复
+
+
+如今，出于性能、安全性和/或其他原因，许多企业数据库仍然驻留在私有企业数据中心。这种混合云数据库解决方案使企业能够在现场操作其主数据库，同时使用公共云进行开发/测试数据库操作以及灾难恢复，以降低许可和运营成本。
+
+许多企业数据库（例如 Oracle、SQL Server、SAP HANA 等）的许可和运营成本都很高。许多客户根据其数据库环境中的计算核心数量支付一次性许可费以及年度支持费用，无论这些核心用于开发、测试、生产还是灾难恢复。许多这样的环境可能并未在整个应用程序生命周期内得到充分利用。
+
+该解决方案为客户提供了一种选择，通过将用于开发、测试或灾难恢复的数据库环境迁移到云端，可以潜在地减少可授权核心的数量。通过使用公共云规模、冗余、高可用性和基于消费的计费模型，可以节省大量许可和运营成本，同时不会牺牲任何应用程序的可用性或可用性。
+
+除了潜在的数据库许可证成本节省之外， NetApp基于容量的 CVO 许可证模型还允许客户节省每 GB 的存储成本，同时为他们提供竞争存储服务所不具备的高水平数据库可管理性。下图显示了公共云中流行的存储服务的存储成本比较。
+
+image:cvo-cloud-cost-comparision.png["该图显示输入/输出对话框或表示书面内容"]
+
+该解决方案表明，通过使用基于SnapCenter GUI 的软件工具和NetApp SnapMirror技术，可以轻松设置、实施和操作混合云数据库操作。
+
+以下视频演示了SnapCenter的实际操作：
+
+* https://www.youtube.com/watch?v=-DDTVtd868Q&list=PLdXI3bZJEw7nofM6lN44eOe4aOSoryckg&index=35["使用SnapCenter跨混合云备份 Oracle 数据库"^]
+* https://www.youtube.com/watch?v=NpeDbhK5f4c["SnapCenter- 将 DEV/TEST 克隆到 AWS 云以用于 Oracle 数据库"^]
+
+
+值得注意的是，尽管本文档中的插图将 CVO 显示为公共云中的目标存储实例，但该解决方案也针对 AWS 的 FSx ONTAP存储引擎的新版本进行了全面验证。

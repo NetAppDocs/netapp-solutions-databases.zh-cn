@@ -1,0 +1,52 @@
+---
+sidebar: sidebar 
+permalink: dbops/hybrid-dbops-sc-prereq.html 
+summary: 在执行混合云数据库工作负载之前，必须在本地和云端配置某些先决条件。以下部分提供了此过程的高级摘要，以下链接提供了有关必要系统配置的更多信息。 
+keywords: workflow, prerequisites, licensing, networking, security 
+---
+= 先决条件配置
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+在执行混合云数据库工作负载之前，必须在本地和云端配置某些先决条件。以下部分提供了此过程的高级摘要，以下链接提供了有关必要系统配置的更多信息。
+
+
+
+== 现场
+
+* SnapCenter安装和配置
+* 本地数据库服务器存储配置
+* 许可要求
+* 网络和安全
+* 自动化
+
+
+
+
+== 公共云
+
+* NetApp Cloud Central 登录
+* 通过 Web 浏览器访问多个端点的网络
+* 连接器的网络位置
+* 云提供商权限
+* 个人服务网络
+
+
+重要注意事项：
+
+. 在哪里部署 Cloud Manager Connector？
+. Cloud Volume ONTAP 的大小和架构
+. 单节点还是高可用性？
+
+
+以下链接提供了更多详细信息：
+
+link:hybrid-dbops-sc-prereq-onprem.html["内部部署"]
+
+link:hybrid-dbops-sc-prereq-cloud.html["公有云"]

@@ -1,0 +1,62 @@
+---
+sidebar: sidebar 
+permalink: videos/videos-oracle-videos.html 
+summary: 一系列视频和演示讨论了 NetApp 众多解决方案的功能 
+keywords: netapp, solutions, videos, demos 
+---
+= 观看有关NetApp的 Oracle 数据库解决方案的视频和演示
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+探索 NetApp 的综合视频库，其中包含NetApp针对 Oracle 的数据库解决方案。每个集合都重点介绍了针对企业工作负载的实用解决方案、集成最佳实践和现代数据库管理。
+
+
+
+== 部署和自动化
+
+.使用 NFS 在Azure NetApp Files上简化和自动化 Oracle 部署
+video::d1c859b6-e45a-44c7-8361-b10f012fc89b[panopto,width=360]
+.使用 iSCSI 在Amazon FSx ONTAP上简化和自动化 Oracle 部署
+video::81e389a0-d9b8-495c-883b-b0d701710847[panopto,width=360]
+.使用 iSCSI 在NetApp ASA上简化和自动化 Oracle 部署
+video::79095731-6b02-41d5-9fa1-b0c00100d055[panopto,width=360]
+.使用 ASM 从 GCNV 上的 DataGuard 备用服务器自动克隆 Oracle DB
+video::74062c18-b120-45b7-9bf9-b2db00f73675[panopto,width=360]
+.使用 Ansible 在FlexPod上自动部署 Oracle 19c RAC
+video::VcQMJIRzhoY[youtube,width=360]
+
+
+== 备份、恢复和克隆
+
+.使用SnapCenter在 ANF 上进行 Oracle 数据库备份、恢复和克隆
+video::960fb370-c6e0-4406-b6d5-b110014130e8[panopto,width=360]
+.第 4a 部分 - 使用SnapCenter UI 从复制的备用副本克隆用于开发/测试的数据库
+video::2f731d7c-0873-4a4d-8491-b01200f90a82[panopto,width=360]
+.第 4b 部分 - 使用SnapCenter UI 进行数据库备份、恢复和克隆
+video::97790d62-ff19-40e0-9784-b01200f920ed[panopto,width=360]
+.第 4c 部分 - 使用BlueXP SaaS Apps 备份和恢复进行数据库备份和恢复
+video::4b0fd212-7641-46b8-9e55-b01200f9383a[panopto,width=360]
+.使用存储快照进行 Oracle 多租户可插拔数据库克隆
+video::krzMWjrrMb0[youtube,width=360]
+
+
+== 现代化和迁移
+
+.第 1 部分 - 利用 AWS 和 FSx ONTAP中的混合云实现 Oracle 现代化
+video::b1a7bb05-caea-44a0-bd9a-b01200f372e9[panopto,width=360]
+.第 2a 部分 - 使用自动化 PDB 迁移将数据库从本地迁移到 AWS，并实现最高可用性
+video::bb088a3e-bbfb-4927-bf44-b01200f38b17[panopto,width=360]
+.第 2b 部分 - 使用BlueXP控制台通过SnapMirror将数据库从本地迁移到 AWS
+video::c0df32f8-d6d3-4b79-b0bd-b01200f3a2e8[panopto,width=360]
+
+
+== 高可用性、灾难恢复和复制
+
+.第 3 部分 - 自动数据库 HA/DR 复制设置、故障转移、重新同步
+video::5fd03759-a691-4007-9748-b01200f3b79c[panopto,width=360]

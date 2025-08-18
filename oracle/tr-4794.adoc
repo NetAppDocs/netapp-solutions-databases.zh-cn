@@ -1,0 +1,21 @@
+---
+sidebar: sidebar 
+permalink: oracle/tr-4794.html 
+keywords:  
+summary:  
+---
+= TR-4794： NetApp EF 系列上的 Oracle 数据库
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+Mitch Blackburn、Ebin Kadavy、 NetApp
+
+[role="lead"]
+TR-4794 旨在帮助存储管理员和数据库管理员在NetApp EF 系列存储上成功部署 Oracle。
+
+link:https://www.netapp.com/pdf.html?item=/media/17248-tr4794pdf.pdf["TR-4794： NetApp EF 系列上的 Oracle 数据库"^]

@@ -1,0 +1,83 @@
+---
+sidebar: sidebar 
+permalink: oracle/aws-ora-fsx-ec2-migration.html 
+summary: 本节详细介绍了将 Oracle 数据库从本地迁移到 AWS EC2 实例和 FSx 存储时需要考虑的因素。 
+keywords: HA, DR, database, Oracle, RDS, AWS, SnapCenter 
+---
+= 数据库从本地迁移到公共云
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+无论如何，数据库迁移都是一项具有挑战性的任务。将 Oracle 数据库从本地迁移到云端也不例外。
+
+以下部分提供了使用 AWS EC2 计算和 FSx 存储平台将 Oracle 数据库迁移到 AWS 公共云时需要考虑的关键因素。
+
+
+
+== ONTAP存储可在本地使用
+
+如果内部部署 Oracle 数据库位于ONTAP存储阵列上，则可以使用 AWS FSx ONTAP存储内置的NetApp SnapMirror技术更轻松地设置数据库迁移的复制。可以使用NetApp BlueXP控制台来协调迁移过程。
+
+. 构建与本地实例匹配的目标计算 EC2 实例。
+. 从 FSx 控制台提供匹配的、大小相等的数据库卷。
+. 将 FSx 数据库卷挂载到 EC2 实例。
+. 设置本地数据库卷与目标 FSx 数据库卷之间的SnapMirror复制。初始同步可能需要一些时间来移动主要源数据，但任何后续增量更新都会快得多。
+. 切换时，关闭主应用程序以停止所有事务。从 Oracle sqlplus CLI 界面执行 Oracle 在线日志切换并允许SnapMirror同步将最后的存档日志推送到目标卷。
+. 分解镜像卷，在目标上运行 Oracle 恢复，并启动数据库进行服务。
+. 将应用程序指向云中的 Oracle 数据库。
+
+
+以下视频演示了如何使用NetApp BlueXP控制台和SnapMirror复制将 Oracle 数据库从本地迁移到 AWS FSx/EC2。
+
+.将本地 Oracle 数据库迁移到 AWS
+video::c0df32f8-d6d3-4b79-b0bd-b01200f3a2e8[panopto]
+
+
+== ONTAP存储在本地不可用
+
+如果内部部署 Oracle 数据库托管在ONTAP以外的第三方存储上，则数据库迁移将基于 Oracle 数据库备份副本的还原。您必须在切换之前播放存档日志以使其变为最新。
+
+AWS S3 可用作数据库移动和迁移的暂存存储区域。请参阅此方法的以下高级步骤：
+
+. 预置一个与本地实例相当的新的匹配 EC2 实例。
+. 从 FSx 存储中配置相等的数据库卷并将卷挂载到 EC2 实例。
+. 创建磁盘级 Oracle 备份副本。
+. 将备份副本移动到 AWS S3 存储。
+. 重新创建 Oracle 控制文件并通过从 S3 存储中提取数据和存档日志来恢复和恢复数据库。
+. 将目标 Oracle 数据库与本地源数据库同步。
+. 切换时，关闭应用程序和源 Oracle 数据库。复制最后几个存档日志并将其应用到目标 Oracle 数据库以使其保持最新。
+. 启动目标数据库以供用户访问。
+. 将应用程序重定向到目标数据库以完成切换。
+
+
+
+
+== 使用 PDB 重定位将本地 Oracle 数据库迁移到 AWS FSx/EC2，并实现最高可用性
+
+这种迁移方法最适合已在 PDB/CDB 多租户模型中部署的 Oracle 数据库，并且ONTAP存储在本地不可用。  PDB 重定位方法利用 Oracle PDB 热克隆技术在源 CDB 和目标 CDB 之间移动 PDB，同时最大限度地减少服务中断。
+
+首先，在 AWS FSx/EC2 中创建具有足够存储空间的 CDB，以托管要从本地迁移的 PDB。可以一次重新定位多个本地 PDB。
+
+. 如果本地数据库部署在单个实例中，而不是多租户 PDB/CDB 模型中，请按照link:azure-ora-nfile-migration.html#converting-a-single-instance-non-cdb-to-a-pdb-in-a-multitenant-cdb["将单实例非 CDB 转换为多租户 CDB 中的 PDB"^]将单个实例转换为多租户 PDB/CDB。然后按照下一步将转换后的 PDB 迁移到 AWS FSx/EC2 中的 CDB。
+. 如果本地数据库已部署在多租户 PDB/CDB 模型中，请按照link:azure-ora-nfile-migration.html#migrate-on-premises-oracle-databases-to-azure-with-pdb-relocation["使用 PDB 迁移将本地 Oracle 数据库迁移到云"^]执行迁移。
+
+
+以下视频演示了如何使用 PDB 重定位将 Oracle 数据库 (PDB) 迁移到 FSx/EC2 以实现最大可用性。
+
+link:https://www.netapp.tv/insight/details/29998?playlist_id=0&mcid=85384745435828386870393606008847491796["将本地 Oracle PDB 迁移到具有最大可用性的 AWS CDB"^]
+
+
+NOTE: 虽然步骤 1 和 2 中的说明是在 Azure 公共云的背景下说明的，但这些过程无需任何更改即可适用于 AWS 云。
+
+NetApp解决方案自动化团队提供了一个迁移工具包，可以促进 Oracle 数据库从本地迁移到 AWS 云。使用以下命令下载用于 PDB 重定位的 Oracle 数据库迁移工具包。
+
+[source, cli]
+----
+git clone https://github.com/NetApp-Automation/na_ora_aws_migration.git
+----

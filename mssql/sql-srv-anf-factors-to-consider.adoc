@@ -1,0 +1,130 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-srv-anf-factors-to-consider.html 
+keywords: performance, redundancy, high availability, storage configuration, continuously available shares, validation, 
+summary: 本节介绍在云中使用Azure NetApp Files和 SQL Server 时应考虑的不同问题。 
+---
+= 需要考虑的因素
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本节介绍在云中使用Azure NetApp Files和 SQL Server 时应考虑的不同问题。
+
+
+
+== 虚拟机性能
+
+选择正确的虚拟机大小对于公共云中关系数据库的最佳性能非常重要。 Microsoft 建议您继续使用适用于本地服务器环境中的 SQL Server 的相同数据库性能调整选项。使用 https://docs.microsoft.com/en-us/azure/virtual-machines/sizes-memory["内存优化"^]适合 SQL Server 工作负载最佳性能的 VM 大小。收集现有部署的性能数据，以便在选择正确的实例时识别 RAM 和 CPU 利用率。大多数部署在 D、E 或 M 系列之间进行选择。
+
+*笔记：*
+
+* 为了获得 SQL Server 工作负载的最佳性能，请使用内存优化的 VM 大小。
+* NetApp和 Microsoft 建议您在选择具有适当内存与 vCore 比率的实例类型之前确定存储性能要求。这也有助于选择具有合适网络带宽的较低实例类型，以克服虚拟机的存储吞吐量限制。
+
+
+
+
+== 虚拟机冗余
+
+为了提高冗余度和高可用性，SQL Server VM 应该位于同一 https://docs.microsoft.com/en-us/azure/virtual-machines/availability-set-overview["可用性集"^]或不同 https://docs.microsoft.com/en-us/azure/availability-zones/az-overview["可用区域"^]。创建 Azure VM 时，您必须在配置可用性集和可用性区域之间进行选择；Azure VM 不能同时参与两者。
+
+
+
+== 高可用性
+
+为了实现高可用性，配置 SQL Server AOAG 或 Always On 故障转移群集实例 (FCI) 是最佳选择。对于 AOAG，这涉及虚拟网络中 Azure 虚拟机上的多个 SQL Server 实例。如果数据库级别需要高可用性，请考虑配置 SQL Server 可用性组。
+
+
+
+== 存储配置
+
+可以使用 SMB 文件共享作为存储选项进行部署。从 SQL Server 2012 开始，系统数据库（master、model、msdb 或 tempdb）和用户数据库可以与服务器消息块 (SMB) 文件服务器一起安装作为存储选项。这适用于 SQL Server 独立版和 SQL Server FCI。
+
+
+NOTE: SQL Server 数据库的文件共享存储应支持持续可用属性。这提供了对文件共享数据的不间断访问。
+
+Azure NetApp Files提供高性能文件存储以满足任何苛刻的工作负载，并且与块存储解决方案相比，它降低了 SQL Server TCO。使用块存储，虚拟机对磁盘操作的 I/O 和带宽施加了限制；仅对Azure NetApp Files应用网络带宽限制。换句话说， Azure NetApp Files不适用任何 VM 级 I/O 限制。没有这些 I/O 限制，在连接到Azure NetApp Files的较小 VM 上运行的 SQL Server 的性能可以与在更大的 VM 上运行的 SQL Server 一样好。 Azure NetApp Files通过降低计算和软件许可成本来降低 SQL Server 部署成本。有关使用Azure NetApp Files进行 SQL Server 部署的详细成本分析和性能优势，请参阅 https://docs.microsoft.com/en-us/azure/azure-netapp-files/solutions-benefits-azure-netapp-files-sql-server["使用Azure NetApp Files进行 SQL Server 部署的优势"^]。
+
+
+
+=== 受益
+
+使用Azure NetApp Files for SQL Server 的优势包括：
+
+* 使用Azure NetApp Files允许您使用更小的实例，从而降低计算成本。
+* Azure NetApp Files还降低了软件许可成本，从而降低了总体 TCO。
+* 卷重塑和动态服务级别功能通过调整稳定状态工作负载的大小并避免过度配置来优化成本。
+
+
+*笔记：*
+
+* 为了提高冗余度和高可用性，SQL Server VM 应该位于同一 https://docs.microsoft.com/en-us/azure/virtual-machines/availability-set-overview["可用性集"^]或者以不同的方式 https://docs.microsoft.com/en-us/azure/availability-zones/az-overview["可用区域"^]。如果需要用户定义的数据文件，请考虑文件路径要求；在这种情况下，选择 SQL FCI 而不是 SQL AOAG。
+* 支持以下 UNC 路径： file:///\\ANFSMB-b4ca.anf.test\SQLDB%20and%20\\ANFSMB-b4ca.anf.test\SQLDB\["\\ANFSMB-b4ca.anf.test\SQLDB 和 \\ANFSMB-b4ca.anf.test\SQLDB\"^] 。
+* 不支持环回 UNC 路径。
+* 对于大小调整，请使用来自本地环境的历史数据。对于 OLTP 工作负载，使用平均时间和峰值时间的工作负载以及磁盘读取/秒和磁盘写入/秒性能计数器将目标 IOPS 与性能要求进行匹配。对于数据仓库和报告工作负载，使用平均和峰值时间的工作负载以及磁盘读取字节数/秒和磁盘写入字节数/秒来匹配目标吞吐量。平均值可以与体积重塑功能结合使用。
+
+
+
+
+== 创建持续可用的共享
+
+使用 Azure 门户或 Azure CLI 创建持续可用的共享。在门户中，选择“启用连续可用性”属性选项。对于 Azure CLI，使用 `az netappfiles volume create with the smb-continuously-avl`选项设置为 `$True`。要了解有关创建新的、支持持续可用性的卷的更多信息，请参阅 https://docs.microsoft.com/en-us/azure/azure-netapp-files/azure-netapp-files-create-volumes-smb["创建持续可用的共享"^]。
+
+*笔记：*
+
+* 为 SMB 卷启用持续可用性，如下图所示。
+* 如果使用非管理员域帐户，请确保该帐户已分配所需的安全权限。
+* 在共享级别设置适当的权限并设置适当的文件级别权限。
+* 无法在现有的 SMB 卷上启用持续可用属性。要将现有卷转换为使用持续可用的共享，请使用NetApp Snapshot 技术。有关更多信息，请参阅link:https://learn.microsoft.com/en-us/azure/azure-netapp-files/enable-continuous-availability-existing-smb["将现有 SMB 卷转换为使用连续可用性"^] 。
+
+
+image:sql-srv-anf-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 性能
+
+Azure NetApp Files支持三种服务级别：标准级（每 TB 16MBps）、高级级（每 TB 64MBps）和超级级（每 TB 128MBps）。配置正确的卷大小对于数据库工作负载的最佳性能非常重要。使用Azure NetApp Files，卷性能和吞吐量限制基于以下因素的组合：
+
+* 卷所属容量池的服务级别
+* 分配给卷的配额
+* 容量池的服务质量 (QoS) 类型（自动或手动）
+
+
+有关更多信息，请参阅 https://docs.microsoft.com/en-us/azure/azure-netapp-files/azure-netapp-files-service-levels["Azure NetApp Files的服务级别"^] 。
+
+image:sql-srv-anf-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 性能验证
+
+与任何部署一样，测试虚拟机和存储至关重要。对于存储验证，应该使用诸如 HammerDB、Apploader 或任何具有适当读/写组合的自定义脚本或 FIO 等工具。但请记住，大多数 SQL Server 工作负载（即使是繁忙的 OLTP 工作负载）也接近 80%–90% 的读取和 10%–20% 的写入。
+
+为了展示性能，对使用高级服务级别的卷进行了快速测试。在此测试中，卷大小从 100GB 动态增加到 2TB，而应用程序访问没有任何中断，并且没有数据迁移。
+
+image:sql-srv-anf-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+这是使用 HammerDB 对本文所述部署进行实时性能测试的另一个示例。在本次测试中，我们使用了一个具有 8 个 vCPU、500GB Premium SSD 和 500GB SMB Azure NetApp Files卷的小型实例。  HammerDB 配置了 80 个仓库和 8 个用户。
+
+下图显示，当使用同等大小的卷（500GB）时， Azure NetApp Files每分钟能够提供 2.6 倍的交易数量，同时延迟降低 4 倍。
+
+通过调整为具有 32x vCPU 和 16TB Azure NetApp Files卷的更大实例，执行了额外的测试。每分钟交易量显著增加，且延迟始终保持在 1ms。  HammerDB 本次测试配置了 80 个仓库和 64 个用户。
+
+image:sql-srv-anf-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 成本优化
+
+Azure NetApp Files允许无中断、透明地调整卷大小，并且能够在零停机时间和不影响应用程序的情况下更改服务级别。这是一项独特的功能，允许动态成本管理，避免使用峰值指标执行数据库大小调整。相反，您可以使用稳定状态工作负载，从而避免前期成本。通过卷重塑和动态服务级别更改，您可以几乎即时地按需调整Azure NetApp Files卷的带宽和服务级别，而无需暂停 I/O，同时保留数据访问。
+
+可以使用 LogicApp 或 Functions 等 Azure PaaS 产品根据特定的 webhook 或警报规则触发器轻松调整卷大小，以满足工作负载需求，同时动态处理成本。
+
+例如，假设一个数据库需要 250MBps 才能实现稳定状态运行；但是，它还需要 400MBps 的峰值吞吐量。在这种情况下，应使用 Premium 服务级别内的 4TB 卷进行部署，以满足稳定状态的性能要求。为了处理峰值工作负载，请在特定时间段内使用 Azure 函数将卷大小增加到 7TB，然后缩小卷大小以使部署更具成本效益。此配置避免了存储的过度配置。

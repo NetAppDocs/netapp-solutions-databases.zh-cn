@@ -1,0 +1,203 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-srv-anf-ref-design-overview.html 
+keywords: data layout, migration, backup, recovery, dev test, thick clones, business continuity, hybrid storage, snapshot, archive, 
+summary: 本节介绍使用Azure NetApp Files SMB 卷在 AOAG 配置中实时部署 SQL 数据库资产。 
+---
+= 实时、高级参考设计
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本节介绍使用Azure NetApp Files SMB 卷在 AOAG 配置中实时部署 SQL 数据库资产。
+
+* 节点数：4
+* 数据库数量：21
+* 可用性组数量：4
+* 备份保留：7天
+* 备份存档：365天
+
+
+
+NOTE: 使用Azure NetApp Files共享在 Azure 虚拟机上部署带有 SQL Server 的 FCI 可提供具有单一数据副本的经济高效的模型。如果文件路径与辅助副本不同，此解决方案可以防止添加文件操作问题。
+
+image:sql-srv-anf-005.png["该图显示输入/输出对话框或表示书面内容"]
+
+下图显示了 AOAG 内分布在各个节点的数据库。
+
+image:sql-srv-anf-006.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 数据布局
+
+用户数据库文件 (.mdf) 和用户数据库事务日志文件 (.ldf) 以及 tempDB 存储在同一卷上。服务级别为超高。
+
+该配置由四个节点和四个 AG 组成。所有 21 个数据库（Dynamic AX、SharePoint、RDS 连接代理和索引服务的一部分）都存储在Azure NetApp Files卷上。  AOAG 节点之间的数据库是平衡的，以有效地利用节点上的资源。 WSFC中添加了四个D32 v3实例，参与AOAG配置。这四个节点是在 Azure 虚拟网络中配置的，不会从本地迁移。
+
+*笔记：*
+
+* 如果日志根据应用程序的性质和执行的查询需要更多的性能和吞吐量，则可以将数据库文件放在 Premium 服务级别，并将日志存储在 Ultra 服务级别。
+* 如果 tempdb 文件已放置在Azure NetApp Files上，则应将Azure NetApp Files卷与用户数据库文件分开。这是 AOAG 中数据库文件分布的示例。
+
+
+*笔记：*
+
+* 为了保留基于 Snapshot 副本的数据保护的优势， NetApp建议不要将数据和日志数据合并到同一个卷中。
+* 如果辅助数据库的文件路径与相应主数据库的路径不同，则在主副本上执行的添加文件操作可能会在辅助数据库上失败。如果主节点和辅助节点上的共享路径不同（由于计算机帐户不同），则可能会发生这种情况。此故障可能会导致辅助数据库暂停。如果无法预测增长或性能模式，并且计划稍后添加文件，则使用Azure NetApp Files 的SQL Server 故障转移群集是一种可接受的解决方案。对于大多数部署， Azure NetApp Files满足性能要求。
+
+
+
+
+=== 迁移
+
+有多种方法可以将本地 SQL Server 用户数据库迁移到 Azure 虚拟机中的 SQL Server。迁移可以是在线的，也可以是离线的。所选择的选项取决于 SQL Server 版本、业务需求以及组织内定义的 SLA。为了最大限度地减少数据库迁移过程中的停机时间， NetApp建议使用 AlwaysOn 选项或事务复制选项。如果无法使用这些方法，您可以手动迁移数据库。
+
+跨机器移动数据库的最简单且经过最彻底测试的方法是备份和恢复。通常，您可以从数据库备份开始，然后将数据库备份复制到 Azure。然后您可以恢复数据库。为了获得最佳数据传输性能，请使用压缩备份文件将数据库文件迁移到 Azure VM。本文档中引用的高级设计使用 Azure 文件同步备份方法将文件存储备份到 Azure 文件存储，然后还原到 Azure NetApp文件。
+
+
+NOTE: Azure Migrate 可用于发现、评估和迁移 SQL Server 工作负载。
+
+要执行迁移，请完成以下高级步骤：
+
+. 根据您的要求，设置连接。
+. 将完整数据库备份到本地文件共享位置。
+. 使用 Azure 文件同步将备份文件复制到 Azure 文件共享。
+. 使用所需版本的 SQL Server 配置 VM。
+. 使用 `copy`从命令提示符处输入命令。
+. 将完整数据库还原到 Azure 虚拟机上的 SQL Server。
+
+
+
+NOTE: 恢复 21 个数据库大约需要九个小时。这种方法是针对这种情况的。但是，您可以根据您的情况和要求使用下面列出的其他迁移技术。
+
+将数据从本地 SQL Server 移动到Azure NetApp Files 的其他迁移选项包括：
+
+* 分离数据和日志文件，将它们复制到 Azure Blob 存储，然后通过从 URL 挂载的 ANF 文件共享将它们附加到 Azure VM 中的 SQL Server。
+* 如果您在本地使用 Always On 可用性组部署，请使用 https://docs.microsoft.com/en-us/previous-versions/azure/virtual-machines/windows/sqlclassic/virtual-machines-windows-classic-sql-onprem-availability["添加 Azure 副本向导"^]在 Azure 中创建副本，然后执行故障转移。
+* 使用 SQL Server https://docs.microsoft.com/en-us/sql/relational-databases/replication/transactional/transactional-replication["事务复制"^]将 Azure SQL Server 实例配置为订阅者，禁用复制，并将用户指向 Azure 数据库实例。
+* 使用 Windows 导入/导出服务运送硬盘。
+
+
+
+
+=== 备份和恢复
+
+备份和恢复是任何 SQL Server 部署的重要方面。必须拥有适当的安全网，以便与 AOAG 等高可用性解决方案结合，从各种数据故障和丢失情况中快速恢复。  SQL Server 数据库静默工具、Azure Backup（流式备份）或任何第三方备份工具（例如 Commvault）均可用于执行数据库的应用程序一致性备份，
+
+Azure NetApp Files Snapshot 技术允许您轻松创建用户数据库的时间点 (PiT) 副本，而不会影响性能或网络利用率。该技术还允许您将 Snapshot 副本还原到新卷，或者使用恢复卷功能将受影响的卷快速恢复到创建该 Snapshot 副本时的状态。 Azure NetApp Files快照过程非常快速高效，允许进行多次每日备份，这与 Azure 备份提供的流备份不同。由于一天内可以有多个 Snapshot 副本，因此可以显著减少 RPO 和 RTO 时间。要添加应用程序一致性，以便在创建 Snapshot 副本之前数据完整且正确刷新到磁盘，请使用 SQL Server 数据库静默工具(https://mysupport.netapp.com/site/tools/tool-eula/scsqlapi["SCSQLAPI 工具"^]；访问此链接需要NetApp SSO 登录凭证）。该工具可以从 PowerShell 中执行，它会使 SQL Server 数据库静止，进而可以获取应用程序一致的存储快照副本进行备份。
+
+*备注：*
+
+* SCSQLAPI 工具仅支持 SQL Server 2016 和 2017 版本。
+* SCSQLAPI 工具一次只能与一个数据库一起使用。
+* 将文件放置在单独的Azure NetApp Files卷上，以隔离每个数据库中的文件。
+
+
+由于 SCSQL API 的巨大限制， https://docs.microsoft.com/en-us/azure/backup/backup-azure-sql-database["Azure 备份"^]用于数据保护以满足 SLA 要求。它提供了在 Azure 虚拟机和Azure NetApp Files中运行的 SQL Server 的基于流的备份。  Azure Backup 允许 15 分钟的 RPO，并进行频繁的日志备份和最多一秒的 PiT 恢复。
+
+
+
+=== 监控
+
+Azure NetApp Files与 Azure Monitor 集成以获取时间序列数据，并提供有关分配存储、实际存储使用情况、卷 IOPS、吞吐量、磁盘读取字节数/秒、磁盘写入字节数/秒、磁盘读取数/秒和磁盘写入数/秒以及相关延迟的指标。这些数据可用于识别警报瓶颈并执行健康检查以验证您的 SQL Server 部署是否在最佳配置中运行。
+
+在此 HLD 中，ScienceLogic 用于通过使用适当的服务主体公开指标来监视Azure NetApp Files。下图是Azure NetApp Files指标选项的示例。
+
+image:sql-srv-anf-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+=== 使用厚克隆的开发测试
+
+使用Azure NetApp Files，您可以创建数据库的即时副本，以便在应用程序开发周期中测试应使用当前数据库结构和内容实现的功能，在填充数据仓库时使用数据提取和操作工具，甚至恢复被错误删除或更改的数据。此过程不涉及从 Azure Blob 容器复制数据，因此非常高效。卷恢复后，可用于读/写操作，从而大大减少验证和上市时间。这需要与 SCSQLAPI 结合使用以确保应用程序的一致性。这种方法提供了另一种持续成本优化技术，同时Azure NetApp Files利用了“还原到新卷”选项。
+
+*笔记：*
+
+* 使用“还原新卷”选项从 Snapshot 副本创建的卷将消耗容量池中的容量。
+* 您可以使用 REST 或 Azure CLI 删除克隆的卷，以避免额外的费用（以防必须增加容量池）。
+
+
+
+
+=== 混合存储选项
+
+尽管NetApp建议对 SQL Server 可用性组中的所有节点使用相同的存储，但在某些情况下可以使用多个存储选项。对于Azure NetApp Files来说，这种情况是可能的，其中 AOAG 中的一个节点与Azure NetApp Files SMB 文件共享相连，而第二个节点与 Azure Premium 磁盘相连。在这些情况下，请确保Azure NetApp Files SMB 共享保存用户数据库的主副本，并且高级磁盘用作辅助副本。
+
+*笔记：*
+
+* 在这样的部署中，为避免任何故障转移问题，请确保在 SMB 卷上启用持续可用性。由于没有持续可用的属性，如果存储层有任何后台维护，数据库可能会出现故障。
+* 将数据库的主副本保留在Azure NetApp Files SMB 文件共享上。
+
+
+
+
+=== 业务连续性
+
+在任何部署中，灾难恢复通常都是事后才考虑的事情。但是，必须在初始设计和部署阶段解决灾难恢复问题，以避免对您的业务产生任何影响。借助Azure NetApp Files，可以使用跨区域复制 (CRR) 功能将块级别的卷数据复制到配对区域，以处理任何意外的区域中断。启用 CRR 的目标卷可用于读取操作，这使其成为灾难恢复模拟的理想候选者。此外，可以为 CRR 目的地分配最低服务级别（例如标准），以降低总体 TCO。如果发生故障转移，复制可能会中断，从而导致相应的卷无法进行读/写。此外，可以使用动态服务级别功能更改卷的服务级别，以显著降低灾难恢复成本。这是Azure NetApp Files的另一个独特功能，具有 Azure 内的块复制功能。
+
+
+
+=== 长期 Snapshot 副本存档
+
+许多组织必须执行数据库文件中快照数据的长期保留，这是强制性合规要求。虽然此 HLD 中未使用此过程，但可以使用简单的批处理脚本轻松完成此过程 https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10["AzCopy"^]将快照目录复制到 Azure Blob 容器。可以使用计划任务根据特定的计划触发批处理脚本。该过程很简单 - 它包括以下步骤：
+
+. 下载 AzCopy V10 可执行文件。无需安装，因为它是 `exe`文件。
+. 使用具有适当权限的容器级别 SAS 令牌授权 AzCopy。
+. 在 AzCopy 获得授权后，数据传输就开始了。
+
+
+*笔记：*
+
+* 在批处理文件中，确保转义 SAS 令牌中出现的 % 字符。这可以通过在 SAS 令牌字符串中现有的 % 字符旁边添加额外的 % 字符来实现。
+* 这 https://docs.microsoft.com/en-us/azure/storage/common/storage-require-secure-transfer["需要安全传输"^]存储帐户的设置决定了与存储帐户的连接是否通过传输层安全性 (TLS) 进行保护。默认情况下启用此设置。以下批处理脚本示例以递归方式将数据从 Snapshot 复制目录复制到指定的 Blob 容器：
+
+
+....
+SET source="Z:\~snapshot"
+echo %source%
+SET dest="https://testanfacct.blob.core.windows.net/azcoptst?sp=racwdl&st=2020-10-21T18:41:35Z&se=2021-10-22T18:41:00Z&sv=2019-12-12&sr=c&sig=ZxRUJwFlLXgHS8As7HzXJOaDXXVJ7PxxIX3ACpx56XY%%3D"
+echo %dest%
+....
+在 PowerShell 中执行以下示例 cmd：
+
+....
+ –recursive
+....
+....
+INFO: Scanning...
+INFO: Any empty folders will not be processed, because source and/or destination doesn't have full folder support
+Job b3731dd8-da61-9441-7281-17a4db09ce30 has started
+Log file is located at: C:\Users\niyaz\.azcopy\b3731dd8-da61-9441-7281-17a4db09ce30.log
+0.0 %, 0 Done, 0 Failed, 2 Pending, 0 Skipped, 2 Total,
+INFO: azcopy.exe: A newer version 10.10.0 is available to download
+0.0 %, 0 Done, 0 Failed, 2 Pending, 0 Skipped, 2 Total,
+Job b3731dd8-da61-9441-7281-17a4db09ce30 summary
+Elapsed Time (Minutes): 0.0333
+Number of File Transfers: 2
+Number of Folder Property Transfers: 0
+Total Number of Transfers: 2
+Number of Transfers Completed: 2
+Number of Transfers Failed: 0
+Number of Transfers Skipped: 0
+TotalBytesTransferred: 5
+Final Job Status: Completed
+....
+*笔记：*
+
+* Azure NetApp Files中即将推出类似的长期保留备份功能。
+* 批处理脚本可用于任何需要将数据复制到任何区域的 Blob 容器的场景。
+
+
+
+
+=== 成本优化
+
+通过对数据库完全透明的卷重塑和动态服务级别变化， Azure NetApp Files可以在 Azure 中持续优化成本。该功能在本 HLD 中得到广泛使用，以避免过度配置额外的存储空间来应对工作负载高峰。
+
+通过创建 Azure 函数并结合 Azure 警报日志，可以轻松调整卷大小。

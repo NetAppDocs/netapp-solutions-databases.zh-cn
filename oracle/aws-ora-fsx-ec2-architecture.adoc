@@ -1,0 +1,31 @@
+---
+sidebar: sidebar 
+permalink: oracle/aws-ora-fsx-ec2-architecture.html 
+summary: 本节描述了具有定制 Oracle RDS 和 FSx ONTAP存储的 RDS Oracle 自定义部署解决方案架构。 
+keywords: architecture, Oracle RDS, RDS, FSx ONTAP, FSx, AWS, Oracle, HA, DR 
+---
+= 解决方案架构
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+下图架构图展示了使用 FSx 存储服务在 AWS EC2 实例上部署的高可用性 Oracle 数据库。可以设置类似的部署方案，但在不同的区域设置备用服务器，以实现灾难恢复。
+
+在该环境中，Oracle 计算实例通过 AWS EC2 实例控制台进行部署。控制台中有多种 EC2 实例类型可用。  NetApp建议部署面向数据库的 EC2 实例类型，例如带有 RedHat Enterprise Linux 8 和高达 10Gps 网络带宽的 m5 Ami 映像。
+
+另一方面，FSx 卷上的 Oracle 数据库存储是使用 AWS FSx 控制台或 CLI 部署的。随后，Oracle 二进制文件、数据或日志卷将显示并安装在 EC2 实例 Linux 主机上。根据所采用的底层存储协议，每个数据或日志卷可以分配多个 LUN。
+
+image:aws-ora-fsx-ec2-arch.png["该图描绘了一个示例架构图，其中包括主 HA 集群 - 备用 HA 集群 - 管理节点 - 以及相关连接节点。"]
+
+FSx 存储集群采用双冗余设计，主存储集群和备用存储集群均部署在两个不同的可用区。数据库卷以用户可配置的间隔从主 FSx 集群复制到备用 FSx 集群，适用于所有 Oracle 二进制、数据和日志卷。
+
+此高可用性 Oracle 环境由 Ansible 控制器节点和SnapCenter备份服务器和 UI 工具进行管理。使用基于 Ansible playbook 的工具包自动执行 Oracle 安装、配置和复制。任何对 Oracle EC2 实例内核操作系统的更新或 Oracle 修补都可以并行执行，以保持主实例和备用实例同步。事实上，如果需要的话，初始自动化设置可以轻松扩展以执行一些重复的日常 Oracle 任务。
+
+如果需要， SnapCenter可提供 Oracle 数据库时间点恢复或主区域或备用区域数据库克隆的工作流程。通过SnapCenter UI，您可以根据 RTO 或 RPO 目标将 Oracle 数据库备份和复制配置到备用 FSx 存储，以实现高可用性或灾难恢复。
+
+该解决方案提供了一种替代流程，可提供与 Oracle RAC 和 Data Guard 部署类似的功能。

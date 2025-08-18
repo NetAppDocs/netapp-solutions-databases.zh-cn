@@ -1,0 +1,19 @@
+---
+sidebar: sidebar 
+permalink: mssql/na-446.html 
+keywords:  
+summary:  
+---
+= 现代化您的 Microsoft SQL Server 环境
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+优化运营并释放数据的力量——无论是在本地还是在云端。
+
+link:https://www.netapp.com/pdf.html?item=/media/15613-na-446.pdf["现代化您的 Microsoft SQL Server 环境"^]

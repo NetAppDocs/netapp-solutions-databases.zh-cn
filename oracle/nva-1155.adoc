@@ -1,0 +1,21 @@
+---
+sidebar: sidebar 
+permalink: oracle/nva-1155.html 
+keywords:  
+summary:  
+---
+= NVA-1155：在FlexPod Datacenter 上使用Cisco UCS 和NetApp AFF A800通过 FC 部署 Oracle 19c RAC 数据库 - 设计和部署指南
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+NetApp的 Allen Cao
+
+[role="lead"]
+此指南针对在FlexPod数据中心上使用Cisco UCS 和NetApp AFF A800通过 FC 部署 Oracle 19c RAC 数据库提供了解决方案设计的详细信息以及在使用 Oracle Linux 8.2 操作系统和 Red Hat 兼容内核的最新FlexPod数据中心基础架构上托管 Oracle RAC 数据库的分步部署过程。
+
+link:https://www.netapp.com/pdf.html?item=/media/25782-nva-1155.pdf["NVA-1155：在FlexPod数据中心上使用Cisco UCS 和NetApp AFF A800通过 FC 运行 Oracle 19c RAC 数据库"^]

@@ -1,0 +1,21 @@
+---
+sidebar: sidebar 
+permalink: dbops/hybrid-dbops-sc-arch.html 
+summary: 本节描述了用于开发/测试和 DR 操作的典型混合云架构。 
+keywords: architecture, synchronized database 
+---
+= 解决方案架构
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+下图架构图展示了混合云中企业数据库操作的典型实现，用于开发/测试和灾难恢复操作。
+
+image:hybrid-cloud-db-diagram.png["该图显示输入/输出对话框或表示书面内容"]
+
+在正常的业务运营中，可以将云中的同步数据库卷克隆并挂载到开发/测试数据库实例，以进行应用程序开发或测试。一旦发生故障，就可以激活云中同步的数据库卷进行灾难恢复。

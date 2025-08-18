@@ -1,0 +1,281 @@
+---
+sidebar: sidebar 
+permalink: automation/db-protection-getting-started.html 
+keywords: Linux, RHEL Oracle19c, NFS, ONTAP 
+summary: 本页介绍在NetApp ONTAP存储上部署 Oracle 数据保护的自动化方法。 
+---
+= 入门
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+该解决方案设计用于在 AWX/Tower 环境中运行。
+
+
+
+== AWX/塔
+
+对于 AWX/Tower 环境，将指导您创建ONTAP集群管理和 Oracle 服务器（IP 和主机名）的清单、创建凭据、配置从NetApp Automation Github 中提取 Ansible 代码的项目以及启动自动化的作业模板。
+
+. 该解决方案设计用于在私有云场景（本地到本地）和混合云（本地到公共云Cloud Volumes ONTAP [CVO]）中运行
+. 填写特定于您的环境的变量，然后将其复制并粘贴到作业模板中的 Extra Vars 字段中。
+. 将额外的变量添加到您的作业模板后，您就可以启动自动化。
+. 自动化设置为运行三个阶段（设置、Oracle 二进制文件的复制计划、数据库、日志和仅用于日志的复制计划），第四阶段是在 DR 站点恢复数据库。
+. 有关获取 CVO 数据保护所需密钥和令牌的详细说明，请访问link:https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/authentication-tokens.html["收集 CVO 和连接器部署的先决条件"^]
+
+
+
+
+== 要求
+
+[role="tabbed-block"]
+====
+.<strong class="big">本地</strong>
+--
+[cols="3, 9"]
+|===
+| 环境 | 要求 
+
+
+.4+| Ansible 环境 | AWX/塔 
+
+
+| Ansible v.2.10 及更高版本 
+
+
+| Python 3 
+
+
+| Python 库 - netapp-lib - xmltodict - jmespath 
+
+
+.3+| ONTAP | ONTAP版本 9.8 及以上 
+
+
+| 两个数据聚合 
+
+
+| NFS vlan 和 ifgrp 创建 
+
+
+.5+| Oracle 服务器 | RHEL 7/8 
+
+
+| Oracle Linux 7/8 
+
+
+| NFS、公共和可选管理的网络接口 
+
+
+| 源上现有的 Oracle 环境，以及目标（DR 站点或公共云）上等效的 Linux 操作系统 
+|===
+--
+.<strong class="big">CVO</strong>
+--
+[cols="3, 9"]
+|===
+| 环境 | 要求 
+
+
+.4+| Ansible 环境 | AWX/塔 
+
+
+| Ansible v.2.10 及更高版本 
+
+
+| Python 3 
+
+
+| Python 库 - netapp-lib - xmltodict - jmespath 
+
+
+.3+| ONTAP | ONTAP版本 9.8 及以上 
+
+
+| 两个数据聚合 
+
+
+| NFS vlan 和 ifgrp 创建 
+
+
+.5+| Oracle 服务器 | RHEL 7/8 
+
+
+| Oracle Linux 7/8 
+
+
+| NFS、公共和可选管理的网络接口 
+
+
+| 源上现有的 Oracle 环境，以及目标（DR 站点或公共云）上等效的 Linux 操作系统 
+
+
+| 在 Oracle EC2 实例上设置适当的交换空间，默认情况下，某些 EC2 实例部署时交换空间为 0 
+
+
+.4+| *云管理器/AWS* | AWS 访问/密钥 
+
+
+| NetApp云管理器帐户 
+
+
+| NetApp云管理器刷新令牌 
+
+
+| 将源集群间 LIF 添加到 AWS 安全组 
+|===
+--
+====
+
+
+== 自动化详细信息
+
+[role="tabbed-block"]
+====
+.<strong class="big">本地</strong>
+--
+此自动化部署采用由三个独立角色组成的单个 Ansible 剧本设计。这些角色适用于ONTAP、Linux 和 Oracle 配置。下表描述了正在自动化的任务。
+
+[cols="3, 9"]
+|===
+| 攻略手册 | Tasks 
+
+
+.5+| ontap_setup | ONTAP环境的预检查 
+
+
+| 在源集群上创建集群间 LIF（可选） 
+
+
+| 在目标集群上创建集群间 LIF（可选） 
+
+
+| 创建集群和 SVM 对等连接 
+
+
+| 创建目标SnapMirror并初始化指定的 Oracle 卷 
+
+
+.4+| *ora_replication_cg* | 在 /etc/oratab 中为每个数据库启用备份模式 
+
+
+| Oracle 二进制和数据库卷的快照 
+
+
+| SnapMirror 已更新 
+
+
+| 在 /etc/oratab 中关闭每个数据库的备份模式 
+
+
+.3+| ora_replication_log | 在 /etc/oratab 中切换每个数据库的当前日志 
+
+
+| Oracle 日志卷的快照 
+
+
+| SnapMirror 已更新 
+
+
+.5+| *ora_recovery* | 中断SnapMirror 
+
+
+| 启用 NFS 并为目标上的 Oracle 卷创建连接路径 
+
+
+| 配置 DR Oracle 主机 
+
+
+| 挂载并验证 Oracle 卷 
+
+
+| 恢复并启动 Oracle 数据库 
+|===
+--
+.<strong class="big">CVO</strong>
+--
+此自动化部署采用由三个独立角色组成的单个 Ansible 剧本设计。这些角色适用于ONTAP、Linux 和 Oracle 配置。下表描述了正在自动化的任务。
+
+[cols="4, 9"]
+|===
+| 攻略手册 | Tasks 
+
+
+.7+| *cvo_设置* | 环境预检 
+
+
+| AWS 配置/AWS 访问密钥 ID/密钥/默认区域 
+
+
+| 创建AWS角色 
+
+
+| 在 AWS 中创建NetApp Cloud Manager Connector 实例 
+
+
+| 在 AWS 中创建Cloud Volumes ONTAP (CVO) 实例 
+
+
+| 将本地源ONTAP集群添加到NetApp Cloud Manager 
+
+
+| 创建目标SnapMirror并初始化指定的 Oracle 卷 
+
+
+.4+| *ora_replication_cg* | 在 /etc/oratab 中为每个数据库启用备份模式 
+
+
+| Oracle 二进制和数据库卷的快照 
+
+
+| SnapMirror 已更新 
+
+
+| 在 /etc/oratab 中关闭每个数据库的备份模式 
+
+
+.3+| ora_replication_log | 在 /etc/oratab 中切换每个数据库的当前日志 
+
+
+| Oracle 日志卷的快照 
+
+
+| SnapMirror 已更新 
+
+
+.5+| *ora_recovery* | 中断SnapMirror 
+
+
+| 启用 NFS 并为目标 CVO 上的 Oracle 卷创建连接路径 
+
+
+| 配置 DR Oracle 主机 
+
+
+| 挂载并验证 Oracle 卷 
+
+
+| 恢复并启动 Oracle 数据库 
+|===
+--
+====
+
+
+== 默认参数
+
+为了简化自动化，我们预设了许多必需的 Oracle 参数的默认值。对于大多数部署来说，通常不需要更改默认参数。更高级的用户可以谨慎地更改默认参数。默认参数位于 defaults 目录下的每个角色文件夹中。
+
+
+
+== 许可证
+
+您应该阅读 Github 存储库中所述的许可证信息。通过访问、下载、安装或使用此存储库中的内容，您同意所列出的许可条款link:https://github.com/NetApp-Automation/na_oracle19c_deploy/blob/master/LICENSE.TXT["此处"^]。
+
+请注意，制作和/或共享此存储库中的内容的任何衍生作品都受到某些限制。请务必阅读link:https://github.com/NetApp-Automation/na_oracle19c_deploy/blob/master/LICENSE.TXT["许可证"^]在使用内容之前。如果您不同意所有条款，请不要访问、下载或使用此存储库中的内容。
+
+准备好后，单击link:db-protection-awx-automation.html["点击此处查看 AWX/Tower 详细流程"]。

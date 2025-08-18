@@ -1,0 +1,63 @@
+---
+sidebar: sidebar 
+permalink: automation/marketing-overview.html 
+keywords: Linux, RHEL Oracle19c, NFS, ONTAP, Ansible 
+summary: 本页介绍在NetApp ONTAP存储上部署 Oracle19c 的自动化方法。 
+---
+= 解决方案概述
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本页介绍在NetApp ONTAP存储上部署 Oracle19c 的自动化方法。
+
+
+
+== 在 NFS 上自动部署 Oracle19c for ONTAP
+
+组织正在实现其环境自动化，以提高效率、加速部署并减少人工工作量。 Ansible 等配置管理工具正被用于简化企业数据库操作。在此解决方案中，我们演示了如何使用 Ansible 自动配置和配置带有NetApp ONTAP的 Oracle 19c。通过使存储管理员、系统管理员和 DBA 能够一致、快速地部署新存储、配置数据库服务器和安装 Oracle 19c 软件，您可以获得以下好处：
+
+* 消除设计复杂性和人为错误，并实施可重复的一致部署和最佳实践
+* 减少存储配置、数据库主机配置和 Oracle 安装的时间
+* 提高数据库管理员、系统和存储管理员的工作效率
+* 轻松实现存储和数据库的扩展
+
+
+NetApp为客户提供经过验证的 Ansible 模块和角色，以加速 Oracle 数据库环境的部署、配置和生命周期管理。此解决方案提供了说明和 Ansible 剧本代码，以帮助您：
+
+* 为 Oracle 数据库创建和配置ONTAP NFS 存储
+* 在 RedHat Enterprise Linux 7/8 或 Oracle Linux 7/8 上安装 Oracle 19c
+* 在ONTAP NFS 存储上配置 Oracle 19c
+
+
+欲了解更多详细信息或开始，请观看下面的概述视频。
+
+
+
+=== AWX/塔式部署
+
+第 1 部分：入门、要求、自动化详细信息和初始 AWX/Tower 配置
+
+.AWX 部署
+video::d844a9c3-4eb3-4512-bf21-b01200f09f66[panopto]
+第 2 部分：变量和运行剧本
+
+.AWX 剧本运行
+video::6da1b960-e1c9-4950-b750-b01200f0bdfa[panopto]
+
+
+=== CLI部署
+
+第 1 部分：入门、要求、自动化详细信息和 Ansible 控制主机设置
+
+.CLI部署
+video::373e7f2a-c101-4292-a3e4-b01200f0d078[panopto]
+第 2 部分：变量和运行剧本
+
+.CLI Playbook 运行
+video::d58ebdb0-8bac-4ef9-b4d1-b01200f95047[panopto]

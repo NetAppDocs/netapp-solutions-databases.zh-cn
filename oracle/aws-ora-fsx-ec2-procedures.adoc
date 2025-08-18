@@ -1,0 +1,496 @@
+---
+sidebar: sidebar 
+permalink: oracle/aws-ora-fsx-ec2-procedures.html 
+summary: 本节介绍使用 FSx 存储部署 Oracle RDS 自定义数据库的部署过程。 
+keywords: AWS, Oracle, RDS, HA, DR, database 
+---
+= AWS EC2 和 FSx 上的 Oracle 部署步骤
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本节介绍使用 FSx 存储部署 Oracle RDS 自定义数据库的部署过程。
+
+
+
+== 通过 EC2 控制台为 Oracle 部署 EC2 Linux 实例
+
+如果您是 AWS 新手，则首先需要设置 AWS 环境。 AWS 网站登录页面上的文档选项卡提供了 EC2 说明链接，介绍如何部署可用于通过 AWS EC2 控制台托管 Oracle 数据库的 Linux EC2 实例。以下部分是这些步骤的摘要。有关详细信息，请参阅链接的 AWS EC2 特定文档。
+
+
+
+=== 设置您的 AWS EC2 环境
+
+您必须创建一个 AWS 账户来配置在 EC2 和 FSx 服务上运行 Oracle 环境所需的资源。以下 AWS 文档提供了必要的详细信息：
+
+* link:https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/get-set-up-for-amazon-ec2.html["设置以使用 Amazon EC2"^]
+
+
+关键主题：
+
+* 注册 AWS。
+* 创建密钥对。
+* 创建安全组。
+
+
+
+
+=== 在 AWS 账户属性中启用多个可用区域
+
+对于架构图中所示的 Oracle 高可用性配置，您必须在一个区域中启用至少四个可用区域。多个可用区也可以位于不同的区域，以满足灾难恢复所需的距离。
+
+image:aws-ora-fsx-ec2-inst-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+=== 创建并连接到用于托管 Oracle 数据库的 EC2 实例
+
+查看教程link:https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html["开始使用 Amazon EC2 Linux 实例"^]了解分步部署程序和最佳实践。
+
+关键主题：
+
+* 概述。
+* 先决条件。
+* 步骤 1：启动实例。
+* 第 2 步：连接到您的实例。
+* 步骤 3：清理您的实例。
+
+
+以下屏幕截图演示了使用 EC2 控制台部署 m5 类型 Linux 实例以运行 Oracle。
+
+. 在 EC2 仪表板上，单击黄色的启动实例按钮以启动 EC2 实例部署工作流程。
++
+image:aws-ora-fsx-ec2-inst-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤 1 中，选择“Red Hat Enterprise Linux 8 (HVM)，SSD 卷类型 - ami-0b0af3577fe5e3532 (64 位 x86) / ami-01fc429821bf1f4b4 (64 位 Arm)”。
++
+image:aws-ora-fsx-ec2-inst-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤 2 中，根据您的 Oracle 数据库工作负载选择具有适当 CPU 和内存分配的 m5 实例类型。单击“下一步：配置实例详细信息”。
++
+image:aws-ora-fsx-ec2-inst-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤3中，选择实例所在的VPC和子网，并启用公共IP分配。单击“下一步：添加存储”。
++
+image:aws-ora-fsx-ec2-inst-005.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤4中，为根磁盘分配足够的空间。您可能需要空间来添加交换。默认情况下，EC2 实例分配零交换空间，这对于运行 Oracle 来说并不是最佳的。
++
+image:aws-ora-fsx-ec2-inst-006.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤5中，如果需要，添加用于实例识别的标签。
++
+image:aws-ora-fsx-ec2-inst-007.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤 6 中，选择一个现有安全组或创建一个具有实例所需的入站和出站策略的新安全组。
++
+image:aws-ora-fsx-ec2-inst-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在步骤 7 中，查看实例配置摘要，然后单击启动以开始实例部署。系统会提示您创建密钥对或选择密钥对来访问实例。
++
+image:aws-ora-fsx-ec2-inst-009.png["该图显示输入/输出对话框或表示书面内容"] image:aws-ora-fsx-ec2-inst-009-a.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 使用 SSH 密钥对登录 EC2 实例。根据需要更改您的密钥名称和实例 IP 地址。
++
+[source, cli]
+----
+ssh -i ora-db1v2.pem ec2-user@54.80.114.77
+----
+
+
+您需要在指定的可用区域中创建两个 EC2 实例作为主 Oracle 服务器和备用 Oracle 服务器，如架构图所示。
+
+
+
+== 为 Oracle 数据库存储配置 FSx ONTAP文件系统
+
+EC2 实例部署为操作系统分配一个 EBS 根卷。  FSx ONTAP文件系统提供 Oracle 数据库存储卷，包括 Oracle 二进制、数据和日志卷。  FSx 存储 NFS 卷可以从 AWS FSx 控制台或 Oracle 安装中进行配置，并根据用户在自动化参数文件中的配置来分配卷的配置自动化。
+
+
+
+=== 创建 FSx ONTAP文件系统
+
+参考此文档 https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/managing-file-systems.html["管理 FSx ONTAP文件系统"^]用于创建 FSx ONTAP文件系统。
+
+主要考虑因素：
+
+* SSD 存储容量。最小 1024 GiB，最大 192 TiB。
+* 预配置的 SSD IOPS。根据工作负载要求，每个文件系统最多 80,000 SSD IOPS。
+* 吞吐能力。
+* 设置管理员 fsxadmin/vsadmin 密码。  FSx 配置自动化所需。
+* 备份和维护。禁用每日自动备份；数据库存储备份通过SnapCenter调度执行。
+* 从 SVM 详细信息页面检索 SVM 管理 IP 地址以及特定于协议的访问地址。  FSx 配置自动化所需。
++
+image:aws-rds-custom-deploy-fsx-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+请参阅以下分步过程来设置主或备用 HA FSx 集群。
+
+. 在 FSx 控制台中，单击“创建文件系统”以启动 FSx 配置工作流程。
++
+image:aws-ora-fsx-ec2-stor-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择Amazon FSx ONTAP。然后单击“下一步”。
++
+image:aws-ora-fsx-ec2-stor-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择标准创建，然后在文件系统详细信息中将您的文件系统命名为 Multi-AZ HA。根据您的数据库工作负载，选择自动或用户配置的 IOPS，最高可达 80,000 SSD IOPS。  FSx 存储在后端配备高达 2TiB NVMe 缓存，可以提供更高的测量 IOPS。
++
+image:aws-ora-fsx-ec2-stor-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在网络和安全部分中，选择 VPC、安全组和子网。这些应该在 FSx 部署之前创建。根据 FSx 集群的角色（主集群或备用集群），将 FSx 存储节点放置在适当的区域中。
++
+image:aws-ora-fsx-ec2-stor-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“安全和加密”部分中，接受默认值，然后输入 fsxadmin 密码。
++
+image:aws-ora-fsx-ec2-stor-005.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 输入 SVM 名称和 vsadmin 密码。
++
+image:aws-ora-fsx-ec2-stor-006.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 将卷配置留空；此时您不需要创建卷。
++
+image:aws-ora-fsx-ec2-stor-007.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 查看“摘要”页面，然后单击“创建文件系统”以完成 FSx 文件系统配置。
++
+image:aws-ora-fsx-ec2-stor-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+=== 为 Oracle 数据库配置数据库卷
+
+看link:https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/managing-volumes.html["管理 FSx ONTAP卷 - 创建卷"^]了解详情。
+
+主要考虑因素：
+
+* 适当调整数据库卷的大小。
+* 禁用性能配置的容量池分层策略。
+* 为 NFS 存储卷启用 Oracle dNFS。
+* 为 iSCSI 存储卷设置多路径。
+
+
+
+
+==== 从 FSx 控制台创建数据库卷
+
+从 AWS FSx 控制台，您可以为 Oracle 数据库文件存储创建三个卷：一个用于 Oracle 二进制文件，一个用于 Oracle 数据，一个用于 Oracle 日志。确保卷命名与 Oracle 主机名（在自动化工具包中的 hosts 文件中定义）匹配，以便正确识别。在此示例中，我们使用 db1 作为 EC2 Oracle 主机名，而不是 EC2 实例的典型基于 IP 地址的主机名。
+
+image:aws-ora-fsx-ec2-stor-009.png["该图显示输入/输出对话框或表示书面内容"] image:aws-ora-fsx-ec2-stor-010.png["该图显示输入/输出对话框或表示书面内容"] image:aws-ora-fsx-ec2-stor-011.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+NOTE: FSx 控制台当前不支持创建 iSCSI LUN。对于 Oracle 的 iSCSI LUN 部署，可以使用NetApp自动化工具包通过ONTAP自动化来创建卷和 LUN。
+
+
+
+== 使用 FSx 数据库卷在 EC2 实例上安装和配置 Oracle
+
+NetApp自动化团队提供了自动化工具包，以根据最佳实践在 EC2 实例上运行 Oracle 安装和配置。当前版本的自动化套件支持 NFS 上的 Oracle 19c，默认 RU 补丁为 19.8。如果需要，自动化套件可以轻松适应其他 RU 补丁。
+
+
+
+=== 准备 Ansible 控制器来运行自动化
+
+按照“<<创建并连接到用于托管 Oracle 数据库的 EC2 实例>> “配置一个小型 EC2 Linux 实例来运行 Ansible 控制器。与其使用 RedHat，不如使用具有 2vCPU 和 8G RAM 的 Amazon Linux t2.large 就足够了。
+
+
+
+=== 检索NetApp Oracle 部署自动化工具包
+
+以 ec2-user 身份登录到步骤 1 中配置的 EC2 Ansible 控制器实例，并从 ec2-user 主目录执行 `git clone`命令来克隆自动化代码的副本。
+
+[source, cli]
+----
+git clone https://github.com/NetApp-Automation/na_oracle19c_deploy.git
+----
+[source, cli]
+----
+git clone https://github.com/NetApp-Automation/na_rds_fsx_oranfs_config.git
+----
+
+
+=== 使用自动化工具包执行自动化 Oracle 19c 部署
+
+请参阅这些详细说明link:../automation/cli-automation.html["CLI 部署 Oracle 19c 数据库"^]使用 CLI 自动化部署 Oracle 19c。由于您使用 SSH 密钥对而不是密码进行主机访问身份验证，因此剧本执行的命令语法有细微的变化。以下列表是高度概括的：
+
+. 默认情况下，EC2实例使用SSH密钥对进行访问认证。从 Ansible 控制器自动化根目录 `/home/ec2-user/na_oracle19c_deploy`， 和 `/home/ec2-user/na_rds_fsx_oranfs_config`，复制 SSH 密钥 `accesststkey.pem`对于在步骤“中部署的 Oracle 主机”<<创建并连接到用于托管 Oracle 数据库的 EC2 实例>> “
+. 以 ec2-user 身份登录 EC2 实例数据库主机，并安装 python3 库。
++
+[source, cli]
+----
+sudo yum install python3
+----
+. 从根磁盘驱动器创建 16G 交换空间。默认情况下，EC2 实例创建零交换空间。请遵循以下 AWS 文档：link:https://aws.amazon.com/premiumsupport/knowledge-center/ec2-memory-swap-file/["如何使用交换文件分配内存作为 Amazon EC2 实例中的交换空间？"^] 。
+. 返回 Ansible 控制器(`cd /home/ec2-user/na_rds_fsx_oranfs_config`），并根据适当的要求执行预克隆剧本，以及 `linux_config`标签。
++
+[source, cli]
+----
+ansible-playbook -i hosts rds_preclone_config.yml -u ec2-user --private-key accesststkey.pem -e @vars/fsx_vars.yml -t requirements_config
+----
++
+[source, cli]
+----
+ansible-playbook -i hosts rds_preclone_config.yml -u ec2-user --private-key accesststkey.pem -e @vars/fsx_vars.yml -t linux_config
+----
+. 切换到 `/home/ec2-user/na_oracle19c_deploy-master`目录，阅读 README 文件，并填充全局 `vars.yml`包含相关全局参数的文件。
+. 填充 `host_name.yml`文件中的相关参数 `host_vars`目录。
+. 执行 Linux 的剧本，当提示输入 vsadmin 密码时按 Enter。
++
+[source, cli]
+----
+ansible-playbook -i hosts all_playbook.yml -u ec2-user --private-key accesststkey.pem -t linux_config -e @vars/vars.yml
+----
+. 执行 Oracle 的剧本，并在提示输入 vsadmin 密码时按 Enter。
++
+[source, cli]
+----
+ansible-playbook -i hosts all_playbook.yml -u ec2-user --private-key accesststkey.pem -t oracle_config -e @vars/vars.yml
+----
+
+
+如果需要，将 SSH 密钥文件上的权限位更改为 400。更改 Oracle 主机(`ansible_host`在 `host_vars`文件）IP 地址到您的 EC2 实例公共地址。
+
+
+
+== 在主 FSx HA 集群和备用 FSx HA 集群之间设置SnapMirror
+
+为了实现高可用性和灾难恢复，您可以在主 FSx 存储集群和备用 FSx 存储集群之间设置SnapMirror复制。与其他云存储服务不同，FSx 允许用户以所需的频率和复制吞吐量控制和管理存储复制。它还使用户能够测试 HA/DR，而不会对可用性产生任何影响。
+
+以下步骤显示如何在主 FSx 存储集群和备用 FSx 存储集群之间设置复制。
+
+. 设置主集群和备用集群对等。以 fsxadmin 用户身份登录主集群并执行以下命令。这个相互的创建过程在主集群和备用集群上都执行创建命令。代替 `standby_cluster_name`使用适合您的环境的名称。
++
+[source, cli]
+----
+cluster peer create -peer-addrs standby_cluster_name,inter_cluster_ip_address -username fsxadmin -initial-allowed-vserver-peers *
+----
+. 在主集群和备用集群之间设置 vServer 对等连接。以 vsadmin 用户身份登录主集群并执行以下命令。代替 `primary_vserver_name`， `standby_vserver_name` ， `standby_cluster_name`使用适合您的环境的名称。
++
+[source, cli]
+----
+vserver peer create -vserver primary_vserver_name -peer-vserver standby_vserver_name -peer-cluster standby_cluster_name -applications snapmirror
+----
+. 验证集群和虚拟服务器对等是否设置正确。
++
+image:aws-ora-fsx-ec2-stor-014.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 为主 FSx 集群上的每个源卷在备用 FSx 集群上创建目标 NFS 卷。根据您的环境替换卷名称。
++
+[source, cli]
+----
+vol create -volume dr_db1_bin -aggregate aggr1 -size 50G -state online -policy default -type DP
+----
++
+[source, cli]
+----
+vol create -volume dr_db1_data -aggregate aggr1 -size 500G -state online -policy default -type DP
+----
++
+[source, cli]
+----
+vol create -volume dr_db1_log -aggregate aggr1 -size 250G -state online -policy default -type DP
+----
+. 如果使用 iSCSI 协议进行数据访问，您还可以为 Oracle 二进制文件、Oracle 数据和 Oracle 日志创建 iSCSI 卷和 LUN。在卷中留出大约 10% 的可用空间用于快照。
++
+[source, cli]
+----
+vol create -volume dr_db1_bin -aggregate aggr1 -size 50G -state online -policy default -unix-permissions ---rwxr-xr-x -type RW
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_bin/dr_db1_bin_01 -size 45G -ostype linux
+----
++
+[source, cli]
+----
+vol create -volume dr_db1_data -aggregate aggr1 -size 500G -state online -policy default -unix-permissions ---rwxr-xr-x -type RW
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_data/dr_db1_data_01 -size 100G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_data/dr_db1_data_02 -size 100G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_data/dr_db1_data_03 -size 100G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_data/dr_db1_data_04 -size 100G -ostype linux
+----
++
+卷创建-卷 dr_db1_log-聚合 aggr1-大小 250G-状态在线-策略默认-unix 权限 ---rwxr-xr-x-类型 RW
+
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_log/dr_db1_log_01 -size 45G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_log/dr_db1_log_02 -size 45G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_log/dr_db1_log_03 -size 45G -ostype linux
+----
++
+[source, cli]
+----
+lun create -path /vol/dr_db1_log/dr_db1_log_04 -size 45G -ostype linux
+----
+. 对于 iSCSI LUN，为每个 LUN 创建 Oracle 主机启动器的映射，以二进制 LUN 为例。将 igroup 替换为适合您环境的名称，并为每个附加 LUN 增加 lun-id。
++
+[source, cli]
+----
+lun mapping create -path /vol/dr_db1_bin/dr_db1_bin_01 -igroup ip-10-0-1-136 -lun-id 0
+----
++
+[source, cli]
+----
+lun mapping create -path /vol/dr_db1_data/dr_db1_data_01 -igroup ip-10-0-1-136 -lun-id 1
+----
+. 在主数据库卷和备用数据库卷之间创建SnapMirror关系。替换适合您环境的 SVM 名称。
++
+[source, cli]
+----
+snapmirror create -source-path svm_FSxOraSource:db1_bin -destination-path svm_FSxOraTarget:dr_db1_bin -vserver svm_FSxOraTarget -throttle unlimited -identity-preserve false -policy MirrorAllSnapshots -type DP
+----
++
+[source, cli]
+----
+snapmirror create -source-path svm_FSxOraSource:db1_data -destination-path svm_FSxOraTarget:dr_db1_data -vserver svm_FSxOraTarget -throttle unlimited -identity-preserve false -policy MirrorAllSnapshots -type DP
+----
++
+[source, cli]
+----
+snapmirror create -source-path svm_FSxOraSource:db1_log -destination-path svm_FSxOraTarget:dr_db1_log -vserver svm_FSxOraTarget -throttle unlimited -identity-preserve false -policy MirrorAllSnapshots -type DP
+----
+
+
+可以使用适用于 NFS 数据库卷的NetApp自动化工具包自动执行此SnapMirror设置。该工具包可从NetApp公共 GitHub 网站下载。
+
+[source, cli]
+----
+git clone https://github.com/NetApp-Automation/na_ora_hadr_failover_resync.git
+----
+在尝试设置和故障转移测试之前，请仔细阅读 README 说明。
+
+
+NOTE: 将 Oracle 二进制文件从主集群复制到备用集群可能会涉及 Oracle 许可证。请联系您的 Oracle 许可代表以获取说明。另一种方法是在恢复和故障转移时安装和配置 Oracle。
+
+
+
+== SnapCenter部署
+
+
+
+=== SnapCenter安装
+
+跟随link:https://docs.netapp.com/ocsc-41/index.jsp?topic=%2Fcom.netapp.doc.ocsc-isg%2FGUID-D3F2FBA8-8EE7-4820-A445-BC1E5C0AF374.html["安装SnapCenter服务器"^]安装SnapCenter服务器。本文档介绍如何安装独立的SnapCenter服务器。 SnapCenter的 SaaS 版本目前处于 Beta 版审核阶段，可能很快就会推出。如果需要，请与您的NetApp代表联系以了解可用性。
+
+
+
+=== 为 EC2 Oracle 主机配置SnapCenter插件
+
+. 自动安装SnapCenter后，以安装SnapCenter服务器的 Windows 主机的管理用户身份登录SnapCenter 。
++
+image:aws-rds-custom-deploy-snp-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从左侧菜单中，单击“设置”，然后单击“凭据”和“新建”以添加用于SnapCenter插件安装的 ec2-user 凭据。
++
+image:aws-rds-custom-deploy-snp-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 重置 ec2-user 密码并通过编辑启用密码 SSH 身份验证 `/etc/ssh/sshd_config`EC2 实例主机上的文件。
+. 验证“使用 sudo 权限”复选框是否被选中。您刚刚在上一步中重置了 ec2-user 密码。
++
+image:aws-rds-custom-deploy-snp-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 将SnapCenter服务器名称和 IP 地址添加到 EC2 实例主机文件以进行名称解析。
++
+[listing]
+----
+[ec2-user@ip-10-0-0-151 ~]$ sudo vi /etc/hosts
+[ec2-user@ip-10-0-0-151 ~]$ cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+10.0.1.233  rdscustomvalsc.rdscustomval.com rdscustomvalsc
+----
+. 在SnapCenter服务器 Windows 主机上，将 EC2 实例主机 IP 地址添加到 Windows 主机文件 `C:\Windows\System32\drivers\etc\hosts`。
++
+[listing]
+----
+10.0.0.151		ip-10-0-0-151.ec2.internal
+----
+. 在左侧菜单中，选择“主机”>“托管主机”，然后单击“添加”将 EC2 实例主机添加到SnapCenter。
++
+image:aws-rds-custom-deploy-snp-004.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+检查 Oracle 数据库，然后在提交之前单击更多选项。
+
++
+image:aws-rds-custom-deploy-snp-005.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+勾选“跳过预安装检查”。确认跳过预安装检查，然后单击保存后提交。
+
++
+image:aws-rds-custom-deploy-snp-006.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+系统会提示您确认指纹，然后单击确认并提交。
+
++
+image:aws-rds-custom-deploy-snp-007.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+插件配置成功后，被管理主机的整体状态显示为正在运行。
+
++
+image:aws-rds-custom-deploy-snp-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+=== 配置 Oracle 数据库的备份策略
+
+参考本节link:../dbops/hybrid-dbops-sc-gs-onprem.html#7-setup-database-backup-policy-in-snapcenter["在SnapCenter中设置数据库备份策略"^]有关配置 Oracle 数据库备份策略的详细信息。
+
+通常，您需要为完整快照 Oracle 数据库备份创建一个策略，并为 Oracle 仅存档日志快照备份创建一个策略。
+
+
+NOTE: 您可以在备份策略中启用 Oracle 存档日志修剪来控制日志存档空间。在“选择辅助复制选项”中选中“创建本地 Snapshot 副本后更新SnapMirror ”，因为您需要复制到 HA 或 DR 的备用位置。
+
+
+
+=== 配置Oracle数据库备份和调度
+
+SnapCenter中的数据库备份由用户配置，可以单独设置，也可以作为资源组中的组进行设置。备份间隔取决于 RTO 和 RPO 目标。  NetApp建议您每隔几个小时运行一次完整的数据库备份，并以更高的频率（例如 10-15 分钟）存档日志备份，以便快速恢复。
+
+请参阅link:../dbops/hybrid-dbops-sc-gs-onprem.html#8-implement-backup-policy-to-protect-database["实施备份策略以保护数据库"^]有关实施本节中创建的备份策略的详细分步流程<<配置 Oracle 数据库的备份策略>>并用于备份作业调度。
+
+下图提供了为备份 Oracle 数据库而设置的资源组的示例。
+
+image:aws-rds-custom-deploy-snp-009.png["该图显示输入/输出对话框或表示书面内容"]

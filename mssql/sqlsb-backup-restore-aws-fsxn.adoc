@@ -1,0 +1,619 @@
+---
+sidebar: sidebar 
+permalink: mssql/sqlsb-backup-restore-aws-fsxn.html 
+keywords: SQL server, SQL, backup, recover, AWS, aws, sql 
+summary:  
+---
+= TR-4951：AWS FSx ONTAP上的 Microsoft SQL Server 备份和恢复
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+[role="lead"]
+本文档介绍使用SnapCenter在 AWS FSx ONTAP上执行 Microsoft SQL Server 备份和恢复所需的步骤。其中包括以下信息：
+
+* NetApp SnapCenter配置
+* SnapCenter备份操作
+* FCI 数据库的备份操作
+* 多个数据库的备份操作
+* 还原和恢复
+
+
+
+
+== SnapCenter配置
+
+必须执行以下步骤来配置SnapCenter并保护 Microsoft SQL Server 资源。以下各节详细介绍了以下每个步骤。
+
+. 为 SQL Server 备份和恢复用户配置 sysadmin 凭据。
+. 配置存储设置。提供 Amazon Web Services (AWS) 管理凭证以从SnapCenter访问Amazon FSx ONTAP存储虚拟机 (SVM)。
+. 向SnapCenter添加 SQL Server 主机。部署并安装所需的SnapCenter插件。
+. 配置策略。定义备份操作类型、保留和可选的快照备份复制。
+. 配置和保护 Microsoft SQL Server 数据库。
+
+
+
+
+== SnapCenter新安装的用户界面
+
+配置 SQL Server 备份的凭据并使用 sysadmin 权限恢复用户。
+
+image:sqlsb-aws-001.png["该图显示输入/输出对话框或表示书面内容"]
+
+NetApp建议使用基于角色的访问控制 (RBAC) 将数据保护和管理功能委托给SnapCenter和窗口主机上的各个用户。用户必须具有访问托管数据库的 SQL Server 的权限。对于多个主机，用户名和密码在各个主机之间必须相同。此外，为了使SnapCenter能够在 SQL Server 主机上部署所需的插件，您必须注册SnapCenter的域信息以验证您的凭据和主机。
+
+展开以下部分以查看有关如何完成每个步骤的详细说明。
+
+.添加凭据
+[%collapsible%open]
+====
+转到*设置*，选择*凭据*，然后单击(*+*)。
+
+image:sqlsb-aws-002.png["该图显示输入/输出对话框或表示书面内容"]
+
+新用户必须拥有 SQL Server 主机的管理员权限。
+
+image:sqlsb-aws-003.png["该图显示输入/输出对话框或表示书面内容"]
+
+====
+.配置存储
+[%collapsible%open]
+====
+要在SnapCenter中配置存储，请完成以下步骤：
+
+. 在SnapCenter UI 中，选择“存储系统”。有两种存储类型，* ONTAP SVM* 和 * ONTAP Cluster*。默认情况下，存储类型为* ONTAP SVM*。
+. 单击(*+*)添加存储系统信息。
++
+image:sqlsb-aws-004.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 提供*FSx ONTAP管理*端点。
++
+image:sqlsb-aws-005.png["该图显示输入/输出对话框或表示书面内容"]
+
+. SVM 现已在SnapCenter中配置。
++
+image:sqlsb-aws-006.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+.向SnapCenter添加 SQL Server 主机
+[%collapsible%open]
+====
+要添加 SQL Server 主机，请完成以下步骤：
+
+. 在“主机”选项卡中，单击 (*+*) 添加 Microsoft SQL Server 主机。
++
+image:sqlsb-aws-007.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 提供远程主机的完全限定域名 (FQDN) 或 IP 地址。
++
+
+NOTE: 凭据是默认填充的。
+
+. 选择 Microsoft Windows 和 Microsoft SQL Server 选项，然后提交。
++
+image:sqlsb-aws-008.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+SQL Server 包已安装。
+
+image:sqlsb-aws-009.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 安装完成后，转到*资源*选项卡以验证所有 FSx ONTAP iSCSI 卷是否存在。
++
+image:sqlsb-aws-010.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+.配置日志目录
+[%collapsible%open]
+====
+要配置主机日志目录，请完成以下步骤：
+
+. 单击复选框。将打开一个新选项卡。
++
+image:sqlsb-aws-011.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 单击*配置日志目录*链接。
++
+image:sqlsb-aws-012.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择主机日志目录和 FCI 实例日志目录的驱动器。单击“保存”。对集群中的第二个节点重复相同的过程。关闭窗口。
++
+image:sqlsb-aws-013.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+主机现在处于运行状态。
+
+image:sqlsb-aws-014.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从“*资源*”选项卡中，我们可以看到所有的服务器和数据库。
++
+image:sqlsb-aws-015.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+
+
+== 配置备份策略
+
+备份策略是一组控制如何管理、安排和保留备份的规则。它有助于根据您公司的 SLA 确定备份类型和频率。
+
+展开以下部分以查看有关如何完成每个步骤的详细说明。
+
+.配置 FCI 数据库的备份操作
+[%collapsible%open]
+====
+要为 FCI 数据库配置备份策略，请完成以下步骤：
+
+. 转到*设置*并选择左上角的*策略*。然后单击“*新建*”。
++
+image:sqlsb-aws-016.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 输入策略名称和描述。单击“下一步”。
++
+image:sqlsb-aws-017.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择*完整备份*作为备份类型。
++
+image:sqlsb-aws-018.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择计划频率（基于公司 SLA）。单击“下一步”。
++
+image:sqlsb-aws-019.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置备份的保留设置。
++
+image:sqlsb-aws-020.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置复制选项。
++
+image:sqlsb-aws-021.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 指定在备份作业运行之前和之后运行的运行脚本（如果有）。
++
+image:sqlsb-aws-022.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 根据备份计划运行验证。
++
+image:sqlsb-aws-023.png["该图显示输入/输出对话框或表示书面内容"]
+
+. *摘要*页面提供了备份策略的详细信息。任何错误都可以在这里纠正。
++
+image:sqlsb-aws-024.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+====
+
+
+== 配置和保护 MSSQL Server 数据库
+
+. 设置备份策略的开始日期和到期日期。
++
+image:sqlsb-aws-025.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 定义备份计划。为此，请单击 (*+*) 来配置时间表。输入*开始日期*和*到期日期*。根据公司的 SLA 设置时间。
++
+image:sqlsb-aws-026.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置验证服务器。从下拉菜单中选择服务器。
++
+image:sqlsb-aws-027.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 单击加号并确认，确认配置的计划。
+. 提供电子邮件通知的信息。单击“下一步”。
++
+image:sqlsb-aws-028.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+现已配置 SQL Server 数据库的备份策略摘要。
+
+image:sqlsb-aws-029.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== SnapCenter备份操作
+
+要创建按需 SQL Server 备份，请完成以下步骤：
+
+. 从*资源*视图中，选择资源并选择*立即备份*。
++
+image:sqlsb-aws-030.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“*备份*”对话框中，单击“*备份*”。
++
+image:sqlsb-aws-031.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 显示确认屏幕。单击“是”确认。
++
+image:sqlsb-aws-032.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 监视备份作业
+
+. 从“*监控*”选项卡中，单击该作业并选择右侧的“*详细信息*”以查看该作业。
++
+image:sqlsb-aws-033.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+image:sqlsb-aws-034.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+备份完成后，拓扑视图中会显示一个新条目。
+
+
+
+== 多个数据库的备份操作
+
+要为多个 SQL Server 数据库配置备份策略，请通过完成以下步骤创建资源组策略：
+
+. 在“查看”菜单的“资源”选项卡中，使用下拉菜单更改为资源组。
++
+image:sqlsb-aws-035.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 单击 (*+*) 可获得新的资源组。
++
+image:sqlsb-aws-036.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 提供名称和标签。单击“下一步”。
++
+image:sqlsb-aws-037.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 将资源添加到资源组：
++
+** *主持人。*从下拉菜单中选择托管数据库的服务器。
+** 资源类型。从下拉菜单中选择*数据库*。
+** SQL Server 实例。选择服务器。
++
+image:sqlsb-aws-038.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+默认情况下，选择“自动从同一存储卷中选择所有资源”*选项。清除该选项并仅选择需要添加到资源组的数据库，单击箭头添加并单击*下一步*。
+
++
+image:sqlsb-aws-039.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+. 在策略上，单击 (*+*)。
++
+image:sqlsb-aws-040.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 输入资源组策略名称。
++
+image:sqlsb-aws-041.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 根据您公司的 SLA 选择*完整备份*和计划频率。
++
+image:sqlsb-aws-042.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置保留设置。
++
+image:sqlsb-aws-043.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置复制选项。
++
+image:sqlsb-aws-044.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置在执行备份之前运行的脚本。单击“下一步”。
++
+image:sqlsb-aws-045.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 确认以下备份计划的验证。
++
+image:sqlsb-aws-046.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“*摘要*”页面上，验证信息，然后单击“*完成*”。
++
+image:sqlsb-aws-047.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 配置和保护多个 SQL Server 数据库
+
+. 单击 (*+*) 符号以配置开始日期和到期日期。
++
+image:sqlsb-aws-048.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 设置时间。
++
+image:sqlsb-aws-049.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+image:sqlsb-aws-050.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从“*验证*”选项卡中，选择服务器，配置计划，然后单击“*下一步*”。
++
+image:sqlsb-aws-051.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置通知以发送电子邮件。
++
+image:sqlsb-aws-052.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+该策略现已配置为备份多个 SQL Server 数据库。
+
+image:sqlsb-aws-053.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 触发多个 SQL Server 数据库的按需备份
+
+. 从“*资源*”选项卡中，选择视图。从下拉菜单中选择“*资源组*”。
++
+image:sqlsb-aws-054.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择资源组名称。
+. 点击右上角的*立即备份*。
++
+image:sqlsb-aws-055.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 将打开一个新窗口。单击*备份后验证*复选框，然后单击备份。
++
+image:sqlsb-aws-056.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 显示确认消息。单击“是”。
++
+image:sqlsb-aws-057.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 监控多数据库备份作业
+
+从左侧导航栏中，单击*监控*，选择备份作业，然后单击*详细信息*查看作业进度。
+
+image:sqlsb-aws-058.png["该图显示输入/输出对话框或表示书面内容"]
+
+单击“*资源*”选项卡查看完成备份所需的时间。
+
+image:sqlsb-aws-059.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 多个数据库备份的事务日志备份
+
+SnapCenter支持完整、批量日志和简单恢复模型。简单恢复模式不支持事务日志备份。
+
+要执行事务日志备份，请完成以下步骤：
+
+. 从“*资源*”选项卡中，将视图菜单从“*数据库*”更改为“*资源组*”。
++
+image:sqlsb-aws-060.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择创建的资源组备份策略。
+. 选择右上角的*修改资源组*。
++
+image:sqlsb-aws-061.png["该图显示输入/输出对话框或表示书面内容"]
+
+. *名称*部分默认为备份策略名称和标签。单击“下一步”。
++
+*资源*选项卡突出显示了要配置事务备份策略的基础。
+
++
+image:sqlsb-aws-062.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 输入策略名称。
++
+image:sqlsb-aws-063.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择 SQL Server 备份选项。
+. 选择日志备份。
+. 根据您公司的 RTO 设置计划频率。单击“下一步”。
++
+image:sqlsb-aws-064.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置日志备份保留设置。单击“下一步”。
++
+image:sqlsb-aws-065.png["该图显示输入/输出对话框或表示书面内容"]
+
+. （可选）配置复制选项。
++
+image:sqlsb-aws-066.png["该图显示输入/输出对话框或表示书面内容"]
+
+. （可选）配置在执行备份作业之前运行的任何脚本。
++
+image:sqlsb-aws-067.png["该图显示输入/输出对话框或表示书面内容"]
+
+. （可选）配置备份验证。
++
+image:sqlsb-aws-068.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“*摘要*”页面上，单击“*完成*”。
++
+image:sqlsb-aws-069.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 配置和保护多个 MSSQL Server 数据库
+
+. 单击新创建的事务日志备份策略。
++
+image:sqlsb-aws-070.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 设置*开始日期*和*到期日期*。
+. 根据 SLA、RTP 和 RPO 输入日志备份策略的频率。单击“OK”。
++
+image:sqlsb-aws-071.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 您可以看到这两项政策。单击“下一步”。
++
+image:sqlsb-aws-072.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置验证服务器。
++
+image:sqlsb-aws-073.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 配置电子邮件通知。
++
+image:sqlsb-aws-074.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“*摘要*”页面上，单击“*完成*”。
++
+image:sqlsb-aws-075.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 触发多个 SQL Server 数据库的按需事务日志备份
+
+要触发多个 SQL 服务器数据库的事务日志的按需备份，请完成以下步骤：
+
+. 在新建策略页面，选择页面右上角的*立即备份*。
++
+image:sqlsb-aws-076.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 从*策略*选项卡的弹出窗口中，选择下拉菜单，选择备份策略，配置事务日志备份。
++
+image:sqlsb-aws-077.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 单击“*备份*”。将显示一个新窗口。
+. 单击“*是*”确认备份策略。
++
+image:sqlsb-aws-078.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 监控
+
+移至“*监控*”选项卡并监控备份作业的进度。
+
+image:sqlsb-aws-079.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+== 还原和恢复
+
+请参阅在SnapCenter中还原 SQL Server 数据库所必需的以下先决条件。
+
+* 还原作业完成之前，目标实例必须处于在线状态并正在运行。
+* 必须禁用计划针对 SQL Server 数据库运行的SnapCenter操作，包括在远程管理或远程验证服务器上计划的任何作业。
+* 如果要将自定义日志目录备份还原到备用主机，则SnapCenter服务器和插件主机必须安装相同的SnapCenter版本。
+* 您可以将系统数据库恢复到备用主机。
+* SnapCenter可以在不使 SQL Server 群集组脱机的情况下恢复 Windows 群集中的数据库。
+
+
+
+
+== 将 SQL Server 数据库上已删除的表恢复到某个时间点
+
+要将 SQL Server 数据库恢复到某个时间点，请完成以下步骤：
+
+. 以下屏幕截图显示了删除表之前 SQL Server 数据库的初始状态。
++
+image:sqlsb-aws-080.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+屏幕截图显示表中删除了 20 行。
+
++
+image:sqlsb-aws-081.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 登录SnapCenter服务器。从“*资源*”选项卡中，选择数据库。
++
+image:sqlsb-aws-082.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 选择最近的备份。
+. 在右侧选择*恢复*。
++
+image:sqlsb-aws-083.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 将显示一个新窗口。选择*恢复*选项。
+. 将数据库还原到创建备份的同一主机。单击“下一步”。
++
+image:sqlsb-aws-084.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 对于*恢复类型*，选择*所有日志备份*。单击“下一步”。
++
+image:sqlsb-aws-085.png["该图显示输入/输出对话框或表示书面内容"]
+
++
+image:sqlsb-aws-086.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+*预恢复选项：*
+
+. 选择选项*恢复期间用同名覆盖数据库*。单击“下一步”。
++
+image:sqlsb-aws-087.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+恢复后选项：*
+
+. 选择选项*可操作，但无法恢复其他事务日志*。单击“下一步”。
++
+image:sqlsb-aws-088.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 提供电子邮件设置。单击“下一步”。
++
+image:sqlsb-aws-089.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 在“*摘要*”页面上，单击“*完成*”。
++
+image:sqlsb-aws-090.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 监控恢复进度
+
+. 在“监控”选项卡中，单击还原作业详细信息以查看还原作业的进度。
++
+image:sqlsb-aws-091.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 恢复作业详细信息。
++
+image:sqlsb-aws-092.png["该图显示输入/输出对话框或表示书面内容"]
+
+. 返回 SQL Server 主机 > 数据库 > 表存在。
++
+image:sqlsb-aws-093.png["该图显示输入/输出对话框或表示书面内容"]
+
+
+
+
+
+== 在哪里可以找到更多信息
+
+要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：
+
+* https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf["TR-4714：使用NetApp SnapCenter 的Microsoft SQL Server 最佳实践指南"^]
++
+https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf["https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf"^]
+
+* https://docs.netapp.com/us-en/snapcenter-45/protect-scsql/concept_requirements_for_restoring_a_database.html["恢复数据库的要求"^]
++
+https://docs.netapp.com/us-en/snapcenter-45/protect-scsql/concept_requirements_for_restoring_a_database.html["https://docs.netapp.com/us-en/snapcenter-45/protect-scsql/concept_requirements_for_restoring_a_database.html"^]
+
+* 了解克隆数据库的生命周期
++
+https://library.netapp.com/ecmdocs/ECMP1217281/html/GUID-4631AFF4-64FE-4190-931E-690FCADA5963.html["https://library.netapp.com/ecmdocs/ECMP1217281/html/GUID-4631AFF4-64FE-4190-931E-690FCADA5963.html"^]
+
+

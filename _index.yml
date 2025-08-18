@@ -1,0 +1,116 @@
+---
+indexpage:
+  title: NetApp数据库解决方案
+  summary: NetApp企业数据库解决方案是一套战略和技术能力，展示了NetApp存储在各大企业数据库中的能力。
+  lead: NetApp数据库解决方案是一套战略和技术能力，展示了NetApp存储在各大企业数据库中的能力。
+  tiles:
+  - title: 开始使用
+    links:
+    - title: 什么是新的
+      url: "/whats-new.html"
+    - title: 博客
+      url: "/blogs.html"
+    - title: 视频和演示
+      url: "/videos/index.html"
+  - title: 适用于Amazon FSx for ONTAP 的Oracle
+    links:
+    - title: 在 AWS EC2 中部署 Oracle HA
+      url: "/oracle/aws-ora-ha-pacemaker.html"
+    - title: 在 FSx ONTAP上部署 Oracle
+      url: "/automation/automation-ora-aws-fsx-iscsi.html"
+    - title: 使用 FSx ONTAP在 VMware Cloud 上运行 Oracle
+      url: "/oracle/aws-ora-fsx-vmc-guestmount.html"
+    - title: 使用 FSx ONTAP降低 Data Guard 成本
+      url: "/oracle/aws-ora-fsx-ec2-data-guard.html"
+    - title: 在 FSx ONTAP上恢复并克隆 Oracle VLDB
+      url: "/oracle/aws-ora-fsx-ec2-inc-merge.html"
+    - title: 在 FSx/EC2 上保护和部署 Oracle
+      url: "/oracle/aws-ora-fsx-ec2-iscsi-asm.html"
+  - title: 适用于Azure NetApp Files的Oracle
+    links:
+    - title: 在 ANF 上部署 Oracle VLDB
+      url: "/oracle/azure-ora-anf-vldb-dg.html"
+    - title: 使用 ANF 降低 Data Guard 成本
+      url: "/oracle/azure-ora-anf-data-guard.html"
+    - title: 在 ANF 上恢复并克隆 Oracle VLDB
+      url: "/oracle/azure-ora-anf-inc-merge.html"
+    - title: 使用 NFS 在Azure NetApp Files上部署 Oracle
+      url: "/automation/automation-ora-anf-nfs.html"
+    - title: 在 ANF 上部署和迁移 Oracle
+      url: "/oracle/azure-ora-nfile-usecase.html"
+  - title: Oracle 适用于 Google Cloud
+    links:
+    - title: 优化 Google Cloud 上的 Oracle VLDB 备份和恢复
+      url: "/oracle/gcp-ora-gcnv-inc-merge.html"
+    - title: 在 Google Cloud 上使用 Data Guard 部署 Oracle VLDB
+      url: "/oracle/gcp-ora-gcnv-vldb-dg.html"
+    - title: 查看 Google Cloud 上的 Oracle 存储解决方案
+      url: "/oracle/gcp-oracle-gcnv-overview.html"
+  - title: 适用于云和本地的 SQL 服务器解决方案
+    links:
+    - title: 在 AWS FSx ONTAP上备份和恢复 SQL Server
+      url: "/mssql/sqlsb-backup-restore-aws-fsxn.html"
+    - title: 使用 FSx ONTAP在 AWS EC2 上运行 SQL Server
+      url: "/mssql/sql-aws-ec2.html"
+    - title: 在Azure NetApp Files上运行 SQL Server
+      url: "/mssql/sql-srv-anf-overview.html"
+    - title: 将本地 SQL 工作负载迁移至 FSx ONTAP
+      url: "/mssql/customer-usecase-mssql-fsx1.html"
+    - title: 在 Windows 上使用集群数据ONTAP 的SAP 与 Microsoft SQL Server
+      url: https://www.netapp.com/pdf.html?item=/media/16865-tr-4467pdf.pdf
+    - title: 现代化 Microsoft SQL Server
+      url: https://www.netapp.com/pdf.html?item=/media/15613-na-446.pdf
+    - title: 采用ONTAP的 Microsoft SQL Server 的最佳实践
+      url: https://www.netapp.com/pdf.html?item=/media/8585-tr4590.pdf
+    - title: EF 系列 Microsoft SQL Server 的最佳实践
+      url: https://www.netapp.com/pdf.html?item=/media/17086-tr4764pdf.pdf
+  - title: 混合云数据库解决方案
+    links:
+    - title: 使用 VCF 中的vVols部署和保护 Oracle RAC
+      url: "/oracle/vcf-ora-rac-vvol.html"
+    - title: 使用 VCF 中的vVols部署和保护 Oracle SI
+      url: "/oracle/vcf-ora-si-vvol.html"
+    - title: 使用 NFS 在NetApp C 系列上部署 Oracle
+      url: "/automation/automation-ora-c-series-nfs.html"
+    - title: 使用 iSCSI 在NetApp ASA上部署 Oracle
+      url: "/automation/automation-ora-asa-iscsi.html"
+    - title: 通过自动化在ONTAP上部署 Oracle19c
+      url: "/automation/db-protection-overview.html"
+    - title: 在NetApp EF 系列上运行 Oracle 数据库
+      url: https://www.netapp.com/pdf.html?item=/media/17248-tr4794pdf.pdf
+  - title: 开源数据库
+    links:
+    - title: 在 AWS FSx/EC2 中部署 PostgreSQL 数据库并设置灾难恢复
+      url: "/postgres/aws-postgres-fsx-ec2-hadr.html"
+    - title: ONTAP上的 MySQL 数据库
+      url: https://www.netapp.com/pdf.html?item=/media/16423-tr-4722pdf.pdf
+  - title: 适用于数据库的SnapCenter
+    links:
+    - title: 使用SnapCenter在ONTAP上备份和克隆 PostgreSQL
+      url: "/postgres/snapctr-psql-ontap.html"
+    - title: 自动化设置、克隆和刷新 Oracle 数据库
+      url: "/automation/automation-ora-clone-lifecycle.html"
+    - title: 在 Microsoft Azure NetApp File 中自动部署 Oracle
+      url: "/oracle/snapctr-ora-azure-anf.html"
+    - title: 使用SnapCenter部署混合云数据库解决方案
+      url: "/dbops/hybrid-dbops-snapcenter-usecases.html"
+  - title: 数据库自动化工具包
+    links:
+    - title: 使用 ASM 自动化 GCNV 上的 Oracle 克隆生命周期
+      url: "/automation/automation-ora-clone-gcnv-asm.html"
+    - title: 使用 ASM 自动化 ANF 上的 Oracle 克隆生命周期
+      url: "/automation/automation-ora-clone-anf-asm.html"
+    - title: 使用 PDB 重定位迁移 Oracle
+      url: "/automation/automation-ora-migration.html"
+    - title: 使用Amazon FSx for NetApp ONTAP部署 Oracle HA/DR
+      url: "/automation/automation-ora-hadr-fsx.html"
+    - title: Amazon FSx for NetApp ONTAP
+      url: "/automation/automation-fsx-ec2-provision.html"
+    - title: 在 AWS 中部署 PostgreSQL
+      url: https://github.com/NetApp/na_postgresql_aws_deploy_hadr
+  - title: 解决方案请求和反馈
+    links:
+    - title: 提出新的解决方案
+      url: https://github.com/NetAppDocs/netapp-solutions/issues/new?body=[Request%20Solution]%0d%0a%0d%0aSolution%20Use%20Case:%20%0d%0aSolution%20Description:%20%0d%0aAdditional%20Comments:&title=Request%20Solution%20-%20%3Csolution%3E
+    - title: 提供解决方案反馈
+      url: https://github.com/NetAppDocs/netapp-solutions/issues/new?body=[Solution%20Feedback]%0d%0a%0d%0aSolution%20Name:%20%0d%0aSolution%20Feedback:%20%0d%0aAdditional%20Comments:&title=Solution%20Feedback%20-%20%3Csolution%3E

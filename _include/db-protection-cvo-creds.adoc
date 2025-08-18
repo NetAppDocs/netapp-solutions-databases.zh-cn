@@ -1,0 +1,106 @@
+= 
+:allow-uri-read: 
+
+
+. 配置凭据。
+. 创建凭证类型。对于涉及ONTAP的解决方案，您必须配置凭证类型以匹配用户名和密码条目，我们还将为 Cloud Central 和 AWS 添加条目。
++
+.. 导航到管理 → 凭证类型，然后单击添加。
+.. 提供名称和描述。
+.. 在输入配置中粘贴以下内容：
++
+[source, cli]
+----
+fields:
+  - id: dst_cluster_username
+    type: string
+    label: CVO Username
+  - id: dst_cluster_password
+    type: string
+    label: CVO Password
+    secret: true
+  - id: cvo_svm_password
+    type: string
+    label: CVO SVM Password
+    secret: true
+  - id: src_cluster_username
+    type: string
+    label: Source Cluster Username
+  - id: src_cluster_password
+    type: string
+    label: Source Cluster Password
+    secret: true
+  - id: regular_id
+    type: string
+    label: Cloud Central ID
+    secret: true
+  - id: email_id
+    type: string
+    label: Cloud Manager Email
+    secret: true
+  - id: cm_password
+    type: string
+    label: Cloud Manager Password
+    secret: true
+  - id: access_key
+    type: string
+    label: AWS Access Key
+    secret: true
+  - id: secret_key
+    type: string
+    label: AWS Secret Key
+    secret: true
+  - id: token
+    type: string
+    label: Cloud Central Refresh Token
+    secret: true
+----
+.. 将以下内容粘贴到 Injector Configuration 中，然后单击“保存”：
++
+[source, cli]
+----
+extra_vars:
+  dst_cluster_username: '{{ dst_cluster_username }}'
+  dst_cluster_password: '{{ dst_cluster_password }}'
+  cvo_svm_password: '{{ cvo_svm_password }}'
+  src_cluster_username: '{{ src_cluster_username }}'
+  src_cluster_password: '{{ src_cluster_password }}'
+  regular_id: '{{ regular_id }}'
+  email_id: '{{ email_id }}'
+  cm_password: '{{ cm_password }}'
+  access_key: '{{ access_key }}'
+  secret_key: '{{ secret_key }}'
+  token: '{{ token }}'
+----
+
+
+. 为ONTAP/CVO/AWS 创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入ONTAP凭证的名称和组织详细信息
+.. 选择上一步中创建的凭证类型。
+.. 在类型详细信息下，输入源和 CVO 集群、Cloud Central/Manager、AWS 访问/密钥和 Cloud Central 刷新令牌的用户名和密码。
+.. 点击“保存”
+
+
+. 为 Oracle 创建凭证（来源）
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入 Oracle 主机的名称和组织详细信息
+.. 选择机器凭证类型。
+.. 在类型详细信息下，输入 Oracle 主机的用户名和密码。
+.. 选择正确的权限提升方法，并输入用户名和密码。
+.. 点击“保存”
+
+
+. 为 Oracle 目标创建凭证
++
+.. 导航到资源 → 凭证，然后单击添加。
+.. 输入 DR Oracle 主机的名称和组织详细信息
+.. 选择机器凭证类型。
+.. 在类型详细信息下，输入用户名（ec2-user，或者如果您已将其从默认设置更改，请输入该用户名）和 SSH 私钥
+.. 选择正确的权限提升方法（sudo），并根据需要输入用户名和密码。
+.. 点击“保存”
+
+
+

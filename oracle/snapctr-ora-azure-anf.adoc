@@ -1,0 +1,535 @@
+---
+sidebar: sidebar 
+permalink: oracle/snapctr-ora-azure-anf.html 
+keywords: Database, Oracle, Azure, ANF, Ansible, Automation 
+summary: 该解决方案提供了在 Microsoft Azure NetApp Files中自动部署 Oracle 的概述和详细信息，该部署作为具有 NFS 协议的主数据库存储，并且 Oracle 数据库部署为启用 dNFS 的容器数据库。使用SnapCenter UI 工具保护部署在 Azure 中的数据库，以简化数据库管理 
+---
+= TR-4988：使用SnapCenter在 ANF 上进行 Oracle 数据库备份、恢复和克隆
+:hardbreaks:
+:allow-uri-read: 
+:nofooter: 
+:icons: font
+:linkattrs: 
+:imagesdir: ../media/
+
+
+Allen Cao、Niyaz Mohamed， NetApp
+
+[role="lead"]
+该解决方案提供了在 Microsoft Azure NetApp Files中自动部署 Oracle 的概述和详细信息，该部署作为具有 NFS 协议的主数据库存储，并且 Oracle 数据库部署为启用 dNFS 的容器数据库。使用SnapCenter UI 工具保护 Azure 中部署的数据库，以简化数据库管理。
+
+
+
+== 目的
+
+NetApp SnapCenter software是一个易于使用的企业平台，可以安全地协调和管理跨应用程序、数据库和文件系统的数据保护。它通过将这些任务转移给应用程序所有者来简化备份、恢复和克隆生命周期管理，同时又不牺牲监督和管理存储系统活动的能力。通过利用基于存储的数据管理，它可以提高性能和可用性，并减少测试和开发时间。
+
+在 TR-4987 中，link:../automation/automation-ora-anf-nfs.html["使用 NFS 在Azure NetApp Files上简化、自动化 Oracle 部署"^] ，我们演示了在 Azure 云中的Azure NetApp Files (ANF) 上自动部署 Oracle。在本文档中，我们使用非常用户友好的SnapCenter UI 工具展示了 Azure 云中 ANF 上的 Oracle 数据库保护和管理。
+
+此解决方案适用于以下用例：
+
+* 使用SnapCenter备份和恢复在 Azure 云中的 ANF 上部署的 Oracle 数据库。
+* 管理数据库快照和克隆副本，以加速应用程序开发并改善数据生命周期管理。
+
+
+
+
+== 受众
+
+此解决方案适用于以下人群：
+
+* 想要在Azure NetApp Files上部署 Oracle 数据库的 DBA。
+* 想要在Azure NetApp Files上测试 Oracle 工作负载的数据库解决方案架构师。
+* 希望在Azure NetApp Files上部署和管理 Oracle 数据库的存储管理员。
+* 希望在Azure NetApp Files上建立 Oracle 数据库的应用程序所有者。
+
+
+
+
+== 解决方案测试和验证环境
+
+该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
+
+
+
+=== 架构
+
+image:automation-ora-anf-nfs-architecture.png["此图提供了具有 iSCSI 和 ASM 的 AWS 公共云中的 Oracle 部署配置的详细图片。"]
+
+
+
+=== 硬件和软件组件
+
+[cols="33%, 33%, 33%"]
+|===
+
+
+3+| *硬件* 
+
+
+| Azure NetApp Files | Microsoft 目前在 Azure 中提供的产品 | 具有高级服务级别的容量池 
+
+
+| 用于数据库服务器的 Azure VM | Standard_B4ms - 4 个 vCPU，16GiB | 两个 Linux 虚拟机实例 
+
+
+| 适用于SnapCenter 的Azure VM | Standard_B4ms - 4 个 vCPU，16GiB | 一个 Windows 虚拟机实例 
+
+
+3+| *软件* 
+
+
+| 红帽Linux | RHEL Linux 8.6（LVM）-x64 Gen2 | 部署 RedHat 订阅进行测试 
+
+
+| Windows Server | 2022 数据中心；AE 热补丁 - x64 Gen2 | 托管SnapCenter服务器 
+
+
+| Oracle 数据库 | 19.18 版 | 补丁 p34765931_190000_Linux-x86-64.zip 
+
+
+| Oracle OPatch | 版本 12.2.0.1.36 | 补丁 p6880880_190000_Linux-x86-64.zip 
+
+
+| SnapCenter 服务器 | 5.0 版 | 工作组部署 
+
+
+| 打开 JDK | 版本 java-11-openjdk | 数据库虚拟机上的SnapCenter插件要求 
+
+
+| NFS | 3.0 版 | 已启用 Oracle dNFS 
+
+
+| Ansible | 核心 2.16.2 | Python 3.6.8 
+|===
+
+
+=== 实验室环境中的 Oracle 数据库配置
+
+[cols="33%, 33%, 33%"]
+|===
+
+
+3+|  
+
+
+| *服务器* | *数据库* | *数据库存储* 
+
+
+| ora-01 | NTAP1(NTAP1_PDB1、NTAP1_PDB2、NTAP1_PDB3) | /u01、/u02、/u03 在 ANF 容量池上挂载 NFS 
+
+
+| ora-02 | NTAP2(NTAP2_PDB1、NTAP2_PDB2、NTAP2_PDB3) | /u01、/u02、/u03 在 ANF 容量池上挂载 NFS 
+|===
+
+
+=== 部署考虑的关键因素
+
+* * SnapCenter部署。* SnapCenter可以在 Windows 域或工作组环境中部署。对于基于域的部署，域用户帐户应该是域管理员帐户，或者域用户属于SnapCenter托管服务器上的本地管理员组。
+* *名称解析。* SnapCenter服务器需要将名称解析为每个托管目标数据库服务器主机的 IP 地址。每个目标数据库服务器主机必须将SnapCenter服务器名称解析为 IP 地址。如果 DNS 服务器不可用，请将命名添加到本地主机文件以进行解析。
+* 资源组配置。 SnapCenter中的资源组是可以一起备份的类似资源的逻辑分组。因此，它简化并减少了大型数据库环境中的备份作业的数量。
+* *单独进行完整数据库和存档日志备份。*完整数据库备份包括数据卷和日志卷一致组快照。频繁的完整数据库快照会导致更高的存储消耗，但可以提高 RTO。另一种方法是减少完整数据库快照的频率，增加存档日志备份的频率，这样可以减少存储空间并改善 RPO，但可能会延长 RTO。设置备份方案时，请考虑您的 RTO 和 RPO 目标。卷上的快照备份数量也有限制（1023）。
+* *Privileges委托。*如果需要，利用SnapCenter UI 内置的基于角色的访问控制将权限委托给应用程序和数据库团队。
+
+
+
+
+== 解决方案部署
+
+以下部分提供了 Azure 云中Azure NetApp Files上的SnapCenter部署、配置以及 Oracle 数据库备份、恢复和克隆的分步过程。
+
+
+
+=== 部署先决条件
+
+[%collapsible%open]
+====
+部署需要在 Azure 中的 ANF 上运行现有的 Oracle 数据库。如果没有，请按照以下步骤创建两个 Oracle 数据库用于解决方案验证。有关在 Azure 云中的 ANF 上自动化部署 Oracle 数据库的详细信息，请参阅 TR-4987：link:../automation/automation-ora-anf-nfs.html["使用 NFS 在Azure NetApp Files上简化、自动化 Oracle 部署"^]
+
+. 已设置 Azure 帐户，并在您的 Azure 帐户内创建了必要的 VNet 和网络段。
+. 从 Azure 云门户，将 Azure Linux VM 部署为 Oracle DB 服务器。为 Oracle 数据库创建Azure NetApp Files容量池和数据库卷。为 azureuser 到 DB 服务器启用 VM SSH 私钥/公钥身份验证。有关环境设置的详细信息，请参阅上一节中的架构图。也提到link:azure-ora-nfile-procedures.html["Azure VM 和Azure NetApp Files上的分步 Oracle 部署过程"^]了解详细信息。
++
+
+NOTE: 对于使用本地磁盘冗余部署的 Azure VM，请确保在 VM 根磁盘中分配至少 128G，以便有足够的空间来暂存 Oracle 安装文件并添加 OS 交换文件。相应地扩展 /tmplv 和 /rootlv OS 分区。确保数据库卷命名遵循 VMname-u01、VMname-u02 和 VMname-u03 约定。
+
++
+[source, cli]
+----
+sudo lvresize -r -L +20G /dev/mapper/rootvg-rootlv
+----
++
+[source, cli]
+----
+sudo lvresize -r -L +10G /dev/mapper/rootvg-tmplv
+----
+. 从 Azure 云门户配置 Windows 服务器以运行最新版本的NetApp SnapCenter UI 工具。详细信息请参考以下链接：link:https://docs.netapp.com/us-en/snapcenter/install/task_install_the_snapcenter_server_using_the_install_wizard.html["安装SnapCenter服务器"^] 。
+. 将 Linux VM 配置为 Ansible 控制器节点，并安装最新版本的 Ansible 和 Git。详细信息请参考以下链接：link:https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/getting-started.html["NetApp解决方案自动化入门^"^]在第 -
+`Setup the Ansible Control Node for CLI deployments on RHEL / CentOS`或者
+`Setup the Ansible Control Node for CLI deployments on Ubuntu / Debian`。
++
+
+NOTE: Ansible 控制器节点可以位于本地或 Azure 云中，只要它可以通过 ssh 端口访问 Azure DB VM。
+
+. 克隆适用于 NFS 的NetApp Oracle 部署自动化工具包的副本。按照说明进行操作link:../automation/automation-ora-anf-nfs.html["TR-4887"^]执行剧本。
++
+[source, cli]
+----
+git clone https://bitbucket.ngage.netapp.com/scm/ns-bb/na_oracle_deploy_nfs.git
+----
+. 在 Azure DB VM /tmp/archive 目录上以 777 权限执行以下 Oracle 19c 安装文件阶段。
++
+....
+installer_archives:
+  - "LINUX.X64_193000_db_home.zip"
+  - "p34765931_190000_Linux-x86-64.zip"
+  - "p6880880_190000_Linux-x86-64.zip"
+....
+. 观看以下视频：
++
+.使用SnapCenter在 ANF 上进行 Oracle 数据库备份、恢复和克隆
+video::960fb370-c6e0-4406-b6d5-b110014130e8[panopto,width=360]
+. 回顾 `Get Started`在线菜单。
+
+
+====
+
+
+=== SnapCenter安装和设置
+
+[%collapsible%open]
+====
+我们建议通过在线link:https://docs.netapp.com/us-en/snapcenter/index.html["SnapCenter软件文档"^]在继续进行SnapCenter安装和配置之前：。下面提供了在 Azure ANF 上安装和设置 Oracle 的SnapCenter software的步骤的高级摘要。
+
+. 从SnapCenter Windows 服务器下载并安装最新的 Java JDKlink:https://www.java.com/en/["获取用于桌面应用程序的 Java"^] 。
+. 从SnapCenter Windows 服务器，从NetApp支持站点下载并安装最新版本（当前为 5.0）的SnapCenter安装可执行文件：link:https://mysupport.netapp.com/site/["NetApp | 支持"^] 。
+. 安装SnapCenter服务器后，启动浏览器通过端口 8146 使用 Windows 本地管理员用户或域用户凭据登录SnapCenter 。
++
+image:snapctr-ora-azure-anf-setup-001.png["此图像提供SnapCenter服务器的登录屏幕"]
+
+. 审查 `Get Started`在线菜单。
++
+image:snapctr-ora-azure-anf-setup-002.png["此图提供SnapCenter服务器的在线菜单"]
+
+. 在 `Settings-Global Settings`， 查看 `Hypervisor Settings`然后点击更新。
++
+image:snapctr-ora-azure-anf-setup-003.png["此图像提供SnapCenter服务器的虚拟机管理程序设置"]
+
+. 如果需要，调整 `Session Timeout`将SnapCenter UI 设置为所需的间隔。
++
+image:snapctr-ora-azure-anf-setup-004.png["此图像提供SnapCenter服务器的会话超时"]
+
+. 如果需要，向SnapCenter添加其他用户。
++
+image:snapctr-ora-azure-anf-setup-006.png["此图像提供SnapCenter服务器的“设置 - 用户和访问权限”"]
+
+. 这 `Roles`选项卡列出了可以分配给不同SnapCenter用户的内置角色。管理员用户也可以创建具有所需权限的自定义角色。
++
+image:snapctr-ora-azure-anf-setup-007.png["此图像提供SnapCenter服务器的角色"]
+
+. 从 `Settings-Credential`，为SnapCenter管理目标创建凭据。在此演示用例中，他们是用于登录 Azure VM 的 Linux 用户和用于容量池访问的 ANF 凭据。
++
+image:snapctr-ora-azure-anf-setup-008.png["此图像提供SnapCenter服务器的凭据"] image:snapctr-ora-azure-anf-setup-009.png["此图像提供SnapCenter服务器的凭据"] image:snapctr-ora-azure-anf-setup-010.png["此图像提供SnapCenter服务器的凭据"]
+
+. 从 `Storage Systems`选项卡，添加 `Azure NetApp Files`使用上面创建的凭证。
++
+image:snapctr-ora-azure-anf-setup-011.png["此映像提供用于SnapCenter服务器的Azure NetApp Files"] image:snapctr-ora-azure-anf-setup-012.png["此映像提供用于SnapCenter服务器的Azure NetApp Files"]
+
+. 从 `Hosts`选项卡，添加 Azure DB VM，在 Linux 上安装适用于 Oracle 的SnapCenter插件。
++
+image:snapctr-ora-azure-anf-setup-013.png["此图像为SnapCenter服务器提供主机"] image:snapctr-ora-azure-anf-setup-014.png["此图像为SnapCenter服务器提供主机"] image:snapctr-ora-azure-anf-setup-015.png["此图像为SnapCenter服务器提供主机"]
+
+. 一旦在数据库服务器虚拟机上安装了主机插件，主机上的数据库就会自动被发现并可见 `Resources`选项卡。返回 `Settings-Polices`，创建Oracle数据库全量在线备份和仅存档日志备份的备份策略。参考此文档link:https://docs.netapp.com/us-en/snapcenter/protect-sco/task_create_backup_policies_for_oracle_database.html["为 Oracle 数据库创建备份策略"^]了解详细的分步步骤。
++
+image:snapctr-ora-azure-anf-setup-005.png["此图像提供SnapCenter服务器的设置策略"]
+
+
+
+====
+
+
+=== 数据库备份
+
+[%collapsible%open]
+====
+NetApp快照备份会创建数据库卷的时间点映像，您可以在系统发生故障或数据丢失时使用它来进行恢复。快照备份所需的时间很少，通常不到一分钟。备份映像占用的存储空间极小，并且产生的性能开销可以忽略不计，因为它仅记录自上次快照复制以来文件的更改。以下部分演示了SnapCenter中 Oracle 数据库备份的快照实现。
+
+. 导航至 `Resources`选项卡，其中列出了在数据库虚拟机上安装SnapCenter插件后发现的数据库。最初， `Overall Status`数据库显示为 `Not protected`。
++
+image:snapctr-ora-azure-anf-bkup-001.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 点击 `View`下拉列表更改为 `Resource Group`。点击 `Add`在右侧签名以添加资源组。
++
+image:snapctr-ora-azure-anf-bkup-002.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 命名您的资源组、标签和任何自定义命名。
++
+image:snapctr-ora-azure-anf-bkup-003.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 将资源添加到您的 `Resource Group`。对类似资源进行分组可以简化大型环境中的数据库管理。
++
+image:snapctr-ora-azure-anf-bkup-004.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 选择备份策略并通过单击“+”符号设置计划 `Configure Schedules`。
++
+image:snapctr-ora-azure-anf-bkup-005.png["此映像为SnapCenter服务器提供数据库备份"] image:snapctr-ora-azure-anf-bkup-006.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 如果策略中未配置备份验证，则保留验证页面原样。
++
+image:snapctr-ora-azure-anf-bkup-007.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 为了通过电子邮件发送备份报告和通知，环境中需要有 SMTP 邮件服务器。如果未设置邮件服务器，则将其保留为黑色。
++
+image:snapctr-ora-azure-anf-bkup-008.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 新资源组的摘要。
++
+image:snapctr-ora-azure-anf-bkup-009.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 重复上述步骤，创建具有相应备份策略的数据库归档日志备份。
++
+image:snapctr-ora-azure-anf-bkup-010-a.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 单击资源组可以显示其包含的资源。除了计划的备份作业外，还可以通过点击 `Backup Now`。
++
+image:snapctr-ora-azure-anf-bkup-010.png["此映像为SnapCenter服务器提供数据库备份"] image:snapctr-ora-azure-anf-bkup-011.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 点击正在运行的作业即可打开监控窗口，操作员可以实时跟踪作业进度。
++
+image:snapctr-ora-azure-anf-bkup-012.png["此映像为SnapCenter服务器提供数据库备份"]
+
+. 一旦备份作业成功完成，快照备份集就会出现在数据库拓扑下。完整数据库备份集包括数据库数据卷的快照和数据库日志卷的快照。仅日志备份仅包含数据库日志卷的快照。
++
+image:snapctr-ora-azure-anf-bkup-013.png["此映像为SnapCenter服务器提供数据库备份"]
+
+
+
+====
+
+
+=== 数据库恢复
+
+[%collapsible%open]
+====
+通过SnapCenter进行数据库恢复可恢复数据库卷映像时间点的快照副本。然后，数据库将前滚到 SCN/时间戳所期望的点或备份集中可用存档日志所允许的点。以下部分演示了使用SnapCenter UI 进行数据库恢复的工作流程。
+
+. 从 `Resources`选项卡，打开数据库 `Primary Backup(s)`页。选择数据库数据卷的快照，然后点击 `Restore`按钮启动数据库恢复工作流程。如果您喜欢通过 Oracle SCN 或时间戳运行恢复，请记下备份集中的 SCN 号或时间戳。
++
+image:snapctr-ora-azure-anf-restore-001.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 选择 `Restore Scope`。对于容器数据库， SnapCenter可以灵活地执行完整容器数据库（所有数据文件）、可插入数据库或表空间级别恢复。
++
+image:snapctr-ora-azure-anf-restore-002.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 选择 `Recovery Scope`。 `All logs`表示应用备份集中所有可用的归档日志。还可以通过 SCN 或时间戳进行时间点恢复。
++
+image:snapctr-ora-azure-anf-restore-003.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 这 `PreOps`允许在恢复/恢复操作之前针对数据库执行脚本。
++
+image:snapctr-ora-azure-anf-restore-004.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 这 `PostOps`允许在恢复/恢复操作后针对数据库执行脚本。
++
+image:snapctr-ora-azure-anf-restore-005.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 如果需要，可以通过电子邮件通知。
++
+image:snapctr-ora-azure-anf-restore-006.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 恢复工作摘要
++
+image:snapctr-ora-azure-anf-restore-007.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 点击正在运行的作业打开 `Job Details`窗户。还可以从 `Monitor`选项卡。
++
+image:snapctr-ora-azure-anf-restore-008.png["此映像为SnapCenter服务器提供数据库还原"]
+
+
+
+====
+
+
+=== 数据库克隆
+
+[%collapsible%open]
+====
+通过SnapCenter进行数据库克隆是通过从卷的快照创建新卷来完成的。系统使用快照信息，使用拍摄快照时卷上的数据来克隆新卷。更重要的是，与其他方法相比，它快速（几分钟）且高效，可以克隆生产数据库以支持开发或测试。从而显著改善您的数据库应用程序生命周期管理。以下部分演示了使用SnapCenter UI 进行数据库克隆的工作流程。
+
+. 从 `Resources`选项卡，打开数据库 `Primary Backup(s)`页。选择数据库数据卷的快照，然后点击 `clone`按钮启动数据库克隆工作流程。
++
+image:snapctr-ora-azure-anf-clone-001.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 将克隆数据库命名为 SID。或者，对于容器数据库，也可以在 PDB 级别进行克隆。
++
+image:snapctr-ora-azure-anf-clone-002.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 选择要放置克隆数据库副本的数据库服务器。保留默认文件位置，除非您想以不同的方式命名它们。
++
+image:snapctr-ora-azure-anf-clone-003.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 应该在克隆数据库主机上安装并配置与源数据库相同的 Oracle 软件堆栈。保留默认凭据，但更改 `Oracle Home Settings`与克隆数据库主机上的设置相匹配。
++
+image:snapctr-ora-azure-anf-clone-004.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 这 `PreOps`允许在克隆操作之前执行脚本。可以调整数据库参数以满足克隆数据库与生产数据库的需求，例如减少 SGA 目标。
++
+image:snapctr-ora-azure-anf-clone-005.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 这 `PostOps`允许在克隆操作后针对数据库执行脚本。克隆数据库恢复可以是基于 SCN、时间戳或直到取消（将数据库前滚到备份集中的最后一个存档日志）。
++
+image:snapctr-ora-azure-anf-clone-006.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 如果需要，可以通过电子邮件通知。
++
+image:snapctr-ora-azure-anf-clone-007.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 克隆作业摘要。
++
+image:snapctr-ora-azure-anf-clone-008.png["此映像为SnapCenter服务器提供数据库克隆"]
+
+. 点击正在运行的作业打开 `Job Details`窗户。还可以从 `Monitor`选项卡。
++
+image:snapctr-ora-azure-anf-clone-009.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 克隆的数据库立即向SnapCenter注册。
++
+image:snapctr-ora-azure-anf-clone-010.png["此映像为SnapCenter服务器提供数据库还原"]
+
+. 验证数据库服务器主机上的克隆数据库。对于克隆的开发数据库，应该关闭数据库存档模式。
++
+....
+
+[azureuser@ora-02 ~]$ sudo su
+[root@ora-02 azureuser]# su - oracle
+Last login: Tue Feb  6 16:26:28 UTC 2024 on pts/0
+
+[oracle@ora-02 ~]$ uname -a
+Linux ora-02 4.18.0-372.9.1.el8.x86_64 #1 SMP Fri Apr 15 22:12:19 EDT 2022 x86_64 x86_64 x86_64 GNU/Linux
+[oracle@ora-02 ~]$ df -h
+Filesystem                                       Size  Used Avail Use% Mounted on
+devtmpfs                                         7.7G     0  7.7G   0% /dev
+tmpfs                                            7.8G     0  7.8G   0% /dev/shm
+tmpfs                                            7.8G   49M  7.7G   1% /run
+tmpfs                                            7.8G     0  7.8G   0% /sys/fs/cgroup
+/dev/mapper/rootvg-rootlv                         22G   17G  5.6G  75% /
+/dev/mapper/rootvg-usrlv                          10G  2.0G  8.1G  20% /usr
+/dev/mapper/rootvg-homelv                       1014M   40M  975M   4% /home
+/dev/sda1                                        496M  106M  390M  22% /boot
+/dev/mapper/rootvg-varlv                         8.0G  958M  7.1G  12% /var
+/dev/sda15                                       495M  5.9M  489M   2% /boot/efi
+/dev/mapper/rootvg-tmplv                          12G  8.4G  3.7G  70% /tmp
+tmpfs                                            1.6G     0  1.6G   0% /run/user/54321
+172.30.136.68:/ora-02-u03                        250G  2.1G  248G   1% /u03
+172.30.136.68:/ora-02-u01                        100G   10G   91G  10% /u01
+172.30.136.68:/ora-02-u02                        250G  7.5G  243G   3% /u02
+tmpfs                                            1.6G     0  1.6G   0% /run/user/1000
+tmpfs                                            1.6G     0  1.6G   0% /run/user/0
+172.30.136.68:/ora-01-u02-Clone-020624161543077  250G  8.2G  242G   4% /u02_ntap1dev
+
+[oracle@ora-02 ~]$ cat /etc/oratab
+#
+# This file is used by ORACLE utilities.  It is created by root.sh
+# and updated by either Database Configuration Assistant while creating
+# a database or ASM Configuration Assistant while creating ASM instance.
+
+# A colon, ':', is used as the field terminator.  A new line terminates
+# the entry.  Lines beginning with a pound sign, '#', are comments.
+#
+# Entries are of the form:
+#   $ORACLE_SID:$ORACLE_HOME:<N|Y>:
+#
+# The first and second fields are the system identifier and home
+# directory of the database respectively.  The third field indicates
+# to the dbstart utility that the database should , "Y", or should not,
+# "N", be brought up at system boot time.
+#
+# Multiple entries with the same $ORACLE_SID are not allowed.
+#
+#
+NTAP2:/u01/app/oracle/product/19.0.0/NTAP2:Y
+# SnapCenter Plug-in for Oracle Database generated entry (DO NOT REMOVE THIS LINE)
+ntap1dev:/u01/app/oracle/product/19.0.0/NTAP2:N
+
+
+[oracle@ora-02 ~]$ export ORACLE_SID=ntap1dev
+[oracle@ora-02 ~]$ sqlplus / as sysdba
+
+SQL*Plus: Release 19.0.0.0.0 - Production on Tue Feb 6 16:29:02 2024
+Version 19.18.0.0.0
+
+Copyright (c) 1982, 2022, Oracle.  All rights reserved.
+
+
+Connected to:
+Oracle Database 19c Enterprise Edition Release 19.0.0.0.0 - Production
+Version 19.18.0.0.0
+
+SQL> select name, open_mode, log_mode from v$database;
+
+NAME      OPEN_MODE            LOG_MODE
+--------- -------------------- ------------
+NTAP1DEV  READ WRITE           ARCHIVELOG
+
+
+SQL> shutdown immediate;
+Database closed.
+Database dismounted.
+ORACLE instance shut down.
+SQL> startup mount;
+ORACLE instance started.
+
+Total System Global Area 3221223168 bytes
+Fixed Size                  9168640 bytes
+Variable Size             654311424 bytes
+Database Buffers         2550136832 bytes
+Redo Buffers                7606272 bytes
+Database mounted.
+
+SQL> alter database noarchivelog;
+
+Database altered.
+
+SQL> alter database open;
+
+Database altered.
+
+SQL> select name, open_mode, log_mode from v$database;
+
+NAME      OPEN_MODE            LOG_MODE
+--------- -------------------- ------------
+NTAP1DEV  READ WRITE           NOARCHIVELOG
+
+SQL> show pdbs
+
+    CON_ID CON_NAME                       OPEN MODE  RESTRICTED
+---------- ------------------------------ ---------- ----------
+         2 PDB$SEED                       READ ONLY  NO
+         3 NTAP1_PDB1                     MOUNTED
+         4 NTAP1_PDB2                     MOUNTED
+         5 NTAP1_PDB3                     MOUNTED
+
+SQL> alter pluggable database all open;
+
+....
+
+
+====
+
+
+== 在哪里可以找到更多信息
+
+要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：
+
+* Azure NetApp Files
++
+link:https://azure.microsoft.com/en-us/products/netapp["https://azure.microsoft.com/en-us/products/netapp"^]
+
+* SnapCenter软件文档
++
+link:https://docs.netapp.com/us-en/snapcenter/index.html["https://docs.netapp.com/us-en/snapcenter/index.html"^]
+
+* TR-4987：使用 NFS 在Azure NetApp Files上简化、自动化 Oracle 部署
++
+link:../automation/automation-ora-anf-nfs.html["部署流程"]
+
+
