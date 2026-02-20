@@ -5276,4 +5276,315 @@
   <block id="5ffbe0deb5b41148dc58e63a20df8411" category="sidebar">Oracle 数据库</block>
   <block id="39a2008d48dcc4f61288e4668979970c" category="sidebar">SQL Server 数据库</block>
   <block id="22d04ecae9fae88d0b8d4548a46a545b" category="sidebar">请求自动化</block>
+  <block id="8f3bd24c41b19b143e326bf56b5f0a8d" category="summary">使用带有 iSCSI 协议的 Google Cloud NetApp Volumes 为块存储在 Google Compute Engine 实例上配置 SQL Server Always On 可用性组。</block>
+  <block id="7b9f71eb2b074e2fe0245862fab29398" category="doc">使用 Google Cloud NetApp Volumes 配置 SQL Server Always On 可用性组</block>
+  <block id="e9b77ddb32e1b86e0792cf4779d9520d" category="paragraph">使用 Google Cloud NetApp Volumes iSCSI 块存储在单个子网内的 Google Compute Engine 实例上配置 SQL Server Always On 可用性组。了解如何设置计算实例、配置 NetApp 卷、建立故障转移群集以及部署可用性组以实现高可用性和灾难恢复。</block>
+  <block id="a7f327f308c31f423bdddfc07ac8a537" category="paragraph">在继续之前，请完成 Google Cloud 文档中的配置先决条件步骤：</block>
+  <block id="e2d9091402d12c6616c41d0b2f18fe19" category="list-text"><block ref="e2d9091402d12c6616c41d0b2f18fe19" category="inline-link-macro-rx"></block></block>
+  <block id="91c253c99264458ee96029b72e15b547" category="inline-link-macro">准备您的项目和网络</block>
+  <block id="319a49999ca237b80468601960c1ae93" category="list-text"><block ref="319a49999ca237b80468601960c1ae93" category="inline-link-macro-rx"></block></block>
+  <block id="4dfddd1829f7fb340bd9b36bff6e3130" category="inline-link-macro">防火墙规则</block>
+  <block id="cf1d8d962cec65d4e38efdb0c80e175d" category="list-text"><block ref="cf1d8d962cec65d4e38efdb0c80e175d" category="inline-link-macro-rx"></block></block>
+  <block id="69b38281f95a5dbf6fdb2ed4b6c2ea21" category="inline-link-macro">设置 NetApp 卷</block>
+  <block id="9d7293ba9c220e3e8a185aecc1a280b8" category="list-text"><block ref="9d7293ba9c220e3e8a185aecc1a280b8" category="inline-link-macro-rx"></block></block>
+  <block id="de909bb4061d8bac62f8a3dbfc6a88a0" category="paragraph">请确保您已完成以下要求：</block>
+  <block id="5b92d31d3ce582944c226202d1cf24d5" category="list-text">具有计算、网络、IAM 和存储管理员权限的 Google Cloud 项目</block>
+  <block id="53730ebe2ba9e46735b0f245ac76405b" category="list-text">具有区域设置子网的 VPC 网络</block>
+  <block id="6472e202cb160d0a5eae85da07e1fd16" category="list-text">区域中可用的 Active Directory 和 DNS 设置</block>
+  <block id="25b3b1d7cecf00ec9cb18bcfab35d4df" category="list-text">配置为允许所需端口的防火墙规则</block>
+  <block id="5037f321fd9407c8d2eb4eb07edb48d7" category="list-text">熟悉 SQL Server Always On 可用性组和故障转移群集</block>
+  <block id="25f340deb73b9a7042efb7759028a797" category="inline-link-macro">免费试用积分</block>
+  <block id="22c5a29b2bd6fb21cb161d3c6a3883fe" category="admonition">新的 Google Cloud 用户可能有资格获得<block ref="14c4a58e00da7181913005b9b179e942" category="inline-link-macro-rx"></block>。</block>
+  <block id="d03cbf063b0125881276987e9e53b79c" category="section-title">目标</block>
+  <block id="f6387159c1f35f863df150a455927e5c" category="paragraph">配置 SQL Server Always On 可用性组包含以下高级任务：</block>
+  <block id="6a036b0f009e5f384f4c043c33af08ce" category="list-text">设置 Compute Engine 实例和 NetApp 存储卷</block>
+  <block id="3569899a0391388181d7eef2af1b71b7" category="list-text">在两个节点上设置 SQL Server</block>
+  <block id="1d75e8f5284825f06033c351fca468a1" category="list-text">设置 Windows Server 故障转移群集</block>
+  <block id="77354e6cde4bc8374df497e6b1020448" category="list-text">使用文件共享见证设置群集仲裁</block>
+  <block id="e7338db4e57a91de043eef6ef6c5ec12" category="list-text">设置 SQL Server 可用性组</block>
+  <block id="30c6e2bb6c0c093a9bd8d2ad723da60c" category="list-text">为侦听器访问设置分布式网络名称 (DNN)</block>
+  <block id="67d9bef477b4472baf899e87265b663f" category="section-title">成本注意事项</block>
+  <block id="5bf681d1b31ed43ea88605b8001dc263" category="inline-link-macro">Compute Engine 实例</block>
+  <block id="a18b27087b25fa352c54673643e8590c" category="paragraph">本教程使用 Google Cloud 的可计费组件，包括 <block ref="3a1ebe9b19683720297dac57a364f02a" category="inline-link-macro-rx"></block> 和 <block ref="80e2b8e1929af94d0d431c3af598baa1" category="inline-link-macro-rx"></block> 存储。</block>
+  <block id="d55aae0750946219ffe6ded7a93572c5" category="inline-link-macro">定价计算器</block>
+  <block id="d2c2245107909b7a43f23c0a25c85ee0" category="paragraph">使用 <block ref="6db332576e202722c7746833344678fa" category="inline-link-macro-rx"></block> 根据您的计算和存储要求生成成本估算。示例配置将 N4-SKU 计算实例和 NetApp Flex 服务级别存储用于 SQL Server Always On 可用性组设置。</block>
+  <block id="197975c347610a0c817c1da0ec52f425" category="section-title">配置域帐户</block>
+  <block id="a1f03d5aba0438e49f5ece7dd8d7c5e9" category="paragraph">在 Active Directory 中配置两个帐户：一个安装帐户（您的管理员帐户）和一个用于两个 SQL Server VM 的服务帐户。</block>
+  <block id="fe73a438890160cd4c22461250d1318e" category="paragraph">例如，对帐户使用下表中的值：</block>
+  <block id="8179379e85dbc15566710aade67a12ed" category="admonition">此示例使用<block ref="3630d6c0e151e118f8efcf085e64d5de" prefix=" " category="inline-code"></block>作为域名。在本过程中将<block ref="3630d6c0e151e118f8efcf085e64d5de" prefix=" " category="inline-code"></block>替换为您的实际域名。</block>
+  <block id="08bd40c7543007ad06e4fce31618f6ec" category="cell">帐户</block>
+  <block id="583a65df9db4119165f5ea0abaa50281" category="cell">VM</block>
+  <block id="cb52d77c3d46973445526342b9695371" category="cell">完整域名</block>
+  <block id="b5a7adde1af5c87d7fd797b6245c2a39" category="cell">说明</block>
+  <block id="9a8762286c7ec92a4156b28859cfa3bb" category="cell">&lt;your account&gt;</block>
+  <block id="742bfbbfd6f67cd7b2b81a1970c9c76e" category="cell">两者（sqlnode1 和 sqlnode2）</block>
+  <block id="b8542256694ec8618c091abc9585ca77" category="cell">cvsdemo\DomainAdmin</block>
+  <block id="73db3477165bd17e48ad4cd3edb5937d" category="cell">用于登录任一虚拟机并配置集群和可用性组的管理员帐户</block>
+  <block id="fedba7534a3b74936c581a5c4150cd9a" category="cell">sqlsvc</block>
+  <block id="2142485140e575f5ae75daccf28b1640" category="cell">cvsdemo\sqlsvc</block>
+  <block id="ce576e8c0942fec8928dd9b538c7f84c" category="cell">两个 SQL Server 虚拟机上的 SQL Server 和 SQL Server Agent 的服务帐户</block>
+  <block id="3c84b77c89dbb7530544443c7e493ebe" category="section-title">为 SQL Server 创建 Compute Engine VM</block>
+  <block id="d23abfe0834f018fa6d064f3369c485b" category="paragraph">使用在 Windows Server 2025 上预安装的 SQL Server 2022 Enterprise 创建两个 Google Compute Engine VM 实例，以托管可用性组副本。</block>
+  <block id="f3a29486bed19a90f2da6d007818b427" category="list-title">步骤</block>
+  <block id="4e56fb4e419e4a5280cd8befd99dcf6c" category="inline-link-macro">*创建实例*</block>
+  <block id="135f2f17832c859cf6dcf77dc33f79bb" category="list-text">在 Google Cloud 控制台中，转到<block ref="bdef467b6b14dd3ba6ca3f46b88cf158" category="inline-link-macro-rx"></block>页面。</block>
+  <block id="b0cd7667098b2a3439c52ba1f9334faa" category="inline-link-macro">Google Cloud 文档</block>
+  <block id="516529ae4af3b34eb008e628b15ece21" category="paragraph">有关详细信息，请参见 <block ref="ff97077a8dfbaedc5c48d8aec6962b04" category="inline-link-macro-rx"></block>。</block>
+  <block id="9e611395afebc72da92dab6cd48d161d" category="list-text">对于 *Name*，请输入<block ref="2f160ca341fc9751fc67d60aa5ee1363" prefix=" " category="inline-code"></block>。</block>
+  <block id="9031326eaae199365a458cd734aa9662" category="list-text">在 *机器配置* 部分：</block>
+  <block id="b255f6f9ade354380244b8cee520f7e5" category="list-text">选择 *General Purpose*</block>
+  <block id="4983be98cbbf27992bca6eeded0f12a5" category="list-text">在*系列*列表中，选择 *N4*</block>
+  <block id="9286ea0abb0e0036f258276ebb6950aa" category="list-text">在 *Machine type* 列表中，选择 *n4-highmem-8 (8 vCPU, 64 GB memory)*</block>
+  <block id="a79485f0fc88238eef0d2e939d230cf2" category="list-text">选择您创建 VPC 的区域（例如，region=us-west1，zone=us-west1-a）。</block>
+  <block id="2a1389d2939d6392fefbb6bee0ce6c04" category="list-text">在 *Boot disk* 部分中，单击 *Change*：</block>
+  <block id="4c7796716441e66779f4388459857af2" category="list-text">在 *公共映像* 选项卡的 *操作系统* 列表中，选择 *SQL Server on Windows Server*。</block>
+  <block id="ade15be8ef1b5889dc1b47236686d188" category="list-text">在 *Version* 列表中，选择 *SQL Server 2022 Enterprise on Windows Server 2025 Datacenter*。</block>
+  <block id="c11d549e71a69e4e5b056b0ed25bf838" category="list-text">在 *Boot disk type* 列表中，选择 *Hyperdisk Balanced*。</block>
+  <block id="0a68c3fa9f040d9b57a7cac8d1bb8cd4" category="list-text">在 *Size (GB)* 字段中，输入 *50* GB。</block>
+  <block id="271e96b0b3156454cb380e2036000262" category="list-text">单击 *Select* 保存启动磁盘配置。</block>
+  <block id="8c65c6750228946b84e79933170ec4a2" category="list-text">在 *Networking* 部分中，编辑网络接口以选择正确的 VPC 和子网。如果您只有一个 VPC 网络，则会默认选择它。</block>
+  <block id="9a8467535954406a0dd0eb5795740f40" category="list-text">在网络接口卡上，选择 *gVNIC*。</block>
+  <block id="d0356f2b1f2d7beaa989d18fc73ea4c1" category="inline-link-macro">*网络服务层*</block>
+  <block id="7072286176efc247213ef03ece543695" category="list-text">对于 <block ref="8f2d8560788eb594c4aa031f1f7a0140" category="inline-link-macro-rx"></block>，请为任务关键型工作负载选择 *Premium*，或选择 *Standard* 以优化成本。</block>
+  <block id="afb13a1a3a46c764af0667b74c01ad80" category="list-text">单击 *Create* 以创建 VM。</block>
+  <block id="40162ff06ee883b1e442abc4b4009a63" category="list-text">重复这些步骤来创建<block ref="c8bc214eb47a96ef32064c39c1002208" prefix=" " category="inline-code"></block>。</block>
+  <block id="c595a1d797511844a7d7c5c16d4a9dcf" category="section-title">将服务器加入到域</block>
+  <block id="d6d1756e386507a18c343f051d310674" category="paragraph">创建虚拟机后，请将其加入 Active Directory 域，并安装故障转移群集和 iSCSI 连接所需的 Windows 功能。</block>
+  <block id="272ce3dc8c70659196f0973f8f87901c" category="list-text">使用本地管理员帐户远程连接到虚拟机。</block>
+  <block id="9cc6fb3686b48f46270ef3d30943d545" category="list-text">在服务器管理器中，选择 *Local Server*。</block>
+  <block id="50856b82ac88bbf0ea2b421df2c42415" category="list-text">选择 *WORKGROUP* 链接。</block>
+  <block id="709647db6d0440aa7315dcbf66168a11" category="list-text">在 *计算机名称* 部分，选择 *更改*。</block>
+  <block id="b2bd74d8d5af5f1a348f63115897e42b" category="list-text">选中 *Domain* 复选框，并在文本框中输入您的域名（例如，<block ref="ef307a1d35684b2e5c8761a190647854" prefix=" " category="inline-code"></block>）。</block>
+  <block id="a72cc47fad7d1846d19b085d2e77e5ba" category="list-text">单击 *OK*。</block>
+  <block id="4107966c7ebe4dd13214de2fc65f0032" category="list-text">在 *Windows Security* 对话框中，指定默认域管理员帐户的凭据（例如，<block ref="b8542256694ec8618c091abc9585ca77" prefix=" " category="inline-code"></block>）。</block>
+  <block id="8e40869bf943c08e628610699cd05418" category="list-text">当您看到"欢迎使用 cvsdemo.internal 域"消息时，单击 *确定*。</block>
+  <block id="e84965886efccc8be3c355f8dbdfcee0" category="list-text">单击 *Close*，然后在对话框中选择 *Restart Now*。</block>
+  <block id="b988d248ba3148948fb122910884ae5c" category="list-text">服务器重新启动后，将该<block ref="fedba7534a3b74936c581a5c4150cd9a" prefix=" " category="inline-code"></block>帐户添加到 Administrators 组。</block>
+  <block id="eaed6f6464a03e806f488b2e76693dba" category="admonition">您的 SQL 实例将使用 sqlsvc 帐户运行，这是群集和故障转移设置所必需的。</block>
+  <block id="e66cb863334b90928ae9f775bbf3db37" category="section-title">安装所需的 Windows 功能</block>
+  <block id="6c8860b8701c41f4753c0ce417e3e708" category="paragraph">使用服务器管理器或 PowerShell 在两个 SQL Server 虚拟机上安装故障转移群集和 MPIO。</block>
+  <block id="fec7eb7cf6c01fd6f5db984b6fbd7c5d" category="list-title">选项 1：使用服务器管理器</block>
+  <block id="f467589dc4325b3ce8c976b7a9994c7c" category="list-text">在服务器管理器中，选择 *Manage* &gt; *Add Roles and Features*。</block>
+  <block id="3ef2088711ca78170926c4c9861b1a77" category="list-text">选择 *基于角色或基于功能的安装* 并单击 *下一步*。</block>
+  <block id="fb2b7ec52582cb573c2b149ff468bdfc" category="list-text">选择您的服务器，然后单击 *Next* 。</block>
+  <block id="c91b93994d0909e349ae4e2bafdaafca" category="list-text">在*功能*页面上，选择*故障转移群集*和*多路径 I/O*。</block>
+  <block id="bd598bf58dbff60f1436d518f2ede57c" category="list-text">出现提示时，单击 *Add Features* 以包含管理工具。</block>
+  <block id="b58aba183a05e01a8f7ca378e955f164" category="list-text">完成此向导并根据提示重新启动。</block>
+  <block id="b0978f514856a8fae5ac43cdae23003c" category="paragraph-title">选项 2：使用 PowerShell</block>
+  <block id="6a5c2188f7ea1848a964ae12b72c366f" category="paragraph">以管理员身份运行 PowerShell 并执行以下命令：</block>
+  <block id="d20ba46dfebdd9d3f94251ce33be77e2" category="section-title">获取 iSCSI 启动程序名称</block>
+  <block id="e4f0d0a68e41a3a62ce7202cd9ccbd2c" category="paragraph">使用 iSCSI Initiator GUI 或 PowerShell 获取要包含在主机组中的每个 SQL Server VM 的 iSCSI 限定名 (IQN)。</block>
+  <block id="3a3de96458fa1d6a66077a0d8e0876f5" category="list-title">选项 1：使用 iSCSI 启动程序</block>
+  <block id="afab98831212ab66b00fd2dde726dc89" category="list-text">按 *Win+R* 或使用 Windows 搜索栏打开<block ref="725b4899d93d1390ffc453e86443f2f3" prefix=" " category="inline-code"></block>。</block>
+  <block id="299ba66eadc169f51e1ededd24918872" category="list-text">在 iSCSI 启动程序属性对话框中，转到 *配置* 选项卡。</block>
+  <block id="21d365be3b9e73549563b8cda0082e3d" category="list-text">复制 *Initiator Name* 值并将其包含在主机组中。</block>
+  <block id="f9286e041e5781752d9c6c6a2cd14766" category="paragraph">示例：<block ref="10967121e1978990152045c2597bebe3" prefix=" " category="inline-code"></block></block>
+  <block id="d27225164998c484204d9fe3cabdaff9" category="paragraph">在 PowerShell 中运行以下命令：</block>
+  <block id="02918acbcd579563a19afabce89ac8a7" category="section-title">创建 NetApp 块存储卷</block>
+  <block id="4728261747b297046ab680d4c882285c" category="paragraph">使用 Google Cloud NetApp Volumes 创建 iSCSI 块存储卷，为 SQL Server 数据库提供高性能的共享存储。此过程包括为数据、日志、临时和备份创建主机组、存储池和单个卷。</block>
+  <block id="e45c9a116c72d77b660aba205d33114f" category="section-title">创建主机组</block>
+  <block id="08c341052775db63ec7116ae6a13d5f9" category="list-text">创建包含来自两个 SQL 节点的 iSCSI 启动器的主机组。</block>
+  <block id="c0e4d3ec3c67921d9c97ebbb2a5bb072" category="inline-link-macro">创建主机组</block>
+  <block id="703949b2ff4fb7897f7a5a6bf0498baf" category="paragraph">有关更多详细信息，请参阅 <block ref="bc66b2c07682b4a0046c5284d0c12ba9" category="inline-link-macro-rx"></block> 文档。</block>
+  <block id="d2274f8da9465e89ce9fe1d5e0faa28b" category="list-text">替换以下值：</block>
+  <block id="3fdece1d79577fa2dce50e563fea4ea2" category="list-text"><block ref="6fcf75d4e8c598e4ad173e89a6ffd806" prefix="" category="inline-code"></block>：主机组的名称（例如，<block ref="d77cdd0efafecccf66c4767d8e869375" prefix=" " category="inline-code"></block>）</block>
+  <block id="d27f0bbeff86b1b7abe225b63455a288" category="list-text"><block ref="71233d73cc90bba8f4d5bbea0792e551" prefix="" category="inline-code"></block>：地区（例如，<block ref="7460527a94dd1cdca7f80472ca36103e" prefix=" " category="inline-code"></block>）</block>
+  <block id="3bfb8bbfc46f1be67b2e31175ff59103" category="list-text"><block ref="ed7be72a59610a8faafe1aa482170890" prefix="" category="inline-code"></block>: sqlnode1 和 sqlnode2 中以逗号分隔的 IQN 列表</block>
+  <block id="4791651d5ddc87f443660dea3962e500" category="paragraph">示例：<block ref="a2204211085ecb370415d276d4364e5a" prefix=" " category="inline-code"></block></block>
+  <block id="467c33e3023f9b59997806eef1c2ccb5" category="list-text"><block ref="fbee18e2ba1ebbec8b0f1166155d6cc0" prefix="" category="inline-code"></block>：操作系统类型（例如，<block ref="d273a0465c8fbfd111aae706cdf9ec20" prefix=" " category="inline-code"></block>）</block>
+  <block id="49febfdcde0451b31c0f732e5ac94554" category="list-text"><block ref="35ba4a2677442e210c23a00a5601aba3" prefix="" category="inline-code"></block>: 主机组的可选描述</block>
+  <block id="57a8edfcf7feaa6742b2abfa46d855e6" category="image-alt">存储池配置</block>
+  <block id="b2525385d8e45990d362ed7340fb602a" category="section-title">创建存储池</block>
+  <block id="74921684854caa419c4999d21b6af1ae" category="list-text">创建具有适当容量和性能的存储池。</block>
+  <block id="07ee19ad7f0745ddcaa05e21f537e6d0" category="paragraph">有关更多详细信息，请参阅 <block ref="ccf54767debcb21f2c036879522a1373" category="inline-link-macro-rx"></block> 文档。</block>
+  <block id="1b7b5149ab4d6f5cc8f2d4910be9e611" category="list-text"><block ref="840e7229f4bf28f57c64ebf3ff5a2f59" prefix="" category="inline-code"></block>：池的名称（例如，<block ref="e164a51a79d995a220aaaf628dc29fc9" prefix=" " category="inline-code"></block>）</block>
+  <block id="04f652e0ab836b14093daad62e355042" category="list-text"><block ref="63c379b3113b0d973ed13e2f511df07e" prefix="" category="inline-code"></block>：您的 Google Cloud 项目名称</block>
+  <block id="61b98692cfb966becac778d292bb5e76" category="list-text"><block ref="71233d73cc90bba8f4d5bbea0792e551" prefix="" category="inline-code"></block>：与计算实例相同的位置（例如，<block ref="bffe9cca2446cbd9a50cb8fb48107c25" prefix=" " category="inline-code"></block>）</block>
+  <block id="89668e25c6b12a63437bf6277ff8d3c2" category="list-text"><block ref="5b3bc952620c21981c4b3b304fbd74f8" prefix="" category="inline-code"></block>：池容量（以 GiB 为单位）（例如，<block ref="021bbc7ee20b71134d53e20206bd6feb" prefix=" " category="inline-code"></block>）</block>
+  <block id="a94f42ee868cc063bfaff29e238f2801" category="list-text"><block ref="4a6ea8e16f59a76e32c9926cac0b9a2a" prefix="" category="inline-code"></block>：服务级别（例如，<block ref="09d2bd168181f1e64c2b1651a80a8aa8" prefix=" " category="inline-code"></block>）</block>
+  <block id="5118dffc70c792f50ae2793092882ffd" category="list-text"><block ref="a991d6264763b053242908ab3d1b73a5" prefix="" category="inline-code"></block>：您的 VPC 网络名称</block>
+  <block id="dd3136b9ea719b8766f476d98dc76564" category="list-text"><block ref="c32b07179e20b6975b9c1def85182007" prefix="" category="inline-code"></block>：Private Services Access 范围（例如，<block ref="aa51b5e07b9a2f5349f0ed5e32564df1" prefix=" " category="inline-code"></block>）</block>
+  <block id="d934a1b5154d2225ddde07dd77b3bba5" category="list-text"><block ref="50f9b1f40c078d242af7ec323ace44b3" prefix="" category="inline-code"></block>：可选吞吐量，以 MiBps 为单位（例如，<block ref="ea5d2f1c4608232e07d3aa3d998e5135" prefix=" " category="inline-code"></block>）</block>
+  <block id="56491ed7bc87f51717ca1d07f149d306" category="list-text"><block ref="79073619fba8242703524f16870ff858" prefix="" category="inline-code"></block>：可选 IOPS（例如，<block ref="021bbc7ee20b71134d53e20206bd6feb" prefix=" " category="inline-code"></block>）</block>
+  <block id="1c27e11c5e65b93611e6f5ce640f8184" category="section-title">创建卷</block>
+  <block id="3b3b7c56ab19a1de35e8338ee0ec6602" category="list-text">为数据、日志、临时和备份创建卷。为每种卷类型运行以下命令：</block>
+  <block id="723cf06e89d7ddac51fea9941d95c188" category="paragraph">有关更多详细信息，请参阅 <block ref="4db6c28dc7628e964ce59182faf325bf" category="inline-link-macro-rx"></block> 文档。</block>
+  <block id="2353f1a4e88d32c9b6d6a039f8bbe546" category="list-text"><block ref="8d84412d06754d187f36566a49d3304c" prefix="" category="inline-code"></block>：每个卷的唯一名称（例如，<block ref="54cfc2df8f35edb6f16bfa5731b6dcf2" prefix=" " category="inline-code"></block>、<block ref="9f6be95d093fe5aa165b90ef8363ea86" prefix=" " category="inline-code"></block>、<block ref="8a843ec8c9346ab08353c8a54daa7479" prefix=" " category="inline-code"></block>、<block ref="deff2c806b85dafd015ab0e09a75943b" prefix=" " category="inline-code"></block>）</block>
+  <block id="af009e08d2f8994728bdba5a367628a3" category="list-text"><block ref="71233d73cc90bba8f4d5bbea0792e551" prefix="" category="inline-code"></block>：与存储池相同的位置（例如，<block ref="bffe9cca2446cbd9a50cb8fb48107c25" prefix=" " category="inline-code"></block>）</block>
+  <block id="fe57af3e5ae879c6a97459daa937e2e5" category="list-text"><block ref="840e7229f4bf28f57c64ebf3ff5a2f59" prefix="" category="inline-code"></block>：存储池名称（例如，<block ref="e164a51a79d995a220aaaf628dc29fc9" prefix=" " category="inline-code"></block>）</block>
+  <block id="bbcc043b20b7aab78147b3c670eaae26" category="list-text"><block ref="5b3bc952620c21981c4b3b304fbd74f8" prefix="" category="inline-code"></block>：以 GiB 为单位的卷容量（例如，<block ref="3644a684f98ea8fe223c713b77189a77" prefix=" " category="inline-code"></block>）</block>
+  <block id="3043f19222b4568cf60a38e51a5b058a" category="list-text"><block ref="ffa7b09a67ef32c80a7483b2a904900f" prefix="" category="inline-code"></block>：主机组的完整资源路径（例如，<block ref="9b531343c2353ca90b3cf41f19c55cab" prefix=" " category="inline-code"></block>）</block>
+  <block id="ee4ea10ce2e1bde0e824e04e93930df7" category="admonition">可以使用 # 符号分隔每个主机组来指定多个主机组。</block>
+  <block id="1d6bb88dca0a56c66a5eca3f7df6de4c" category="admonition">对每个卷类型重复此步骤：数据、日志、临时和备份。</block>
+  <block id="6299ec0ff9a5d74b37f24b4614f5d14b" category="section-title">挂载 iSCSI 卷</block>
+  <block id="fb7f720a03abac5fddb036dd061a031d" category="paragraph">在每个 SQL 实例上装载非共享 iSCSI 卷：</block>
+  <block id="e884a797d192c101b4a9f743a28fe22c" category="list-text">在 Google Cloud 控制台中，导航到 *NetApp 卷* &gt; *卷*。</block>
+  <block id="e027515e349e1876128596eb13ad7203" category="list-text">选择为 SQL 实例创建的卷（例如，<block ref="54cfc2df8f35edb6f16bfa5731b6dcf2" prefix=" " category="inline-code"></block>）。</block>
+  <block id="89c258c6e1cb8e3aa7141a2735978bfa" category="list-text">复制 iSCSI 目标的两个 IP 地址（例如，<block ref="377a0992c2585a852aea8b0f465c0990" prefix=" " category="inline-code"></block> 和 <block ref="c67bafc16f974a734a21b4e6d64ce41a" prefix=" " category="inline-code"></block>）。</block>
+  <block id="8db72f21d6209071f153d4b9a230e9eb" category="list-text">在 sqlnode1 上，运行<block ref="725b4899d93d1390ffc453e86443f2f3" prefix=" " category="inline-code"></block>或使用 PowerShell：</block>
+  <block id="9f699a4f6dbf364e185651f84d3f41f1" category="list-text">单击 *Discover* 选项卡，然后单击 *Discover Portal*。</block>
+  <block id="31ab71bfd8940b81e42e9dabb25b4363" category="list-text">添加获得的每个 IP 地址；保留默认端口 3260。</block>
+  <block id="574d92cadde045712e7ba3c2897fe015" category="image-alt">发现 iSCSI 目标门户</block>
+  <block id="ff044190dc38f6df8210eb31091c6fb6" category="list-text">在 *Connect to Target* 对话框中，如果使用多路径，请选中 *Enable multi-path*。</block>
+  <block id="87ed4e0b87b32b3f58f29c98a70ebcb1" category="list-text">单击 *Advanced* ，然后从下拉列表中选择目标门户 IP。</block>
+  <block id="91249882086a5c5657d04aa7fdc073bc" category="list-text">单击 *确定* 以连接。</block>
+  <block id="55bed6e71bbf03d8bb8c27716048e9b1" category="list-text">为 iSCSI 设备配置 MPIO</block>
+  <block id="3147f22be8823beb2ed3eb221e2c545e" category="list-text">从控制面板或服务器管理器打开 MPIO。</block>
+  <block id="75b85439e315e6205d31d62739175732" category="list-text">单击 *Discover Multi-Paths* 选项卡。</block>
+  <block id="110265e8a98e078cb738e8babe93a5c4" category="list-text">选中 *Add support for iSCSI devices* ，然后单击 *Add* 。</block>
+  <block id="17769eee0e0663d9690deadd23b9db9d" category="list-text">如果出现提示，请重新启动。</block>
+  <block id="d46851c8829e5527f6c831dfad48d60e" category="list-text">在设备管理器的*磁盘驱动器*下验证多路径配置。</block>
+  <block id="160c9625717f64e149aa16b7959ff99d" category="list-text">初始化和格式化卷</block>
+  <block id="93b0ef83a487b940ba24c2cd1ab8a5cb" category="list-text">启动计算机管理 <block ref="c9b86e44bd1e9f2b09f990fdf37dc58a" prefix="(" category="inline-code"></block>）并选择*磁盘管理*。</block>
+  <block id="c7236de9d42fb068337c53eda15942b7" category="list-text">使用 64K 分配单元初始化、分区和格式化每个磁盘：</block>
+  <block id="a41fd69802c285c286782c87bc78ebc0" category="list-text">分配驱动器号（例如，D: 用于数据，E: 用于日志，F: 用于备份，G: 用于临时）。</block>
+  <block id="421b9f86a88908c8def5cf189ad6fc44" category="list-text">创建 SQL Server 的目录结构：</block>
+  <block id="23810c1fc82464432bd9a01813b9d377" category="section-title">配置 SQL Server</block>
+  <block id="35724a5ea5ba1184532def8cb0fdefaf" category="paragraph">在两个节点上配置 SQL Server 以使用域服务帐户，更新默认路径以使用 NetApp 卷，并将系统数据库移动到新的存储位置。</block>
+  <block id="3c08dcdc979d5fd180f39bd0b723a69d" category="list-text">更新 SQL Server 和 SQL Server Agent 服务以在域服务帐户下运行，以支持群集身份验证和故障转移。</block>
+  <block id="8ef1e0764759d9939959fb13672e5956" category="list-text">在每个 SQL 实例上，打开<block ref="a9cc59a923a7097133d81844b71e601d" prefix=" " category="inline-code"></block>。</block>
+  <block id="9d77b0231971798aae245185e7589ba2" category="list-text">将 *登录身份* 更新为<block ref="4984992230a54aa9c6b2fffe4e63355a" prefix=" " category="inline-code"></block>，适用于 SQL Server 和 SQL Server Agent 服务。</block>
+  <block id="314567c5be927b4f8d186759b63ccd11" category="list-text">打开 SQL Server Management Studio (SSMS) 并使用您的域帐户进行连接。</block>
+  <block id="098d7d07a6b92ddd1eeb2c4a66d371a5" category="paragraph">如果连接失败，请以<block ref="721cb38b17d0ae0056772a1fd6653c9d" prefix=" " category="inline-code"></block>身份启动 SSMS。确保在用户和组中启用了 Administrator 帐户并设置了适当的密码。</block>
+  <block id="caeef2b597c6eaf20de86dcb6c015fb7" category="list-text">创建具有所需权限的域帐户登录。</block>
+  <block id="4d7b3afdc7bd44e6610c37a7d10fd96a" category="admonition">在以下 SQL 命令中将<block ref="5a9481e597df953f3e3eec19fbb8c4d2" prefix=" " category="inline-code"></block>替换为您的实际域名。</block>
+  <block id="768b5aa41d6904ae8318c3cf9bdee9ee" category="list-text">更新默认路径以使用 NetApp 卷而不是操作系统驱动器：</block>
+  <block id="7fc1facb0845b5396ee65414231f2789" category="list-text">将系统数据库（model、msdb、tempdb 和 master）从操作系统驱动器移动到 NetApp 卷，以获得更好的性能和管理。</block>
+  <block id="2f8936bae08c5fd02a7c236bf9600aad" category="list-text">验证当前路径：</block>
+  <block id="14b1e91cb43038f96d232b5520f149ea" category="list-text">更新到新位置：</block>
+  <block id="70803e2138cdf9821757ad37ad8f43a7" category="list-text">停止 SQL Server，手动将文件从旧位置移动到新路径，然后重新启动 SQL Server。</block>
+  <block id="8589fbeefc674574e611f59e446a1362" category="list-text">移动 tempdb 数据库</block>
+  <block id="4b0a9dda449baceb1a16a3129012a175" category="list-text">重新启动 SQL Server 以使更改生效：</block>
+  <block id="448f45588d2da5ce189028816215fc59" category="list-text">移动主数据库</block>
+  <block id="aea7765ebfb12830a83f6c6e4300c304" category="list-text">打开 *SQL Server Configuration Manager*。</block>
+  <block id="09e07f6fcc6c4ec1584c7b64d218628d" category="list-text">导航到 *SQL Server Services*，右键单击 *SQL Server (MSSQLSERVER)*，然后选择 *Properties*。</block>
+  <block id="8046af30f13e2340eb180d776f342587" category="list-text">单击 *Startup Parameters* 选项卡。</block>
+  <block id="e633125ca787b479758266df639d5bdb" category="list-text">在*现有参数*中，找到以<block ref="9b017020b9d48d433ec90c548e6b5c70" prefix=" " category="inline-code"></block>、<block ref="5067ee0ff4999c7b5b04f593dd3521b9" prefix=" " category="inline-code"></block>和<block ref="269889131ee4793a82191b78a2eb60e3" prefix=" " category="inline-code"></block>开头的参数。</block>
+  <block id="45a29498f2e1a926e17cd547afcec48f" category="list-text">删除旧参数并添加新参数：</block>
+  <block id="86a020984d2d15dc3f7c977493702e6e" category="list-text">停止 SQL Server 服务。</block>
+  <block id="371b77252760ffce5be9369f845c233a" category="list-text">手动将 <block ref="25c6fe467eb1ead4e59557e733472977" prefix=" " category="inline-code"></block> 和 <block ref="9a617981efbae46aa95f17d3f36246a2" prefix=" " category="inline-code"></block> 从旧位置移动到新路径。</block>
+  <block id="140995cfc8c82f4ac0ce4b777ec5165a" category="list-text">如果更新了错误日志路径，请同时移动 <block ref="8792137a205854c074d4481d7504a1b8" prefix=" " category="inline-code"></block> 文件。</block>
+  <block id="de167e4d81dc5b53bea20440cd0c62a5" category="list-text">启动 SQL Server 服务。</block>
+  <block id="f7fb84bb70dacfe27f3c68cea3a521e8" category="image-alt">SQL Server Configuration Manager - 启动参数</block>
+  <block id="40d98bd9d976a113891edc628fe4f3d8" category="section-title">设置故障转移群集</block>
+  <block id="d4a426f8d637fc83d787a32c9b618e75" category="inline-link-macro">Windows Server 故障转移群集文档</block>
+  <block id="e33a3648c5dbb5045b94ca7d07aef7b6" category="paragraph">设置 Windows Server 故障转移群集以为 SQL Server 提供高可用性。有关更多详细信息，请参阅 <block ref="1faa8a781b0124475cd22c5809716b4d" category="inline-link-macro-rx"></block>。</block>
+  <block id="e64a3b8686a1299f53ca33931ee3c503" category="section-title">配置防火墙规则</block>
+  <block id="a02ec6a59ba28a9cdd00352e68078595" category="paragraph">在两个 SQL 节点上打开所需的网络端口，以启用群集通信、SQL Server 连接和可用性组复制。</block>
+  <block id="c2151a18ab0b0d220a07d37ef0afb269" category="list-text">打开两个 SQL 节点上的所需端口以进行集群通信。</block>
+  <block id="83d32fcdbe512c1833f2a419209cf714" category="paragraph">所需端口包括：UDP 3343、TCP 3343、TCP 1433、TCP 5022、TCP 135、TCP 445、TCP 49152-65535（动态 RPC）。</block>
+  <block id="8e9e0674f514401c315626d105eebbcd" category="list-text">在两台服务器上运行以下检查点，以允许 SQL Server 和群集通过防火墙进行通信。</block>
+  <block id="e3e7cd0f4a7ef7b2159e33cd0495d21b" category="paragraph">如果有自定义配置，请调整端口号。</block>
+  <block id="06880fa41019c1cec71a1f1d0dee33b1" category="inline-link-macro">Windows Server 服务和网络端口要求</block>
+  <block id="ea1bfb4e0199bc61655220a3e7ae9a8f" category="paragraph">要了解详细的防火墙要求，请参阅 <block ref="7d6297f1cd817785a1254289ad7b65fa" category="inline-link-macro-rx"></block>。</block>
+  <block id="1eeb53e050d9b4e4e35834f4b471cba7" category="list-text">在创建集群之前，在两个节点上运行验证检查：</block>
+  <block id="4572920938cf8d7680040c800198b6b8" category="section-title">创建故障转移集群</block>
+  <block id="0ffad8e207b70ed5bd0af63d94e2b285" category="paragraph">使用两个 SQL Server 节点创建 Windows Server 故障转移群集，以启用高可用性和自动故障转移功能。</block>
+  <block id="4d06f67b14a82b9c555e0a7baee5bd99" category="list-text">从服务器管理器运行<block ref="40ec4e3c7d084c31d17d6a1dbcff57c7" prefix=" " category="inline-code"></block>或打开故障转移群集管理器。</block>
+  <block id="e5da6e567e666cec89caf08fbaaa9f5d" category="image-alt">故障转移群集管理器</block>
+  <block id="9f81c4b0580fea32a530ea1db9771375" category="list-text">选择 *Create Cluster*。</block>
+  <block id="9c6a73adf35fe44a26568510d2b35586" category="list-text">添加两个 SQL 节点（sqlnode1、sqlnode2）。</block>
+  <block id="7ebc50d49da21100bbe432840fc9b56b" category="list-text">运行验证测试并确保所有检查均通过。在继续之前查看并修正任何警告。</block>
+  <block id="b4581f9a3e84ae8b225907ab61b658c0" category="list-text">提供集群名称（例如，<block ref="c60c1a92e55ca496c663c428624a5137" prefix=" " category="inline-code"></block>）。</block>
+  <block id="3344a1941882294ba3d04b7e4caa3a83" category="list-text">完成集群创建。</block>
+  <block id="45e272d74455d8484503cb9c5900cd84" category="image-alt">故障转移集群创建</block>
+  <block id="5416dd275abbe8850ae41526a0ce4e96" category="section-title">使用文件共享见证配置群集仲裁</block>
+  <block id="ae76790021e635e101b5e51a0cfc9fd1" category="paragraph">配置文件共享见证以在双节点集群配置中维护仲裁。见证者提供额外的投票，以防止大脑分裂的情况并确保集群的可用性。</block>
+  <block id="0e7dd7e907a8dd283e10409da4b5f38d" category="section-title">创建文件共享</block>
+  <block id="6b6dfa6183907abb4d5a57319b7b507e" category="paragraph">在位于具有网络连接且位于同一 Active Directory 域内的其他区域或地区的虚拟机上创建文件共享。</block>
+  <block id="cbbb3d2ffa83a802625675ca739bf495" category="list-text">连接到文件共享见证服务器 VM。</block>
+  <block id="11665fbffe3c8058754521f99092186f" category="list-text">在服务器管理器中，选择 *Tools* &gt; *Computer Management*。</block>
+  <block id="a7621a9215cd00e33672384319664791" category="list-text">选择 *Shared Folders*，右键单击 *Shares*，然后选择 *New Share*。</block>
+  <block id="4960bca531e05836e131834eeb8b8533" category="image-alt">为集群仲裁见证创建新共享</block>
+  <block id="c787c9a8d1f3d1e201759422696409bf" category="list-text">使用 *Create a Shared Folder Wizard* 创建共享<block ref="3577dd616e6b88c428c95ca5b9795e9f" prefix=" " category="inline-code"></block>。</block>
+  <block id="e07917dd9a1385cb544a4de94b068934" category="list-text">在 *Folder Path* 页面上，选择 *Browse*。</block>
+  <block id="ef92c152d295ab22daab0c7615cab30c" category="list-text">找到或创建共享文件夹的路径，然后选择 *Next*。</block>
+  <block id="6bb4df3f4c286d6664eafbba462e8c1c" category="list-text">在 *名称、描述和设置* 页面上，验证共享名称和路径，然后选择 *下一步* 。</block>
+  <block id="b776a30e9a18e1ee3d4a4f7d520b9cc9" category="list-text">在 *Shared Folder Permissions* 页面上，选择 *Customize permissions* 并单击 *Custom*</block>
+  <block id="eb74e5d192cbbb04722cbdb5cf81b7cc" category="list-text">在 *自定义权限* 对话框中，选择 *添加* 以添加集群帐户。</block>
+  <block id="ac3f77150bff8b35e107c1d62a14f49f" category="paragraph">确保用于创建群集的帐户（sqlcluwest1$）拥有完全控制权限。</block>
+  <block id="ceb8cfea60f38b30e1e13eebbd1ae139" category="list-text">单击 *确定* 以保存权限。</block>
+  <block id="80cfb6d99165b17f50d439330d34e2d4" category="list-text">在 *共享文件夹权限* 页面上，选择 *完成*，然后再次选择 *完成*。</block>
+  <block id="1c16b4c70456b818e9194c0890f67c01" category="section-title">配置仲裁设置</block>
+  <block id="534da31c3fbaf88cddab5cb08e2b23e7" category="paragraph">将集群配置为使用文件共享见证进行仲裁投票。</block>
+  <block id="53de8ad677279cf2f42643bb54e0f576" category="list-text">在故障转移集群管理器中，右键单击集群并选择 *More Actions* &gt; *Configure Cluster Quorum Settings*。</block>
+  <block id="a66183e338eb6406f9ad1aed190d42da" category="image-alt">配置 Cluster Quorum Settings 菜单</block>
+  <block id="47d38a1c649c923d99aacdd53d9a0278" category="list-text">在配置群集仲裁向导中，单击 *Next*。</block>
+  <block id="c90068c23c1ee646544f473e149e4cfb" category="list-text">在 *Select Quorum Configuration* 页面上，选择 *Select the quorum witness* 并单击 *Next*。</block>
+  <block id="674f63e045a6cdf33bf7d6c8026a03c8" category="list-text">在 *Select Quorum Witness* 页面上，选择 *Configure a file share witness*。</block>
+  <block id="0548b6b6f93f5095d6e64f20ab6935b4" category="list-text">在 *Configure File Share Witness* 页面中，选择 *Configure a file share witness*。</block>
+  <block id="9b7fd988a8a732e2460dda236cc5e451" category="list-text">输入您创建的共享路径（例如，<block ref="3577dd616e6b88c428c95ca5b9795e9f" prefix=" " category="inline-code"></block>），然后单击 *Next*。</block>
+  <block id="680baa7834e8c4e77f5777fc65d1496b" category="list-text">验证确认页面上的设置并单击 *Next*。</block>
+  <block id="1859e92122e266181cafb9c13d7400a0" category="list-text">单击 *Finish*。</block>
+  <block id="3616477092a25f625723cd1411e8d701" category="paragraph">集群核心资源现在配置了文件共享见证。</block>
+  <block id="e920b4aed326c8fd2327cd837dd0b6dd" category="image-alt">使用文件共享见证配置的群集仲裁</block>
+  <block id="e52f01575ad3445b66cf17221744ed01" category="section-title">启用 Always On 可用性组</block>
+  <block id="76a9bd1577ae30b80037a6a56510d0d6" category="paragraph">在两个 SQL Server VM 上启用 Always On 可用性组：</block>
+  <block id="9783f3433ed9424b22124207a9310fcb" category="list-text">在"开始"菜单中，打开 *SQL Server Configuration Manager*。</block>
+  <block id="e226969eea4a95585fa4bc0342d84cd6" category="list-text">在浏览器树中，选择 *SQL Server Services*。</block>
+  <block id="7454019143619b72c5986b718a4c1a6b" category="list-text">右键单击 *SQL Server (MSSQLSERVER)* 并选择 *Properties*。</block>
+  <block id="a85c989ebd9e3aeae017455d0f08de78" category="list-text">选择 *Always On High Availability* 选项卡。</block>
+  <block id="5299f6f30c65ed84e4c3f9c33fc3778a" category="list-text">选中 *Enable Always On availability groups*。</block>
+  <block id="8faf18e8b122bf6d4adbb0bcf5691896" category="list-text">单击 *Apply*，然后在出现提示时重新启动 SQL Server 服务。</block>
+  <block id="9f089c4fb6ffc92c7f50391695df48e8" category="image-alt">启用 Always On 高可用性</block>
+  <block id="425929ceda90bcb7eb89e21c146f0695" category="list-text">对第二个 SQL Server 实例重复此操作。</block>
+  <block id="0d8c140a23e1685087655fe99767cab9" category="section-title">在第一个 SQL Server 实例上创建数据库</block>
+  <block id="fb23aeee09f6549ea542c5ba7afbee92" category="paragraph">在第一个 SQL Server 实例上创建数据库。</block>
+  <block id="76956ed66620a38846a69dc38ed13783" category="list-text">使用属于 sysadmin 固定服务器角色成员的域帐户连接到第一个 SQL Server VM。</block>
+  <block id="750daf7476a3979a1c888d89a0918f47" category="list-text">打开 SQL Server Management Studio 并连接到第一个 SQL Server 实例。</block>
+  <block id="61ad0e6d3d230791ca8793ba5d866868" category="list-text">在 *Object Explorer* 中，右键单击 *Databases* 并选择 *New Database*。</block>
+  <block id="f247456b2d886ca88aac172b20757b38" category="list-text">输入数据库名称（例如，<block ref="6f5f1b53bc0222fddc9aaf690510e7ea" prefix=" " category="inline-code"></block>），然后单击 *确定*。</block>
+  <block id="1a4739113c1f8435727f09aa1ab1b9ff" category="list-text">将数据库恢复模式设置为 Full：</block>
+  <block id="eb3b976b711b0b8c07645c9ac07bfa3b" category="section-title">创建和配置可用性组</block>
+  <block id="981bb57a6711a53cffe32660b3cf22f3" category="paragraph">创建具有同步提交和自动故障转移功能的 Always On 可用性组，以便为 SQL Server 数据库提供高可用性。</block>
+  <block id="7f9d11cdc0ad4f5279bf144c309f76b1" category="list-text">对数据库进行完整备份和事务日志备份。</block>
+  <block id="56c50c3d447fcd4151db7c64331daf5c" category="list-text">将备份文件复制到第二个 SQL Server 实例，并使用 NORECOVERY 还原它们。</block>
+  <block id="089ab4d40fabe93d4b26bf442e81af0b" category="list-text">使用同步提交和自动故障转移以及可读辅助副本创建可用性组：</block>
+  <block id="c9654b2598a48b6cf48a61dfbf38d087" category="list-text">使用可用性组向导创建可用性组。</block>
+  <block id="70fed15b7995af5ebffbba688b303e5f" category="image-alt">创建可用性组向导</block>
+  <block id="1a7926c2eeda6a079382922e0df1cb5c" category="image-alt">将数据库和副本添加到可用性组</block>
+  <block id="79013a965a7bffeb8d1ed5fd1afc7302" category="admonition">确保在两个 SQL 节点上都允许使用防火墙端口 5022。</block>
+  <block id="6648cb0a136f72dbfcdf56fa3be84ef3" category="image-alt">可用性组同步</block>
+  <block id="cd448b3cb1d0f7093c0c46f5a18de479" category="image-alt">已成功创建可用性组</block>
+  <block id="d551794e5e1f433a3a01dcff5c8948ad" category="section-title">创建 DNN 侦听器资源</block>
+  <block id="c75cbb6b3a10f0bcd8640078d4558fef" category="paragraph">创建分布式网络名称 (DNN) 侦听器以将流量路由到相应的群集资源，而无需负载均衡器。</block>
+  <block id="77b08cfabbc6543c8db5bc16c47b993b" category="paragraph">使用 PowerShell 创建 DNN 资源：</block>
+  <block id="92d66b864c4df29c6686b9aad90e427d" category="section-title">配置可能的所有者</block>
+  <block id="0906492c5ba412578206f0eb705fa045" category="paragraph">默认情况下，群集将 DNN DNS 名称绑定到所有节点。排除未参与可用性组的节点：</block>
+  <block id="c5993defca1f340b6c393f514b129ebd" category="list-text">在故障转移群集管理器中，找到 DNN 资源。</block>
+  <block id="de5d68f5271b2e3b9c4a7d32ce8c356e" category="list-text">右键单击 DNN 资源并选择*属性*。</block>
+  <block id="76ea87e086cbfbc4f207bd78927cbd86" category="image-alt">DNN 资源属性</block>
+  <block id="45505fd2d7da750e18b208b6ae77ea1d" category="list-text">清除不参与可用性组的任何节点的复选框。</block>
+  <block id="27785f0b1e6ba9c12272902202ac5da5" category="image-alt">配置 DNN 可能的所有者</block>
+  <block id="b4c815502a9d7d3f5e39e88958c0e0a1" category="list-text">单击 *确定* 保存设置。</block>
+  <block id="1b1e5d185113de738c63e2d8dadd22ef" category="section-title">更新应用程序连接字符串</block>
+  <block id="38603988db8b368e61a0eb1203223f2d" category="paragraph">更新连接字符串以使用 DNN 侦听器名称并包含<block ref="810ef623cfbef0967e4ac38518a200dd" prefix=" " category="inline-code"></block>参数：</block>
+  <block id="1bc3d18e3b4947dbff414813ad7fb0d5" category="listing-title">连接字符串示例</block>
+  <block id="7be3919d33b3cd55db89a8db306820fd" category="admonition">如果您的客户端不支持 MultiSubnetFailover 参数，则表示它与 DNN 不兼容。</block>
+  <block id="cebb1167d3e78885137c837f0abf8026" category="section-title">测试故障转移</block>
+  <block id="83559cd4851542c00e7606b743fb3a6c" category="paragraph">验证可用性组配置和测试故障转移，以确保节点之间的自动故障转移正常工作。</block>
+  <block id="e16b1be10016da283351ca2797fda0e2" category="list-text">在任何副本上运行以下命令来验证可用性组配置。</block>
+  <block id="fcedbea0569ad38ff6d26338a4e0d052" category="paragraph">两个副本都应显示<block ref="d8091fb51f31a4ef069b7f5bf785f35a" prefix=" " category="inline-code"></block>可用性模式和<block ref="008f6cdd0c190839e9885cf9f9e2a652" prefix=" " category="inline-code"></block>故障转移模式，这可确保在自动故障转移期间零数据丢失。</block>
+  <block id="b4c0ecd0e6def6e6e82ff1adc6b09abe" category="list-text">在辅助节点上运行以下命令来启动故障切换：</block>
+  <block id="42a51e77f8dd37f3c73300ea1f2b062f" category="list-text">检查连接目标是否已切换到新的主目标：</block>
+  <block id="4d7ef023f25cc47278a70f70ca109c00" category="paragraph">在 SSMS 中，展开可用性组节点，右键单击 *Always On High Availability*，然后选择 *Show Dashboard*。</block>
+  <block id="ef6ccf78dd6d8aa4c4fb42fe23138e32" category="paragraph">仪表板应显示具有健康状态的两个节点并确认故障转移。</block>
+  <block id="e87a6d2aeb93e6d109247f31770d95aa" category="image-alt">显示成功故障转移的 Always On 高可用性仪表板</block>
+  <block id="ad41a433069c2236a391eb921e4692dd" category="section-title">清理资源</block>
+  <block id="baec841933b7c1c753d4f2b3cebd3dff" category="paragraph">完成教程后，请删除您创建的资源，以避免产生额外费用：</block>
+  <block id="18b0ddc1d58cf58f0c29feaf8318678e" category="list-text">删除 Compute Engine 实例（sqlnode1、sqlnode2）</block>
+  <block id="1e449cfb477d2bad527f429ab05b3e12" category="list-text">删除 Google Cloud NetApp Volumes（卷、存储池、主机组）</block>
+  <block id="a3e5e9c78aa544a8cd78cbadd38c465a" category="list-text">删除专门为本教程创建的 VPC 和网络资源</block>
+  <block id="54a796062944c695817f4eb1c9921ef1" category="list-text">删除文件共享见证服务器（如适用）</block>
+  <block id="471bdb0aa2d84f6d114789368ffc1cc1" category="inline-link-macro">Google Cloud NetApp Volumes 文档</block>
+  <block id="eccc5dc285a077576fffa4a8f36c3cf8" category="inline-link-macro">Google Compute Engine 文档</block>
+  <block id="274d6ae1c8edd119fb605bf14d977c17" category="paragraph">有关删除资源的详细步骤，请参阅 <block ref="05976eea54c43c5f3d26d0dd5e48dcfe" category="inline-link-macro-rx"></block> 和 <block ref="853a7c74ba4c1f5c31317922ec69d7b0" category="inline-link-macro-rx"></block>。</block>
+  <block id="b151ed2f061e28c11e00ad100972205e" category="paragraph">有关带 NetApp 存储的 Google Cloud 上的 SQL Server 的详细信息，请查看以下文档：</block>
+  <block id="d141630f195a78c1d62c0a995385a3e1" category="list-text"><block ref="d141630f195a78c1d62c0a995385a3e1" category="inline-link-macro-rx"></block></block>
+  <block id="11694a64abeff77c3c8ca3202e48a600" category="inline-link-macro">SQL Server Always On 可用性组</block>
+  <block id="a8b42226e0afe2c99fcad206668c8e3a" category="list-text"><block ref="a8b42226e0afe2c99fcad206668c8e3a" category="inline-link-macro-rx"></block></block>
+  <block id="6458349f90f9f03e0ac5b2055316563d" category="inline-link-macro">Windows Server 故障转移群集</block>
+  <block id="9912061c9c8234ff34f20279442a2a5c" category="list-text"><block ref="9912061c9c8234ff34f20279442a2a5c" category="inline-link-macro-rx"></block></block>
+  <block id="fe2659a563c4cc8c7bd4c361d7aa7af6" category="list-text"><block ref="fe2659a563c4cc8c7bd4c361d7aa7af6" category="inline-link-macro-rx"></block></block>
+  <block id="1a5eb59a4ec4e77747e800700cdc4b8d" category="sidebar">使用 Google Cloud NetApp Volumes 的 SQL Server Always On</block>
 </blocks>
