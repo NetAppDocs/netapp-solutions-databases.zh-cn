@@ -2456,7 +2456,6 @@
   <block id="b3f95d0186b2e4989ad81f07a21d72c5" category="paragraph">本文档的目标是提供分步流程、程序和最佳实践指导，指导如何使用 FSx 存储和 EC2 实例部署和配置 Oracle 数据库，以提供与本地系统类似的性能。  NetApp还提供了一个自动化工具包，可以自动执行在 AWS 公共云中部署、配置和管理 Oracle 数据库工作负载所需的大部分任务。</block>
   <block id="eef7539c8eab25bfe5c089aab85ec418" category="paragraph">要了解有关解决方案和用例的更多信息，请观看以下概述视频：</block>
   <block id="0df1fe5dfbca17caa87c91ffea49223a" category="inline-link-macro">使用 AWS 和 FSx ONTAP中的混合云实现 Oracle 数据库现代化，第 1 部分 - 用例和解决方案架构</block>
-  <block id="adf8d1fc36b4704904a6251fde19535e" category="paragraph"><block ref="bab032e290776958656c886d774a2bf6" category="inline-link-macro-rx"></block></block>
   <block id="32800a2387c1d841d80eab97ff7205c2" category="summary">本节详细介绍在 AWS EC2 实例和 FSx 存储上部署 Oracle 数据库时需要考虑的因素。</block>
   <block id="c53749244d982efb6aa5653328227c2a" category="doc">Oracle 数据库部署需要考虑的因素</block>
   <block id="96f819dcc02d1203a3923ddad366ff4b" category="paragraph">公共云为计算和存储提供了许多选择，使用正确类型的计算实例和存储引擎是数据库部署的良好起点。您还应该选择针对 Oracle 数据库优化的计算和存储配置。</block>
@@ -2481,7 +2480,6 @@
   <block id="2b7570eaa12a3e472e9d0cbac6631d57" category="paragraph">其他需要考虑的因素：</block>
   <block id="6841f6ce9d9a2af93222223df564ca34" category="list-text">TCP 插槽表相当于 NFS 中的主机总线适配器 (HBA) 队列深度。这些表控制任意时间同时存在的未处理 NFS 操作的数量。默认值通常为 16，数值太低无法实现最佳性能。在较新的 Linux 内核上会出现相反的问题，它会自动将 TCP 插槽表限制增加到使 NFS 服务器充满请求的级别。</block>
   <block id="5a749fcdd97cee211c5fea00babe8691" category="paragraph">为了获得最佳性能并防止出现性能问题，请将控制 TCP 槽表的内核参数调整为 128。</block>
-  <block id="dcd7ebfa96f217f8d20c58a185a48531" category="list-text">下表提供了针对 Linux NFSv3（单实例）推荐的 NFS 挂载选项。</block>
   <block id="5cf56cd2517ddd9e0ed46c42e2fe4ee7" category="paragraph"><block ref="5cf56cd2517ddd9e0ed46c42e2fe4ee7" category="inline-image-macro-rx" type="image"></block></block>
   <block id="5088352a7b028bc873f55b1b666d7cd8" category="admonition">在使用 dNFS 之前，请验证是否安装了 Oracle Doc 1495104.1 中描述的补丁。 NetApp针对 NFSv3 和 NFSv4 的支持矩阵不包含特定的操作系统。支持所有遵循 RFC 的操作系统。在在线 IMT 中搜索 NFSv3 或 NFSv4 支持时，请勿选择特定的操作系统，因为不会显示任何匹配项。常规策略隐式支持所有操作系统。</block>
   <block id="2fe1fc26875d6d38f4b15a3a03d498fb" category="paragraph">正如解决方案架构所示，HA 建立在存储级别复制之上。因此，Oracle 的启动和可用性取决于计算和存储的启动和恢复速度。请参阅以下关键因素：</block>
@@ -5588,4 +5586,104 @@
   <block id="fe2659a563c4cc8c7bd4c361d7aa7af6" category="list-text"><block ref="fe2659a563c4cc8c7bd4c361d7aa7af6" category="inline-link-macro-rx"></block></block>
   <block id="1a5eb59a4ec4e77747e800700cdc4b8d" category="sidebar">使用 Google Cloud NetApp Volumes 的 SQL Server Always On</block>
   <block id="4f5b4a25c5f43e17e1f438de9b459c7e" category="sidebar">在 Google Cloud NetApp Volumes 上运行 SQL Server</block>
+  <block id="8017d41857bcb7347f55317fbec970c7" category="list-text">下表提供了适用于 Linux 的推荐 NFS 挂载选项 - 单实例。</block>
+  <block id="da1a426d29dd859cbe9aa587a457708e" category="summary">该解决方案提供了在 Google Cloud NetApp Volumes 上部署 Oracle 的概述和详细信息，作为通过 NFS 协议的主数据库存储，Oracle 数据库部署为启用了 dNFS 的独立容器数据库。</block>
+  <block id="a85b21d1f3ef04ec3e2622a906bb93f1" category="doc">TR-5020：在 Google Cloud NetApp Volumes 上使用 NFS 部署 Oracle 独立实例</block>
+  <block id="1848590d55317f50a41c661b9bb44e1d" category="paragraph">本解决方案概述并详细介绍了在 Google Cloud NetApp Volumes 上通过 NFS 协议将其作为主要数据库存储进行 Oracle 部署的相关内容，并且 Oracle 数据库以启用 dNFS 的独立容器数据库方式部署。</block>
+  <block id="01293371a4e03507eec6b331520088fb" category="paragraph">在云中运行性能密集型和延迟敏感的 Oracle 工作负载可能具有挑战性。Google Cloud NetApp Volumes (GCNV) 使企业业务线 (LOB) 和存储专业人员可以轻松迁移和运行要求苛刻的 Oracle 工作负载，而无需更改代码。Google Cloud NetApp Volumes 在各种场景中被广泛用作底层共享文件存储服务，例如 Oracle 数据库从内部部署到 Google Cloud 的新部署或迁移（提升和转移）。</block>
+  <block id="019aae1ac97d482e654d917051ee44fb" category="paragraph">本文档演示了 Google 云控制台中的 GCNV 数据库卷配置，以及使用 Ansible 自动化通过 NFS 挂载在 Google Cloud NetApp Volumes 中简化 Oracle 数据库的部署。Oracle 数据库部署在启用了 Oracle dNFS 协议的容器数据库 (CDB) 和可插拔数据库 (PDB) 配置中，以提高性能。此外，它还演示了详细的数据库备份、还原和克隆策略，并为 Google Cloud 中的 Oracle 数据库备份管理提供了自动化工具包。</block>
+  <block id="bad665e7c5af3f544a622f250223171a" category="list-text">在 Google Cloud 上，使用 NFS 协议在 Google Cloud NetApp Volumes 上自动部署 Oracle 数据库。</block>
+  <block id="4adc49c5194047fd66bfe4e2b40046c7" category="list-text">在 Google Cloud 中的 Google Cloud NetApp Volumes 上进行 Oracle 数据库备份、恢复和克隆。</block>
+  <block id="9a71a215d706d19c6dd688d1c3d11118" category="list-text">希望在 Google Cloud NetApp Volumes 上部署 Oracle 的 DBA。</block>
+  <block id="8f163912ffc77ea5a0975597bbb9b673" category="list-text">希望在 Google Cloud NetApp Volumes 上测试 Oracle 工作负载的数据库解决方案架构师。</block>
+  <block id="79348eaedf621b7568f7d9338ce69b70" category="list-text">希望在 Google Cloud NetApp Volumes 上部署和管理 Oracle 数据库的存储管理员。</block>
+  <block id="72f94611fd6eaf9f5673b463d452d348" category="list-text">希望在 Google Cloud NetApp Volumes 上建立 Oracle 数据库的应用程序所有者。</block>
+  <block id="9b64087a5f8ccd53959482f7dfe2ed7c" category="inline-image-macro">此图片提供了使用 NFS 和 Google Cloud NetApp Volumes 的 Google Cloud 中 Oracle 部署配置的详细图片。</block>
+  <block id="d9586fe6f28e29bf1eb9553cde4f8671" category="paragraph"><block ref="d9586fe6f28e29bf1eb9553cde4f8671" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="c818b7b030d47ac7bfca20bbf2e1b34d" category="cell">Google Cloud 中 Google 的当前产品</block>
+  <block id="021060c7f714315b6c621fb8a93d6d0f" category="cell">一个具有 Flex 服务级别、2 TiB 容量、64 MiB/s 吞吐量和 1024 IOPS 为 Oracle 数据库存储配置的存储池</block>
+  <block id="5155bb8515180e9f0fbff1d150bc3f13" category="cell">适用于数据库服务器的 Google Compute Engine VM</block>
+  <block id="0008e2c8001e4ef944e211a51931cd82" category="cell">n1-standard-4（4 个 vCPU，15 GB 内存）</block>
+  <block id="99fc2fc354130ed3679c021f9b29e6c5" category="cell">用于部署和恢复演示的两个 Linux 虚拟机实例</block>
+  <block id="8e64f817d4b1afba2ecb046dda141187" category="cell">RHEL Linux 8.10（LVM）- x64 Gen2</block>
+  <block id="1579fd48068cb05c9e2ab66e479ce764" category="cell">21.19 版</block>
+  <block id="646d1471a3c388e415fa6180c571eec6" category="cell">应用了 RU 修补程序 p38068980_210000_Linux-x86-64.zip</block>
+  <block id="c16ab5e0de3a8cae7b24abb03aca4009" category="cell">版本 12.2.0.1.48</block>
+  <block id="112960a046a30cf3834b1a7ed2ce5d13" category="cell">最新补丁 p6880880_210000_Linux-x86-64.zip</block>
+  <block id="1d4f74ed9129463a099e9dd2826c3101" category="cell">Python 3.10.13</block>
+  <block id="c70e414eae6c849b73d895ba6a1a73c5" category="cell">orap - 主数据库服务器</block>
+  <block id="1998736dcd5c14441f02a4118716ee4e" category="cell">/u01、/u02、/u03 NFS 挂载在 Google Cloud NetApp Volumes 存储池上</block>
+  <block id="e5d4040a7cb11766cfb57f50614836a3" category="cell">orap2 - 从备份还原</block>
+  <block id="e7beae97314dd4586792230f534ab494" category="list-text">*GCNV 存储池服务级别和吞吐量。*GCNV 提供四种不同的服务级别：Standard、Premium、Extreme 和 Flex。对于 Standard、Premium、Extreme 服务级别，IO 吞吐量根据数据库卷的大小确定和固定。总 IO 吞吐量根据存储池大小设置上限。对于 Flex 服务级别，IO 吞吐量不是固定在数据库卷大小上，而是在所有数据库卷之间共享，并限制在存储池大小级别。这可容纳较小的卷数据库，偶尔会出现 IOPS 浪涌。作为参考，Standard、Premium、Extreme 服务级别分别提供每 GiB 16 KiB/s、每 GiB 64 KiB/s、每 GiB 128 KiB/s 的吞吐量。另一方面，Flex 服务级别为每个存储池提供高达 5 GiB/s 的自定义性能设置。根据 Oracle 数据库工作负载的预期 IO 吞吐量和 IOPS 要求，正确调整服务级别和存储池大小非常重要。</block>
+  <block id="fc6fc3e9a2cb1e8dcdbd0ccddc1b41bd" category="list-text">*数据库存储布局。*在此自动 Oracle 部署中，我们为每个数据库配置三个数据库卷，以默认托管 Oracle 二进制文件、数据和日志。卷通过 NFS 以 /u01 - 二进制，/u02 - 数据，/u03 - 日志的形式装载在 Oracle DB 服务器上。在 /u02 和 /u03 安装点上配置双控制文件以实现冗余。</block>
+  <block id="0893e95f5e89a5ab3554eb2c587201e0" category="list-text">*dNFS 配置。*通过使用 Oracle dNFS（从 Oracle 11g 开始提供），在具有 Google Cloud NetApp Volumes 存储的 Google Compute Engine 上运行的 Oracle 数据库可以驱动比原生 NFS 客户端更多的 I/O。自动 Oracle 部署默认在 NFSv3 上配置 dNFS。</block>
+  <block id="125cc4cdd4276309de285884c765f3a1" category="list-text">*快照和保管库备份。*与传统的 RMAN 数据库备份不同，NetApp 建议实施存储高效、应用程序一致的快照和保管库备份，以实现快速（秒）快照备份、快速（分钟）数据库恢复、恢复以及从存储保管库中的快照或备份进行克隆。快照是数据库卷的时间点副本，可以在几秒钟内创建，并且在创建时不会占用额外的存储空间。它与主数据库卷共存，如果主卷受损，可能会丢失。保管库备份是快照的副本，存储在对象存储中并存储在不同位置以进行灾难恢复。</block>
+  <block id="546e9b8f8945c2b04beee48831473ba2" category="list-text">*RTO/RPO 注意事项。*在设置数据库备份策略时，请务必考虑恢复时间目标 (RTO) 和恢复点目标 (RPO) 要求。虽然基于快照的备份对数据库的性能影响很小，但在影响 RTO/RPO 的备份频率和存储支出之间存在权衡。更频繁的备份可以帮助实现更低的 RTO/RPO，但可能会增加存储成本。根据业务需求和预算找到合适的平衡非常重要。自动化解决方案提供了一个基于 Ansible playbook 的自动化工具包，用于管理 Oracle 数据库备份以及用户可配置的保留和备份计划。</block>
+  <block id="f0f2f4f42460602b70e30235a1ef5f2f" category="paragraph">以下部分提供在 Google Cloud NetApp Volumes 上进行自动化 Oracle 21c 部署和数据库备份、恢复、克隆的分步步骤，通过 NFS 将数据库卷直接装载到作为数据库服务器的 Google Cloud Compute Engine VM。</block>
+  <block id="328777b838aac92e22eb34e23c103f30" category="list-text">已设置 Google Cloud 帐户，并在您的 Google Cloud 帐户特定项目中创建了必要的 VPC 和网络设置。</block>
+  <block id="a361bac6a8777e2e7f55cdae82c547ee" category="list-text">从 Google Cloud 控制台，将 Google Compute Engine VM 部署为 Oracle DB 服务器。确保关闭防火墙并启用 VM SSH 私钥/公钥身份验证，使用管理员用户连接到 DB 服务器以实现自动化。有关环境设置的详细信息，请参阅上一节中的架构图。</block>
+  <block id="426944ade4fc6b6c11a4fd8b1d6d086f" category="admonition">确保已在 VM 根磁盘中分配至少 50G，以便有足够的空间来暂存 Oracle 安装文件并添加 OS 交换文件。</block>
+  <block id="6d9f706f367252d8b66a2caa18e9163a" category="list-text">将安装了自动化工具包 README 中列出的 Ansible 和 Git 版本的 Linux VM 设置为 Ansible 控制器节点。有关 Ansible 自动化的帮助，请参见以下链接：<block ref="5611d9cfd1946804a6fc54c4e7defca3" category="inline-link-macro-rx"></block> 在章节 -<block ref="3d45b043c5518eca1e47fb4ba8a813da" prefix=" " category="inline-code"></block> 或<block ref="2afb5cc3404c6c8162722fd41895c2de" prefix=" " category="inline-code"></block>。</block>
+  <block id="cdafdfc2e4c46ccd25386ae751da682b" category="admonition">Ansible 控制器节点可以位于本地或 Google Cloud 中，只要它可以通过 ssh 端口访问 Google Cloud DB 服务器 VM。</block>
+  <block id="6cc8f236cd794ff183bd4312806f267a" category="list-text">在 Google Cloud DB VM /tmp/archive 目录中以 777 权限暂存 Oracle 21c 安装文件。</block>
+  <block id="16b166ceabc98c5d27c2ea87b2554eff" category="section-title">适用于 Oracle 数据库存储的 Google Cloud NetApp Volumes 配置</block>
+  <block id="456137a7cd52550e13083f4862cde320" category="paragraph">以下是为 Oracle 数据库存储配置 Google Cloud NetApp Volumes 的步骤，并提供屏幕截图进行演示。</block>
+  <block id="5f8c87efbbe36560cf06a59ea1d46b47" category="inline-image-macro">此图像提供了在 Google Cloud 中使用 NFS 部署 Oracle 的 GCNV 卷配置屏幕截图。</block>
+  <block id="64178f4572b0b446d747e6b227391514" category="list-text">为 Oracle 数据库存储创建具有所需服务级别和容量的存储池。+<block ref="ca060c78cf47d7fb2965ad61a6be7983" category="inline-image-macro-rx" type="image"></block> +<block ref="3aeeec97e147c3b9a14de15fbd92323f" category="inline-image-macro-rx" type="image"></block> +<block ref="0bf65428c83f2ac3a6dea1b221e326a3" category="inline-image-macro-rx" type="image"></block> +<block ref="82eaf8daed5fdad8a95a81b5c49ed98e" category="inline-image-macro-rx" type="image"></block> +<block ref="32347026f47c1c2a8dd8901b0e1c33aa" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="ef565a83077fd8f47dab7d5db07adaaa" category="list-text">在用于数据库存储的存储池中为 Oracle 数据库创建三个具有所需大小的数据库卷。例如，/u01 用于二进制文件，/u02 用于数据文件，/u03 用于使用 NFSv3 协议和挂载选项的重做日志和控制文件，如以下屏幕截图所示。+<block ref="5efcbfa8a8d87dc6b4392862379c0cdc" category="inline-image-macro-rx" type="image"></block> +<block ref="b851801bd7a4cd106eb633047ef2e7a0" category="inline-image-macro-rx" type="image"></block> +<block ref="802893c9e0c51f3f5bd5c7c3a8409eaa" category="inline-image-macro-rx" type="image"></block> +<block ref="6224703a7721383b986f0f5727555ea3" category="inline-image-macro-rx" type="image"></block> +<block ref="399c0b71b1a908db9caa93dcf20d021f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="706b6bf9e38cb8af0035527ff7065fc0" category="admonition">由于内置备份方案与应用程序不一致，此时请勿在 Google Cloud NetApp Volumes 中启用定时备份。为此解决方案提供的备份自动化工具包将使用用户定义的计划和保留来管理应用程序一致的数据库备份。</block>
+  <block id="4399f1860708a3ebe509e3342d830d87" category="section-title">采用 Ansible Playbook 的自动化 Oracle 部署</block>
+  <block id="97d32bc27d996dc1322468dfd65f0b81" category="paragraph">Ansible playbook 使用预定义的参数执行数据库安装和配置任务。该工具包目前支持 Oracle 数据库版本 19c 和 21c 部署。对于此 Oracle 自动化解决方案，在执行 playbook 之前，有三个用户定义的参数文件需要用户输入。</block>
+  <block id="c661afc1de466c8bf0ab52f66cba2e4b" category="list-text">本地数据库服务器<block ref="0c83664bfb17d8d2c0bbc3551297e488" prefix=" " category="inline-code"></block> 配置，如 orap.yml、orap2.yml...</block>
+  <block id="e0a9a577ab8798bf902c635f69ddb971" category="paragraph">运行剧本后，登录到 Oracle DB 服务器 VM，以验证 Oracle 是否已安装并配置，以及是否已成功创建容器数据库。以下是主机 orap 上的 Oracle 数据库验证示例。</block>
+  <block id="1315687e0ed0c79e28773fa4309aab91" category="list-text">作为 oracle 用户，验证 Oracle 侦听器</block>
+  <block id="1a2b504d844499fe41debbf6458f25a8" category="list-text">验证 Oracle 服务是否自动启动和关闭。</block>
+  <block id="814756944e36cfad39fc423be77f9b1f" category="section-title">使用 Google Cloud NetApp Volumes 进行 Oracle 数据库备份</block>
+  <block id="7d21d85bb0b69933067dc05152bba8b1" category="section-title">Oracle 数据库快照和保险库备份</block>
+  <block id="82f6b4f4cf9c252137b6975f18c262e2" category="paragraph">为了便于轻松设置 Oracle 数据库备份，NetApp 解决方案工程团队开发了 Ansible 剧本，以通过用户可配置的保留和备份计划自动执行 Oracle 数据库备份。该剧本利用 Google Cloud NetApp Volumes 快照和保管库备份功能，实现快速（秒）快照备份、快速（分钟）数据库恢复、恢复以及从存储保管库中的快照或备份进行克隆。</block>
+  <block id="b7174b134c5a81802e381837d34fed1f" category="list-text">克隆用于 GCNV 的 NetApp Oracle 数据库备份自动化工具包的副本。</block>
+  <block id="d0e192368a950732fcf46c5a771b705c" category="list-text">阅读工具包中的 README 文件，并按照以下说明从 crontab 或任何其他计划工具配置和计划备份作业。该手册旨在在可访问 Oracle DB 服务器虚拟机和 Google NetApp Volumes 的 Ansible 控制器节点上运行。它将根据定义的计划和保留策略创建数据库卷的应用程序一致性快照，并将快照复制到存储区以进行灾难恢复。</block>
+  <block id="78cd059b79b752dd0e9d1e5fa827a55d" category="list-text">默认情况下，playbook 创建每日快照备份和每小时快照。默认快照保留为 7 个每日快照和 24 个每小时快照。任何超过保留期的其他快照都将被修剪，并保持 7 个每日快照和 24 个每小时快照的滚动副本。您可以根据 RTO/RPO 要求和存储成本考虑因素调整备份频率和保留时间。每日快照备份所有数据库卷时，每小时快照备份仅备份日志卷并节省存储空间。在每日快照备份期间，playbook 还会根据定义的保留期修剪 Oracle 存档日志文件，以节省数据库日志卷上的存储空间。</block>
+  <block id="6581f281ceb3f9eb3e1308b9b479830c" category="list-text">下面是创建快照备份并复制到保管库的 crontab 条目的示例。</block>
+  <block id="ed64372963d6134c186463a3b75ab713" category="list-text">根据您的 RTO/RPO 要求，可以每周、每天或每小时执行一次保管库备份。虽然每周、每日备份包括所有 DB 卷，但每小时保管库备份仅包括日志卷以节省存储空间。第一次保管库备份需要更长的时间，因为它创建了基准。建立基线备份后，所有其他保管库备份都是使用增量永久方法进行增量备份的。所有保管库备份都是从执行时的最新应用一致性快照创建的，以确保可恢复性。与典型的基线和增量备份不同，基线保管库备份数据会汇总到每个增量备份。换句话说，每个增量保管库备份都包含完整的数据集，可以用于恢复，而无需恢复基线备份。这种方法简化了备份管理和恢复过程，同时在保管库中提供了高效的存储利用率。当您需要删除任何备份时，无需担心备份链和依赖关系，因为在这种方法中，所有备份都是独立的。备份自动化脚本会自动修剪备份，以满足定义的保留目标。</block>
+  <block id="31fc007cd9a6c108e827f7c95562900e" category="list-text">以下日志文件记录是快照备份和保留管理的示例。</block>
+  <block id="545d0c3c6f5de74a8a5105a626fcc076" category="list-text">以下日志文件记录捕获了从应用程序一致性快照进行保管库备份的详细信息。</block>
+  <block id="142b9cff64e9827b50d93ce0cc6e8e88" category="admonition">如果快照中的存储库备份已存在，则将跳过针对同一快照的第二次备份尝试，不会出现错误。</block>
+  <block id="33f2f1845c93120ec02a30d4257182e5" category="section-title">使用 Google Cloud NetApp Volumes 恢复和克隆 Oracle 数据库</block>
+  <block id="08d9ebf51cb4485e07d06a07b710a19c" category="section-title">使用 Google Cloud NetApp Volumes 快照进行 Oracle 数据库就地、时间点恢复</block>
+  <block id="13e292d5cf71c947d6a47e263755d3bf" category="paragraph">Oracle 数据库时间点恢复通常用于恢复意外删除或损坏的数据，或从逻辑错误中恢复。使用 Google NetApp Volumes 快照，您可以通过将数据库恢复到特定快照来轻松执行 Oracle 数据库的时间点恢复。这使您可以快速从数据丢失或损坏中恢复，而无需从完整备份中恢复。以下演示了使用 Google NetApp Volumes 快照恢复已删除表的步骤。</block>
+  <block id="f22e87e8a6c54f6492436e0083a27d3b" category="list-text">在本演示中，我们首先在"NTAP"数据库中创建一个名为"test"的测试表，并向该表中插入一些数据。然后，我们删除该表以模拟意外删除数据。之后，我们将使用 Google NetApp Volumes 快照将数据库还原到表被删除之前的某个时间点，并验证表及其数据是否已成功恢复。</block>
+  <block id="5b185885d47a552da42ceb51a2c6fe1c" category="list-text">在从快照还原之前，停止 Oracle 服务以关闭 Oracle 数据库并卸载主机上的文件系统。</block>
+  <block id="ee78c1319742a2c263b0a04e73e41a6c" category="list-text">标识包含要恢复的数据的快照。您可以使用 Google Cloud Console 或 gcloud 命令行工具列出 Oracle 数据库卷的可用快照。单击快照列表末尾的三个点，然后在<block ref="925dc7757bc7a9926f13546bb8260267" prefix=" " category="inline-code"></block>下查看选项。选择<block ref="5289bf157522a5cd34676f2777d27048" prefix=" " category="inline-code"></block>以还原到所选快照。对所有 DB 卷重复此操作。</block>
+  <block id="a874fec6d8cde9827fb589fd9068e70d" category="inline-image-macro">此图像提供了在 Google Cloud 中使用 NFS 的 Oracle 部署的 GCNV 卷快照还原的屏幕截图。</block>
+  <block id="8da571508a792e6be6059b86663f8fe5" category="paragraph"><block ref="8da571508a792e6be6059b86663f8fe5" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="cb1dad5295c18a0dc2130ac5cac71ad7" category="paragraph"><block ref="cb1dad5295c18a0dc2130ac5cac71ad7" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="874db0febe5d37e26c8ed59798db40b3" category="paragraph"><block ref="874db0febe5d37e26c8ed59798db40b3" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="56b0340048f7edd093a9db7b62abe3ec" category="list-text">在快照还原完成后装载数据库卷。</block>
+  <block id="512aa901b442e007fc5314a3b4fd53a7" category="list-text">登录 Oracle 数据库服务器，通过 sqlplus 运行时间点恢复命令，将数据库恢复到所需的时间点。</block>
+  <block id="f446ec8ecb6be283e45860946f7c9385" category="list-text">恢复完成后，确认数据已成功恢复。</block>
+  <block id="d483322847f3e47fb2eef3af90562a4a" category="list-text">关闭并重新启动数据库作为 systemd 服务以完成恢复过程。</block>
+  <block id="b640b50ba31af096bd98a38034f7820d" category="section-title">使用 Google Cloud NetApp Volumes 保管库备份将 Oracle 数据库恢复到新主机</block>
+  <block id="5554fd824ba28b5685cf82f20c43bb64" category="paragraph">如果出现需要恢复到新主机的故障，例如原始主机不再可用且无法访问主数据库卷，则可以使用 Google Cloud NetApp Volumes 保管库备份在新主机上还原 Oracle 数据库。此过程类似于使用快照进行就地恢复，但不是还原到快照，而是从保管库备份还原数据库。这允许您在其他主机上恢复数据库，这在原始主机不再可用或遇到硬件故障的情况下非常有用。从保管库备份还原的步骤如下：</block>
+  <block id="cf32604cc55b16c0bddd650e391302ef" category="list-text">标识包含要恢复的数据的保管库备份。您可以使用 Google Cloud Console 或 gcloud 命令行工具列出 Oracle 数据库卷的可用保管库备份。单击保管库备份列表末尾的三个点，在<block ref="146ffe2fd9fa5bec3b63b52543793ec7" prefix=" " category="inline-code"></block>下查看选项。选择<block ref="4c156d938faba152e7cc646dc6726ca1" prefix=" " category="inline-code"></block>从所选保管库备份进行还原。对所有数据库卷重复此操作。如果需要，您还可以选择还原到相同的存储池或不同的存储池。</block>
+  <block id="630d6532e2004bef260d47968ec36c3c" category="inline-image-macro">此图像提供了在 Google Cloud 中使用 NFS 部署 Oracle 的 GCNV 保管库备份还原的屏幕截图。</block>
+  <block id="1702e94d72b4031843277b0c2911738a" category="paragraph"><block ref="691be4c34e7e3c20bd994a9c115bbfac" category="inline-image-macro-rx" type="image"></block> <block ref="3f08636e127436c87dd857594674a15b" category="inline-image-macro-rx" type="image"></block> <block ref="211a6d3c519edb9f91620c8955901aaa" category="inline-image-macro-rx" type="image"></block> <block ref="6c0f93484359d21f96d229b4c19e2878" category="inline-image-macro-rx" type="image"></block> <block ref="b5f964f99ba5059b801331f455444aa6" category="inline-image-macro-rx" type="image"></block> <block ref="91da906b11440d085ee207893787c892" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="c5b9b8ce6388ebdff2b3de9e836b65bf" category="list-text">创建在硬件、操作系统和操作系统内核补丁配置方面与原始主机匹配的新数据库服务器。这将确保在还原过程完成后可以正确装载和打开还原的数据库。</block>
+  <block id="1c3935527c141c04e29a3b990bf373de" category="paragraph"><block ref="1c3935527c141c04e29a3b990bf373de" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="8469933e078dad2a383afbe7776ac50b" category="list-text">以管理员用户身份登录到新的 DB 服务器。将还原的 DB 卷装载到与原始主机相同的装载点。根据需要更改装载点的所有权。</block>
+  <block id="3ceb1520afaa01024867536dd7201bbd" category="list-text">配置 Oracle 数据库环境变量和根目录文件，如 oratab、oraInstall.loc 文件。</block>
+  <block id="ecea7dcd695b8ff708e79813c226c7a4" category="list-text">作为 oracle 用户，重新链接 Oracle 二进制文件。</block>
+  <block id="6783bc4019057df376b706b241927027" category="list-text">恢复数据库，直到最后可用的日志，并使用 resetlogs 选项打开数据库。</block>
+  <block id="ff6ba9f54fee6e7f8cae8c7a50bf81ae" category="list-text">恢复完成后，需要执行其他步骤，例如修改 listener.ora、tnsnames.ora 文件以与新主机名或 IP 地址匹配。如果需要，请设置 systemd 服务来关闭并重新启动数据库以完成还原和恢复过程。</block>
+  <block id="53f125c47d7e11093b9aa417ce11d79e" category="admonition">如果您的数据库配置中实现了 Oracle 控制文件的重复副本。数据库还原后，已还原的数据库可能具有不一致的控制文件。在这种情况下，您可以使用日志卷中的控制文件覆盖数据卷中的控制文件来解决此问题。</block>
+  <block id="359095d31def68e998adaa65f5398cc4" category="section-title">使用 Google Cloud NetApp Volumes 快照或保管库备份将 Oracle 数据库克隆到新主机</block>
+  <block id="c95b85b710ab1e7b576129510b30deb9" category="paragraph">使用 Google Cloud NetApp Volumes 快照或保管库备份将 Oracle 数据库克隆到新主机与前面描述如何使用 Google Cloud NetApp Volumes 快照或保管库备份在发生故障时还原和恢复新主机上的 Oracle 数据库的部分相同。但是，重命名克隆的数据库可能是所需的额外步骤，可以使用 Oracle dbnewid 实用程序轻松完成。数据库克隆可用于 UAT 测试、开发或其他目的。</block>
+  <block id="9634d1bf32a23017a8714ecd907bb7ee" category="inline-link-macro">自动化请求</block>
+  <block id="ce91094d82db1af599461ef47796f56c" category="paragraph">对于一些需要自动克隆和克隆刷新的客户，请向 NetApp Solutions Engineering 团队提出请求，以获取示例 Ansible playbook，该 playbook 可用作使用 Google Cloud NetApp Volumes 快照或保管库备份自动克隆和刷新过程的参考。以下是向 NetApp Solutions Engineering 团队提交请求的链接：<block ref="6d6cec44da8cd2d5bb9d0d98d27728d4" category="inline-link-macro-rx"></block></block>
+  <block id="653eee7a3c64930afdc63b901557ea7b" category="list-text">Google Cloud NetApp Volumes 概述</block>
+  <block id="b84bc4b4d68b094803843c3a54706c72" category="inline-link-macro"><block ref="b84bc4b4d68b094803843c3a54706c72" category="inline-link-rx"></block></block>
+  <block id="4e7fadae2e08c089185d042f72643452" category="paragraph"><block ref="4e7fadae2e08c089185d042f72643452" category="inline-link-macro-rx"></block></block>
+  <block id="4cf73d6ef3868d34a0363e40eef4fa2d" category="sidebar">使用 NFS 在 Google NetApp Volumes 上部署 Oracle SI</block>
+  <block id="2fc358e366a2f0c47255223a019cdeb4" category="sidebar">使用 NFS 在 Google NetApp Volumes 上部署 Oracle 独立实例</block>
+  <block id="8e3e5c03980534c9c25ff5b83706d4eb" category="sidebar">通过 NFS 在 Google NetApp Volumes 上部署 Oracle 独立实例</block>
 </blocks>

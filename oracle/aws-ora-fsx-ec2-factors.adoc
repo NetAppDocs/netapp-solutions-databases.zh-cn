@@ -71,7 +71,7 @@ Linux 是最常见的操作系统，包含原生 NFS 功能。  Oracle 提供与
 ----
 sysctl -a | grep tcp.*.slot_table
 ----
-* 下表提供了针对 Linux NFSv3（单实例）推荐的 NFS 挂载选项。
+* 下表提供了适用于 Linux 的推荐 NFS 挂载选项 - 单实例。
 +
 image:aws-ora-fsx-ec2-nfs-001.png["该图显示输入/输出对话框或表示书面内容"]
 
