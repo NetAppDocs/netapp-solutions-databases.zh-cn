@@ -24,6 +24,7 @@ IT 组织面临着不断的变化。 Gartner 报告称，到 2022 年，近 75% 
 
 
 
+[[use-case]]
 == 用例
 
 将 SQL Server 资产迁移到 Azure，并将 SQL Server 与 Azure 的大量平台即服务 (PaaS) 功能（例如 Azure 数据工厂、Azure IoT 中心和 Azure 机器学习）相集成，可以创造巨大的商业价值来支持数字化转型。采用云还使相应的业务部门能够专注于生产力并比依赖 CAPEX 模型或传统私有云模型更快地提供新功能和增强功能（DevTest 用例）。本文档介绍利用 Azure 虚拟机在Azure NetApp Files上实时部署 SQL Server Always On 可用性组 (AOAG)。

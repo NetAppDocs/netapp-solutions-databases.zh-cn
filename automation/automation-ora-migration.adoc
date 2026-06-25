@@ -20,6 +20,7 @@ NetApp解决方案工程团队
 
 
 
+[[purpose]]
 == 目的
 
 该工具包以 FSx ONTAP存储和 EC2 计算实例作为目标基础设施，自动将 Oracle 数据库从本地迁移到 AWS 云。它假设客户已经在 CDB/PDB 模型中部署了内部 Oracle 数据库。该工具包将允许客户使用具有最大可用性选项的 Oracle PDB 重新定位程序从 Oracle 主机上的容器数据库重新定位命名 PDB。这意味着任何本地存储阵列上的源 PDB 都会以最少的服务中断重新定位到新的容器数据库。 Oracle 迁移过程将在数据库在线时移动 Oracle 数据文件。当所有数据文件转移到 AWS 云时，它会在切换时将用户会话从本地重新路由到重新定位的数据库服务。下划线技术是经过验证的 Oracle PDB 热克隆方法。
@@ -35,6 +36,7 @@ NOTE: 虽然迁移工具包是在 AWS 云基础设施上开发和验证的，但
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -47,6 +49,7 @@ NOTE: 虽然迁移工具包是在 AWS 云基础设施上开发和验证的，但
 
 
 
+[[license]]
 == 许可证
 
 通过访问、下载、安装或使用此 GitHub 存储库中的内容，您同意link:https://github.com/NetApp/na_ora_hadr_failover_resync/blob/master/LICENSE.TXT["许可证文件"^]。
@@ -56,10 +59,12 @@ NOTE: 制作和/或共享此 GitHub 存储库中内容的任何衍生作品都�
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -89,6 +94,7 @@ Network connectivity
 ====
 
 
+[[download-the-toolkit]]
 === 下载工具包
 
 [%collapsible%open]
@@ -100,6 +106,7 @@ git clone https://github.com/NetApp/na_ora_aws_migration.git
 ====
 
 
+[[host-variables-configuration]]
 === 主机变量配置
 
 [%collapsible%open]
@@ -129,6 +136,7 @@ Target Oracle CDB - define host specific variables for the target CDB including 
 ====
 
 
+[[db-server-host-file-configuration]]
 === 数据库服务器主机文件配置
 
 [%collapsible%open]
@@ -144,6 +152,7 @@ AWS EC2 实例默认使用 IP 地址进行主机命名。如果您在 Ansible �
 ====
 
 
+[[playbook-execution-executed-in-sequence]]
 === Playbook 执行 - 按顺序执行
 
 [%collapsible%open]
@@ -176,6 +185,7 @@ ansible-playbook -i hosts ora_pdb_relocate.yml -u ec2-user --private-key db1.pem
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关NetApp解决方案自动化的更多信息，请访问以下网站link:https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/automation-introduction.html["NetApp解决方案自动化^"^]

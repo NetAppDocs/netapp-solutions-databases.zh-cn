@@ -15,6 +15,8 @@ summary: 提供 Google Compute Engine 虚拟机，以在 Google Cloud NetApp Vol
 
 
 
+[[step-1-create-the-vms]]
+[[provision-compute-engine]]
 == 步骤 1：创建 VM
 
 在同一区域的不同可用区中创建三个 Google Compute Engine VM，以实现可用区故障隔离。使用 Cloud Console、 `gcloud`、Terraform 或您的标准配置工作流程。
@@ -54,6 +56,8 @@ summary: 提供 Google Compute Engine 虚拟机，以在 Google Cloud NetApp Vol
 
 
 
+[[step-2-configure-vpc-firewall-for-tcp-1521]]
+[[vpc-firewall-allow-1521]]
 == 步骤 2：为 TCP 1521 配置 VPC 防火墙
 
 创建 VPC 防火墙规则，以允许所有三个虚拟机之间的 TCP/1521 进行 Oracle Net redo 传输和 Observer 连接。缺少规则会中断 Data Guard 复制。
@@ -94,6 +98,8 @@ done
 
 
 
+[[step-3-configure-hostname-dns-and-etchosts]]
+[[hostname-dns-and-etchosts]]
 == 步骤 3：配置主机名、DNS 和 `/etc/hosts`
 
 在所有三个虚拟机上配置主机名和 DNS 解析，以便正向和反向名称解析适用于 Oracle Net、Data Guard Broker 和 Observer。
@@ -124,6 +130,8 @@ ping -c 1 oracdb1 && ping -c 1 oracdb2 && ping -c 1 oradg-obs
 
 
 
+[[step-4-prepare-the-os-on-db-hosts-only]]
+[[os-baseline-db-hosts-only]]
 == 步骤 4：仅在数据库主机上准备操作系统
 
 通过安装预安装软件包、创建用户和组、安装 iSCSI 和多路径软件包以及配置 iSCSI 启动程序，在 `oracdb1`和 `oracdb2`上为 Oracle Database 26ai 准备操作系统。观察者设置包含在xref:gcnv-oracle-data-guard.adoc#install-instant-client-on-observer[步骤 4：在 Observer 主机上安装 Oracle Instant Client]中。
@@ -185,6 +193,8 @@ sudo reboot
 
 
 
+[[step-5-capture-the-iscsi-initiator-name-iqn]]
+[[capture-iscsi-initiator-iqn]]
 == 第 5 步：捕获 iSCSI 启动程序名称 IQN
 
 重新启动后，从每个数据库主机捕获 iSCSI 启动程序名称 (IQN)。您将使用这些 IQN 在 xref:gcnv-oracle-provision-storage.adoc#create-host-groups[步骤 2：创建主机组] 中创建 GCNV 主机组。
@@ -207,6 +217,7 @@ sudo cat /etc/iscsi/initiatorname.iscsi
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要为 Oracle 二进制文件和 ASM 磁盘组提供共享存储，请转到 xref:gcnv-oracle-provision-storage.adoc[预配 Google Cloud NetApp Volumes iSCSI 池、主机组和卷]。

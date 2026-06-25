@@ -20,6 +20,7 @@ keywords: HA, DR, database, Oracle, RDS, AWS, SnapCenter
 
 
 
+[[vm-performance]]
 == 虚拟机性能
 
 选择正确的虚拟机大小对于公共云中关系数据库的最佳性能非常重要。为了获得更好的性能， NetApp建议使用 EC2 M5 系列实例进行 Oracle 部署，该实例针对数据库工作负载进行了优化。相同的实例类型也用于为 AWS 的 Oracle RDS 实例提供支持。
@@ -30,6 +31,7 @@ keywords: HA, DR, database, Oracle, RDS, AWS, SnapCenter
 
 
 
+[[storage-layout-and-settings]]
 == 存储布局和设置
 
 NetApp建议采用以下存储布局：
@@ -54,6 +56,7 @@ image:aws-ora-fsx-ec2-stor-013.png["该图显示输入/输出对话框或表示�
 
 
 
+[[nfs-configuration]]
 == NFS 配置
 
 Linux 是最常见的操作系统，包含原生 NFS 功能。  Oracle 提供与 Oracle 原生集成的直接 NFS (dNFS) 客户端。 Oracle 已支持 NFSv3 超过 20 年。所有版本的 Oracle 均支持 dNFS 和 NFSv3。所有遵循 NFSv4 标准的操作系统都支持 NFSv4。dNFS 对 NFSv4 的支持需要 Oracle 12.1.0.2 或更高版本。NFSv4.1 需要特定的操作系统支持。有关受支持的操作系统，请查阅NetApp互操作性矩阵工具 (IMT)。dNFS 对 NFSv4.1 的支持需要 Oracle 版本 19.3.0.0 或更高版本。
@@ -82,6 +85,7 @@ NOTE: 在使用 dNFS 之前，请验证是否安装了 Oracle Doc 1495104.1 中�
 
 
 
+[[high-availability]]
 == 高可用性
 
 正如解决方案架构所示，HA 建立在存储级别复制之上。因此，Oracle 的启动和可用性取决于计算和存储的启动和恢复速度。请参阅以下关键因素：

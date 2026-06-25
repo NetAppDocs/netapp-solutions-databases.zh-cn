@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 NetApp AFF C 系列是一种大容量闪存存储，它使全闪存对于统一存储来说更易于访问且更经济实惠。对于许多第 1 层或第 2 层 Oracle 数据库工作负载而言，其性能已经足够。  AFF C 系列系统由NetApp ONTAP数据管理软件提供支持，可提供业界领先的效率、卓越的灵活性、一流的数据服务和云集成，帮助您扩展 IT 基础架构、简化数据管理并降低存储成本和功耗。
@@ -34,6 +35,7 @@ NetApp AFF C 系列是一种大容量闪存存储，它使全闪存对于统一�
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -46,18 +48,21 @@ NetApp AFF C 系列是一种大容量闪存存储，它使全闪存对于统一�
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
 
 
 
+[[architecture]]
 === 架构
 
 image:automation-ora-c-series-nfs-architecture.png["此图提供了具有 iSCSI 和 ASM 的 AWS 公共云中的 Oracle 部署配置的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -104,6 +109,7 @@ image:automation-ora-c-series-nfs-architecture.png["此图提供了具有 iSCSI 
 |===
 
 
+[[oracle-database-configuration-in-the-lab-environment]]
 === 实验室环境中的 Oracle 数据库配置
 
 [cols="33%, 33%, 33%"]
@@ -123,6 +129,7 @@ image:automation-ora-c-series-nfs-architecture.png["此图提供了具有 iSCSI 
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * Oracle 数据库存储布局。在此自动化 Oracle 部署中，我们默认为每个数据库配置三个数据库卷来托管 Oracle 二进制文件、数据和日志。这些卷通过 NFS 安装在 Oracle DB 服务器上，作为 /u01 - 二进制、/u02 - 数据、/u03 - 日志。在 /u02 和 /u03 挂载点上配置双控制文件以实现冗余。
@@ -134,12 +141,14 @@ image:automation-ora-c-series-nfs-architecture.png["此图提供了具有 iSCSI 
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了 Oracle 19c 自动部署的分步过程以及部署后的 Oracle 数据库保护和克隆的信息。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -174,6 +183,7 @@ installer_archives:
 ====
 
 
+[[configure-networking-and-svm-on-c-series-for-oracle]]
 === 在 C 系列上为 Oracle 配置网络和 SVM
 
 [%collapsible%open]
@@ -274,6 +284,7 @@ NOTE: DB 卷命名约定应严格遵循上述格式，以确保自动化正常�
 ====
 
 
+[[automation-parameter-files]]
 === 自动化参数文件
 
 [%collapsible%open]
@@ -290,6 +301,7 @@ Ansible playbook 使用预定义参数执行数据库安装和配置任务。对
 ====
 
 
+[[parameter-files-configuration]]
 === 参数文件配置
 
 [%collapsible%open]
@@ -368,6 +380,7 @@ nfs_lif: 172.30.136.68
 ====
 
 
+[[playbook-execution]]
 === 剧本执行
 
 [%collapsible%open]
@@ -432,6 +445,7 @@ ansible-playbook -i hosts 5-destroy.yml -u admin -e @vars/vars.yml
 ====
 
 
+[[post-execution-validation]]
 === 执行后验证
 
 [%collapsible%open]
@@ -664,6 +678,7 @@ image:automation-ora-c-series-nfs-em-001.png["此图像提供 Oracle Enterprise 
 ====
 
 
+[[oracle-backup-restore-and-clone-with-snapcenter]]
 === 使用SnapCenter进行 Oracle 备份、恢复和克隆
 
 [%collapsible%open]
@@ -673,6 +688,7 @@ NetApp建议使用SnapCenter UI 工具来管理部署在 C 系列中的 Oracle �
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

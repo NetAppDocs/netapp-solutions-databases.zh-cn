@@ -18,6 +18,7 @@ summary:
 
 
 
+[[introduction]]
 == 简介
 
 许多希望将应用程序从本地迁移到云端的公司发现，本地存储系统和云存储服务所提供的功能差异阻碍了这一努力。这种差距使得迁移 Microsoft SQL Server 等企业应用程序变得更加困难。特别是，运行企业应用程序所需的服务（例如强大的快照、存储效率功能、高可用性、可靠性和一致性能）的差距迫使客户做出设计权衡或放弃应用程序迁移。有了 FSx ONTAP，客户不再需要妥协。 FSx ONTAP是一项原生（第一方）AWS 服务，由 AWS 销售、支持、计费和完全管理。它利用NetApp ONTAP的强大功能来提供与NetApp三十年来在 AWS 中作为托管服务提供的相同的企业级存储和数据管理功能。
@@ -26,6 +27,7 @@ summary:
 
 
 
+[[benefits-of-using-amazon-fsx-ontap-with-sql-server]]
 == 将Amazon FSx ONTAP与 SQL Server 结合使用的优势
 
 Amazon FSx ONTAP是 AWS 中 SQL Server 部署的理想文件存储。其优势包括：
@@ -47,12 +49,14 @@ Amazon FSx ONTAP是 AWS 中 SQL Server 部署的理想文件存储。其优势�
 
 
 
+[[before-you-begin]]
 == 开始之前
 
 EC2 实例上的Amazon FSx ONTAP和 SQL Server 的结合使得创建企业级数据库存储设计能够满足当今最苛刻的应用程序要求。为了优化这两种技术，了解 SQL Server I/O 模式和特性至关重要。精心设计的 SQL Server 数据库存储布局支持 SQL Server 的性能和 SQL Server 基础架构的管理。良好的存储布局还可以使初始部署成功，并且随着业务的增长，环境可以顺利增长。
 
 
 
+[[prerequisites]]
 === 前提条件
 
 在完成本文档中的步骤之前，您应该满足以下先决条件：
@@ -133,6 +137,7 @@ NOTE: 对于关键任务应用程序（例如 SQL 服务器）来说，必须仔
 ====
 
 
+[[configure-storage-for-sql-server-and-deploy-snapcenter-for-backup-restore-and-clone-operations]]
 == 为 SQL Server 配置存储并部署 Snapcenter 以进行备份、恢复和克隆操作
 
 为了使用SnapCenter执行 SQL 服务器操作，您必须首先为 SQL 服务器创建卷和 LUN。
@@ -565,6 +570,7 @@ image:sql-awsec2-027.png["该图显示输入/输出对话框或表示书面内�
 video::27f28284-433d-4273-8748-b01200fb3cd7[panopto]
 
 
+[[appendices]]
 == 附录
 
 .附录 A：用于云形成模板的 YAML 文件
@@ -701,6 +707,7 @@ Remove-Item -Path $MyInvocation.MyCommand.Source
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 * Amazon FSx ONTAP

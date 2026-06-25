@@ -20,6 +20,7 @@ NetApp解决方案工程团队
 
 
 
+[[the-challenge]]
 == 挑战
 
 * 客户一直在第三方托管的私有数据中心运行 SQL 服务器工作负载。不断增加的托管成本已成为一个问题。
@@ -33,6 +34,7 @@ image:customer-usecase-mssql-fsx1-before.png["此图提供了迁移之前客户�
 
 
 
+[[the-solution]]
 == 解决方案
 
 * 从本地托管的 Dell Unity SAN 和 AppSync 环境迁移到带有NetApp SnapCenter的 AWS Amazon FSx ONTAP 。
@@ -46,6 +48,7 @@ image:customer-usecase-mssql-fsx1-after.png["此图提供了迁移后客户环�
 
 
 
+[[the-outcome]]
 == 结果
 
 * 与继续在私有数据中心托管相比，成本降低了 40%。
@@ -58,6 +61,7 @@ image:customer-usecase-mssql-fsx1-after.png["此图提供了迁移后客户环�
 
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关NetApp企业数据库解决方案的更多信息，请访问以下网站link:https://docs.netapp.com/us-en/netapp-solutions/databases/index.html["NetApp企业数据库解决方案"^]

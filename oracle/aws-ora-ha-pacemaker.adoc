@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 许多努力在公共云中自行管理和运行 Oracle 的客户需要克服一些挑战。其中一个挑战是实现 Oracle 数据库的高可用性。传统上，Oracle 客户依靠称为“真正应用集群”或 RAC 的 Oracle 数据库功能在多个集群节点上实现主动-主动事务支持。一个节点发生故障不会阻碍应用程序的处理。不幸的是，Oracle RAC 实现在许多流行的公共云（如 AWS EC2）中并不容易获得或支持。通过利用 RHEL 和Amazon FSx ONTAP中内置的 Pacemaker 集群 (PCS)，客户可以在无需 Oracle RAC 许可证成本的情况下实现可行的替代方案，以便在计算和存储上实现主动-被动集群，从而支持 AWS 云中的关键任务 Oracle 数据库工作负载。
@@ -34,6 +35,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -46,18 +48,21 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
 
 
 
+[[architecture]]
 === 架构
 
 image:aws-ora-fsx-ec2-pcs-architecture.png["此图提供了带有 Pacemaker Clustering 和 FSx ONTAP 的AWS EC2 中的 Oracle HA 的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -98,6 +103,7 @@ image:aws-ora-fsx-ec2-pcs-architecture.png["此图提供了带有 Pacemaker Clus
 |===
 
 
+[[oracle-database-activepassive-configuration-in-the-aws-ec2fsx-lab-environment]]
 === AWS EC2/FSx 实验室环境中的 Oracle 数据库主动/被动配置
 
 [cols="33%, 33%, 33%"]
@@ -117,6 +123,7 @@ image:aws-ora-fsx-ec2-pcs-architecture.png["此图提供了带有 Pacemaker Clus
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * * Amazon FSx ONTAP HA。*默认情况下， Amazon FSx ONTAP在单个或多个可用区域的 HA 存储控制器对中配置。它以主动/被动方式为关键任务数据库工作负载提供存储冗余。存储故障转移对于最终用户来说是透明的。发生存储故障转移时无需用户干预。
@@ -131,12 +138,14 @@ image:aws-ora-fsx-ec2-pcs-architecture.png["此图提供了带有 Pacemaker Clus
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了在 AWS EC2 中使用 Pacemaker 集群和Amazon FSx ONTAP部署和配置 Oracle 数据库 HA 以进行数据库存储保护的分步过程。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -155,6 +164,7 @@ image:aws-ora-fsx-ec2-pcs-architecture.png["此图提供了带有 Pacemaker Clus
 ====
 
 
+[[provision-ec2-instances-and-amazon-fsx-ontap-storage-cluster]]
 === 配置 EC2 实例和Amazon FSx ONTAP存储集群
 
 [%collapsible%open]
@@ -251,6 +261,7 @@ terraform apply main.plan
 ====
 
 
+[[pacemaker-cluster-setup]]
 === Pacemaker 集群设置
 
 [%collapsible%open]
@@ -484,6 +495,7 @@ Daemon Status:
 ====
 
 
+[[pacemaker-cluster-fencing-configuration]]
 === Pacemaker 集群防护配置
 
 [%collapsible%open]
@@ -597,6 +609,7 @@ NOTE: 执行 `pcs stonith refresh`命令刷新已停止的 stonith 防护代理�
 ====
 
 
+[[deploy-oracle-database-in-pcs-cluster]]
 === 在 PCS 集群中部署 Oracle 数据库
 
 [%collapsible%open]
@@ -1024,6 +1037,7 @@ The command completed successfully
 ====
 
 
+[[configure-oracle-resources-for-pcs-management]]
 === 配置 Oracle 资源以进行 PCS 管理
 
 [%collapsible%open]
@@ -1380,6 +1394,7 @@ Daemon Status:
 ====
 
 
+[[post-deployment-ha-validation]]
 === 部署后 HA 验证
 
 [%collapsible%open]
@@ -1814,6 +1829,7 @@ SQL>
 ====
 
 
+[[oracle-backup-restore-and-clone-with-snapcenter]]
 === 使用SnapCenter进行 Oracle 备份、恢复和克隆
 
 [%collapsible%open]
@@ -1823,6 +1839,7 @@ NetApp建议使用SnapCenter UI 工具来管理部署在 AWS EC2 和Amazon FSx O
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

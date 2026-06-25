@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 NetApp SnapCenter software是一个易于使用的企业平台，可以安全地协调和管理跨应用程序、数据库和文件系统的数据保护。它通过将这些任务转移给应用程序所有者来简化备份、恢复和克隆生命周期管理，同时又不牺牲监督和管理存储系统活动的能力。通过利用基于存储的数据管理，它可以提高性能和可用性，并减少测试和开发时间。
@@ -34,6 +35,7 @@ NetApp SnapCenter software是一个易于使用的企业平台，可以安全地
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -46,18 +48,21 @@ NetApp SnapCenter software是一个易于使用的企业平台，可以安全地
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
 
 
 
+[[architecture]]
 === 架构
 
 image:snapctr-psql-brc-architecture.png["此图提供了使用SnapCenter进行 PostgreSQL 备份、恢复和克隆的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -98,6 +103,7 @@ image:snapctr-psql-brc-architecture.png["此图提供了使用SnapCenter进行 P
 |===
 
 
+[[postgresql-database-configuration-in-the-lab-environment]]
 === 实验室环境中的 PostgreSQL 数据库配置
 
 [cols="33%, 33%, 33%"]
@@ -117,6 +123,7 @@ image:snapctr-psql-brc-architecture.png["此图提供了使用SnapCenter进行 P
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * * SnapCenter部署。* SnapCenter可以在 Windows 域或工作组环境中部署。对于基于域的部署，域用户帐户应该是域管理员帐户，或者域用户属于SnapCenter托管服务器上的本地管理员组。
@@ -128,12 +135,14 @@ image:snapctr-psql-brc-architecture.png["此图提供了使用SnapCenter进行 P
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了在公共云或本地的NetApp ONTAP存储上部署、配置SnapCenter以及 PostgreSQL 数据库备份、恢复和克隆的分步过程。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -145,6 +154,7 @@ image:snapctr-psql-brc-architecture.png["此图提供了使用SnapCenter进行 P
 ====
 
 
+[[snapcenter-installation-and-setup]]
 === SnapCenter安装和设置
 
 [%collapsible%open]
@@ -205,6 +215,7 @@ image:snapctr-psql-bkup-001.png["此图像提供SnapCenter服务器的设置策�
 ====
 
 
+[[database-backup]]
 === 数据库备份
 
 [%collapsible%open]
@@ -296,6 +307,7 @@ image:snapctr-psql-bkup-019.png["此映像为SnapCenter服务器提供数据库�
 ====
 
 
+[[database-recovery]]
 === 数据库恢复
 
 [%collapsible%open]
@@ -404,6 +416,7 @@ postgres=# select now();
 ====
 
 
+[[database-clone]]
 === 数据库克隆
 
 [%collapsible%open]
@@ -479,6 +492,7 @@ postgres=# select pg_read_file('/etc/hostname') as hostname;
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

@@ -18,6 +18,7 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle 数据保护的自动
 
 
 
+[[awxtower]]
 == AWX/塔
 
 对于 AWX/Tower 环境，将指导您创建ONTAP集群管理和 Oracle 服务器（IP 和主机名）的清单、创建凭据、配置从NetApp Automation Github 中提取 Ansible 代码的项目以及启动自动化的作业模板。
@@ -31,6 +32,7 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle 数据保护的自动
 
 
 
+[[requirements]]
 == 要求
 
 [role="tabbed-block"]
@@ -133,6 +135,7 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle 数据保护的自动
 ====
 
 
+[[automation-details]]
 == 自动化详细信息
 
 [role="tabbed-block"]
@@ -266,12 +269,14 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle 数据保护的自动
 ====
 
 
+[[default-parameters]]
 == 默认参数
 
 为了简化自动化，我们预设了许多必需的 Oracle 参数的默认值。对于大多数部署来说，通常不需要更改默认参数。更高级的用户可以谨慎地更改默认参数。默认参数位于 defaults 目录下的每个角色文件夹中。
 
 
 
+[[license]]
 == 许可证
 
 您应该阅读 Github 存储库中所述的许可证信息。通过访问、下载、安装或使用此存储库中的内容，您同意所列出的许可条款link:https://github.com/NetApp-Automation/na_oracle19c_deploy/blob/master/LICENSE.TXT["此处"^]。

@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 NetApp ASA系统为您的 SAN 基础架构提供现代解决方案。它们可以大规模简化并使您能够加速业务关键型应用程序（如数据库），确保您的数据始终可用（99.9999％的正常运行时间），并降低 TCO 和碳足迹。  NetApp ASA系统包括专为性能要求最高的应用程序设计的 A 系列型号和针对经济高效、大容量部署进行优化的 C 系列型号。  ASA A 系列和 C 系列系统共同提供卓越的性能，以改善客户体验并缩短获得结果的时间，保持关键业务数据的可用性、受保护性和安全性，并为任何工作负载提供更有效的容量，并以业界最有效的保证为后盾。
@@ -35,6 +36,7 @@ NetApp ASA系统为您的 SAN 基础架构提供现代解决方案。它们可�
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -47,18 +49,21 @@ NetApp ASA系统为您的 SAN 基础架构提供现代解决方案。它们可�
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
 
 
 
+[[architecture]]
 === 架构
 
 image:automation-ora-asa-iscsi-architecture.png["此图提供了具有 iSCSI 和 ASM 的NetApp ASA系统中的 Oracle 部署配置的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -102,6 +107,7 @@ image:automation-ora-asa-iscsi-architecture.png["此图提供了具有 iSCSI 和
 |===
 
 
+[[oracle-database-configuration-in-the-lab-environment]]
 === 实验室环境中的 Oracle 数据库配置
 
 [cols="33%, 33%, 33%"]
@@ -121,6 +127,7 @@ image:automation-ora-asa-iscsi-architecture.png["此图提供了具有 iSCSI 和
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * Oracle 数据库存储布局。在此自动化 Oracle 部署中，我们默认配置四个数据库卷来托管 Oracle 二进制文件、数据和日志。然后，我们从数据和日志 LUN 创建两个 ASM 磁盘组。在 +DATA asm 磁盘组中，我们在每个ASA A400集群节点上的卷中配置两个数据 lun。在 +LOGS asm 磁盘组中，我们在单个ASA A400节点上的日志卷中创建两个 lun。  ONTAP卷内布局的多个 LUN 通常可提供更好的性能。
@@ -132,12 +139,14 @@ image:automation-ora-asa-iscsi-architecture.png["此图提供了具有 iSCSI 和
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了在NetApp ASA A400中自动部署和保护 Oracle 19c 的分步过程，其中通过 iSCSI 将数据库 lun 直接安装到单节点重新启动配置中的 DB VM，并使用 Oracle ASM 作为数据库卷管理器。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -176,6 +185,7 @@ video::79095731-6b02-41d5-9fa1-b0c00100d055[panopto,width=360]
 ====
 
 
+[[automation-parameter-files]]
 === 自动化参数文件
 
 [%collapsible%open]
@@ -192,6 +202,7 @@ Ansible playbook 使用预定义参数执行数据库安装和配置任务。对
 ====
 
 
+[[parameter-files-configuration]]
 === 参数文件配置
 
 [%collapsible%open]
@@ -287,6 +298,7 @@ memory_limit: 8192
 ====
 
 
+[[playbook-execution]]
 === 剧本执行
 
 [%collapsible%open]
@@ -362,6 +374,7 @@ ansible-playbook -i hosts 5-destroy.yml -u admin -e @vars/vars.yml
 ====
 
 
+[[post-execution-validation]]
 === 执行后验证
 
 [%collapsible%open]
@@ -496,6 +509,7 @@ image:automation-ora-asa-em-003.png["此图像提供了 Oracle Enterprise Manage
 ====
 
 
+[[oracle-backup-restore-and-clone-with-snapcenter]]
 === 使用SnapCenter进行 Oracle 备份、恢复和克隆
 
 [%collapsible%open]
@@ -505,6 +519,7 @@ image:automation-ora-asa-em-003.png["此图像提供了 Oracle Enterprise Manage
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

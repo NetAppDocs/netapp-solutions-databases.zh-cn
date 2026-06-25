@@ -17,6 +17,8 @@ summary: 通过创建备用重做日志文件、启用闪回数据库、激活�
 
 
 
+[[step-1-create-standby-redo-log-files]]
+[[standby-redo-log-files]]
 == 步骤 1：创建备用重做日志文件
 
 在两个数据库主机上创建备用重做日志文件，以支持 Fast-Start Failover。大小必须大于或等于最大的主在线重做日志，且计数应等于（每个线程的在线组数）+ 1。完成 GCNV 播种后，在备用数据库上删除并重新创建备用重做日志，以修复复制的路径。
@@ -46,6 +48,8 @@ ALTER DATABASE RECOVER MANAGED STANDBY DATABASE USING CURRENT LOGFILE DISCONNECT
 
 
 
+[[step-2-enable-flashback-and-start-recovery]]
+[[enable-flashback-on-standby]]
 == 步骤 2：启用闪回并开始恢复
 
 在备用数据库上启用闪回数据库，以支持故障转移后的自动恢复，然后使用实时应用启动托管恢复。必须在启动托管恢复之前启用闪回，因为在 MRP 处于活动状态时无法启用闪回。
@@ -85,6 +89,8 @@ SQL'
 
 
 
+[[step-3-enable-redo-shipping]]
+[[enable-redo-shipping-on-primary]]
 == 步骤 3：启用 redo shipping
 
 通过激活  `LOG_ARCHIVE_DEST_STATE_2` 启用从主库到备库的 redo 传输，该参数在备库初始化步骤的 xref:gcnv-oracle-standby-database.adoc#standby-init-ora-and-nomount[第 2 步] 中被刻意设置为  `DEFER`，以抑制备库创建过程中的  `ORA-12154` 错误。
@@ -121,6 +127,8 @@ SQL'
 
 
 
+[[step-4-verify-data-guard-state]]
+[[verify-target-dg-state]]
 == 步骤 4：验证 Data Guard 状态
 
 验证主数据库是否处于 READ WRITE 模式，以及备用数据库是否已通过应用重做日志的托管恢复进行挂载。
@@ -175,6 +183,7 @@ SQL'
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要激活自动角色管理和故障转移保护，请继续 xref:gcnv-oracle-data-guard.adoc[配置 Oracle Data Guard Broker、快速启动故障转移和 Observer]。

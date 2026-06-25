@@ -18,10 +18,12 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle19c 的自动化方法
 
 
 
+[[awxtower-deployment-oracle-19c-database]]
 == AWX/Tower 部署 Oracle 19c 数据库
 
 
 
+[[1-create-the-inventory-group-hosts-and-credentials-for-your-environment]]
 === 1.为您的环境创建清单、组、主机和凭证
 
 本节介绍 AWX/Ansible Tower 中的库存、组、主机和访问凭据的设置，为使用NetApp自动化解决方案准备环境。
@@ -91,6 +93,7 @@ extra_vars:
 
 
 
+[[2-create-a-project]]
 === 2.创建项目
 
 . 转到资源 → 项目，然后单击添加。
@@ -106,6 +109,7 @@ extra_vars:
 
 
 
+[[3-configure-oracle-hostvars]]
 === 3.配置 Oracle host_vars
 
 本节中定义的变量适用于每个单独的 Oracle 服务器和数据库。
@@ -118,6 +122,7 @@ NOTE: 必须更改蓝色项目以匹配您的环境。
 
 
 
+[[host-vars-config]]
 === 主机 VARS 配置
 
 [source, shell]
@@ -164,6 +169,7 @@ host_datastores_nfs:
 
 
 
+[[4-configure-global-variables]]
 === 4.配置全局变量
 
 本节中定义的变量适用于所有 Oracle 主机、数据库和ONTAP集群。
@@ -274,6 +280,7 @@ initial_pwd_all: "netapp123"
 
 
 
+[[5-configure-and-launch-the-job-template]]
 === 5.配置并启动作业模板。
 
 . 创建作业模板。
@@ -321,6 +328,7 @@ NOTE: requirements_config 确保您拥有正确的库来运行其他角色。
 
 
 
+[[6-deploy-additional-database-on-same-oracle-host]]
 === 6.在同一 Oracle 主机上部署附加数据库
 
 剧本的 Oracle 部分每次执行都会在 Oracle 服务器上创建一个 Oracle 容器数据库。要在同一服务器上创建其他容器数据库，请完成以下步骤。
@@ -424,6 +432,7 @@ CDB2_PDB1
 
 
 
+[[where-to-go-for-help]]
 === 去哪里寻求帮助？
 
 如果您需要工具包方面的帮助，请加入link:https://netapppub.slack.com/archives/C021R4WC0LC["NetApp解决方案自动化社区支持 Slack 频道"]并寻找解决方案自动化渠道来发布您的问题或询问。

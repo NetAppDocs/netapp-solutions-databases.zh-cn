@@ -15,6 +15,8 @@ summary: 在每个数据库主机的 Google Cloud NetApp Volumes iSCSI 存储上
 
 
 
+[[step-1-install-grid-infrastructure-on-each-db-host]]
+[[install-grid-infrastructure]]
 == 步骤 1：在每个数据库主机上安装 Grid Infrastructure
 
 在每个数据库主机上安装 Oracle Grid Infrastructure GoldImage，以启用 Oracle Restart 和 ASM。两台主机都需要各自的 Grid home、ASM 实例和磁盘组；Data Guard 通过 Oracle Net 复制数据，而不是通过共享存储。在 `oracdb1`上完成所有步骤，然后再在 `oracdb2`上重复操作。
@@ -136,6 +138,8 @@ sudo /u01/app/26ai/grid/bin/crsctl stat res -t
 
 
 
+[[step-2-install-oracle-database-on-each-db-host]]
+[[install-oracle-db-home]]
 == 步骤 2：在每个数据库主机上安装 Oracle 数据库
 
 使用静默纯软件安装方式在每个数据库主机上安装 Oracle Database 26ai 软件主目录，并应用最新的版本更新。在 `oracdb1`上完成所有步骤后，再在 `oracdb2`上重复执行。
@@ -204,6 +208,7 @@ EOF
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要为 HA 部署创建生产主实例，请转到 xref:gcnv-oracle-primary-database.adoc[创建 Oracle 主数据库] on `oracdb1`。

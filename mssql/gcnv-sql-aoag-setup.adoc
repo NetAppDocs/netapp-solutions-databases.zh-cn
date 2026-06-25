@@ -15,6 +15,7 @@ summary: 使用带有 iSCSI 协议的 Google Cloud NetApp Volumes 为块存储�
 
 
 
+[[prerequisites]]
 == 前提条件
 
 在继续之前，请完成 Google Cloud 文档中的配置先决条件步骤：
@@ -27,6 +28,7 @@ summary: 使用带有 iSCSI 协议的 Google Cloud NetApp Volumes 为块存储�
 
 
 
+[[before-you-begin]]
 == 开始之前
 
 请确保您已完成以下要求：
@@ -43,6 +45,7 @@ NOTE: 新的 Google Cloud 用户可能有资格获得link:https://cloud.google.c
 
 
 
+[[objectives]]
 == 目标
 
 配置 SQL Server Always On 可用性组包含以下高级任务：
@@ -57,6 +60,7 @@ NOTE: 新的 Google Cloud 用户可能有资格获得link:https://cloud.google.c
 
 
 
+[[cost-considerations]]
 == 成本注意事项
 
 本教程使用 Google Cloud 的可计费组件，包括 link:https://console.cloud.google.com/compute/overview?["Compute Engine 实例"^] 和 link:https://console.cloud.google.com/netapp/volumes?["Google Cloud NetApp Volumes"^] 存储。
@@ -65,6 +69,7 @@ NOTE: 新的 Google Cloud 用户可能有资格获得link:https://cloud.google.c
 
 
 
+[[configure-domain-accounts]]
 == 配置域帐户
 
 在 Active Directory 中配置两个帐户：一个安装帐户（您的管理员帐户）和一个用于两个 SQL Server VM 的服务帐户。
@@ -86,6 +91,7 @@ NOTE: 此示例使用 `cvsdemo`作为域名。在本过程中将 `cvsdemo`替换
 |===
 
 
+[[create-compute-engine-vms-for-sql-server]]
 == 为 SQL Server 创建 Compute Engine VM
 
 使用在 Windows Server 2025 上预安装的 SQL Server 2022 Enterprise 创建两个 Google Compute Engine VM 实例，以托管可用性组副本。
@@ -125,6 +131,7 @@ NOTE: 此示例使用 `cvsdemo`作为域名。在本过程中将 `cvsdemo`替换
 
 
 
+[[join-servers-to-the-domain]]
 === 将服务器加入到域
 
 创建虚拟机后，请将其加入 Active Directory 域，并安装故障转移群集和 iSCSI 连接所需的 Windows 功能。
@@ -147,6 +154,7 @@ NOTE: 您的 SQL 实例将使用 sqlsvc 帐户运行，这是群集和故障转�
 
 
 
+[[install-required-windows-features]]
 === 安装所需的 Windows 功能
 
 使用服务器管理器或 PowerShell 在两个 SQL Server 虚拟机上安装故障转移群集和 MPIO。
@@ -178,6 +186,7 @@ Install-WindowsFeature RSAT-AD-PowerShell
 ----
 
 
+[[obtain-iscsi-initiator-names]]
 === 获取 iSCSI 启动程序名称
 
 使用 iSCSI Initiator GUI 或 PowerShell 获取要包含在主机组中的每个 SQL Server VM 的 iSCSI 限定名 (IQN)。
@@ -200,12 +209,14 @@ Get-InitiatorPort | Select-Object NodeAddress
 ----
 
 
+[[create-netapp-block-storage-volumes]]
 == 创建 NetApp 块存储卷
 
 使用 Google Cloud NetApp Volumes 创建 iSCSI 块存储卷，为 SQL Server 数据库提供高性能的共享存储。此过程包括为数据、日志、临时和备份创建主机组、存储池和单个卷。
 
 
 
+[[create-the-host-group]]
 === 创建主机组
 
 .步骤
@@ -242,6 +253,7 @@ image::gcnv-sql-storage-pool.png[存储池配置]
 
 
 
+[[create-storage-pool]]
 === 创建存储池
 
 .步骤
@@ -279,6 +291,7 @@ gcloud netapp storage-pools create POOL_NAME \
 
 
 
+[[create-volumes]]
 === 创建卷
 
 . 为数据、日志、临时和备份创建卷。为每种卷类型运行以下命令：
@@ -317,6 +330,7 @@ NOTE: 对每个卷类型重复此步骤：数据、日志、临时和备份。
 
 
 
+[[mount-iscsi-volumes]]
 === 挂载 iSCSI 卷
 
 在每个 SQL 实例上装载非共享 iSCSI 卷：
@@ -371,6 +385,7 @@ $paths | % { New-Item -ItemType Directory -Path $_ -Force }
 
 
 
+[[configure-sql-server]]
 == 配置 SQL Server
 
 在两个节点上配置 SQL Server 以使用域服务帐户，更新默认路径以使用 NetApp 卷，并将系统数据库移动到新的存储位置。
@@ -545,12 +560,14 @@ image::gcnv-sql-aoag-003.png[SQL Server Configuration Manager - 启动参数]
 
 
 
+[[set-up-failover-cluster]]
 == 设置故障转移群集
 
 设置 Windows Server 故障转移群集以为 SQL Server 提供高可用性。有关更多详细信息，请参阅 link:https://learn.microsoft.com/en-us/windows-server/failover-clustering/failover-clustering-overview["Windows Server 故障转移群集文档"^]。
 
 
 
+[[configure-firewall-rules]]
 === 配置防火墙规则
 
 在两个 SQL 节点上打开所需的网络端口，以启用群集通信、SQL Server 连接和可用性组复制。
@@ -588,6 +605,7 @@ Get-NetAdapterBinding -ComponentID ms_tcpip6
 
 
 
+[[create-the-failover-cluster]]
 === 创建故障转移集群
 
 使用两个 SQL Server 节点创建 Windows Server 故障转移群集，以启用高可用性和自动故障转移功能。
@@ -609,12 +627,14 @@ image::gcnv-sql-failover-confirm.png[故障转移集群创建]
 
 
 
+[[configure-cluster-quorum-with-file-share-witness]]
 == 使用文件共享见证配置群集仲裁
 
 配置文件共享见证以在双节点集群配置中维护仲裁。见证者提供额外的投票，以防止大脑分裂的情况并确保集群的可用性。
 
 
 
+[[create-file-share]]
 === 创建文件共享
 
 在位于具有网络连接且位于同一 Active Directory 域内的其他区域或地区的虚拟机上创建文件共享。
@@ -641,6 +661,7 @@ image::gcnv-sql-cluster-new-share.png[为集群仲裁见证创建新共享]
 
 
 
+[[configure-quorum-settings]]
 === 配置仲裁设置
 
 将集群配置为使用文件共享见证进行仲裁投票。
@@ -665,6 +686,7 @@ image::gcnv-sql-file-share-confirm.png[使用文件共享见证配置的群集�
 
 
 
+[[enable-always-on-availability-groups]]
 == 启用 Always On 可用性组
 
 在两个 SQL Server VM 上启用 Always On 可用性组：
@@ -684,6 +706,7 @@ image::gcnv-sql-always-on-group.png[启用 Always On 高可用性]
 
 
 
+[[create-a-database-on-the-first-sql-server-instance]]
 == 在第一个 SQL Server 实例上创建数据库
 
 在第一个 SQL Server 实例上创建数据库。
@@ -704,6 +727,7 @@ GO
 
 
 
+[[create-and-configure-availability-group]]
 == 创建和配置可用性组
 
 创建具有同步提交和自动故障转移功能的 Always On 可用性组，以便为 SQL Server 数据库提供高可用性。
@@ -779,6 +803,7 @@ image::gcnv-sql-avail-group-replica.png[已成功创建可用性组]
 
 
 
+[[create-dnn-listener-resource]]
 == 创建 DNN 侦听器资源
 
 创建分布式网络名称 (DNN) 侦听器以将流量路由到相应的群集资源，而无需负载均衡器。
@@ -807,6 +832,7 @@ Set-ClusterResourceDependency -Resource $AagResource -Dependency "[$Dns]"
 ----
 
 
+[[configure-possible-owners]]
 === 配置可能的所有者
 
 默认情况下，群集将 DNN DNS 名称绑定到所有节点。排除未参与可用性组的节点：
@@ -826,6 +852,7 @@ image::gcnv-sql-configure-dns.png[配置 DNN 可能的所有者]
 
 
 
+[[update-application-connection-strings]]
 == 更新应用程序连接字符串
 
 更新连接字符串以使用 DNN 侦听器名称并包含 `MultiSubnetFailover=True`参数：
@@ -840,6 +867,7 @@ NOTE: 如果您的客户端不支持 MultiSubnetFailover 参数，则表示它�
 
 
 
+[[test-failover]]
 == 测试故障转移
 
 验证可用性组配置和测试故障转移，以确保节点之间的自动故障转移正常工作。
@@ -890,6 +918,7 @@ image::gcnv-sql-success-failover.png[显示成功故障转移的 Always On 高�
 
 
 
+[[clean-up-resources]]
 == 清理资源
 
 完成教程后，请删除您创建的资源，以避免产生额外费用：
@@ -904,6 +933,7 @@ image::gcnv-sql-success-failover.png[显示成功故障转移的 Always On 高�
 
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 有关带 NetApp 存储的 Google Cloud 上的 SQL Server 的详细信息，请查看以下文档：

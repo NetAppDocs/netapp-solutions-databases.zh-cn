@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本，可通过NetApp BlueXP云管理控制台使用。它是NetApp云备份、数据保护产品不可或缺的一部分，适用于在Azure NetApp Files上运行的 Oracle 和 HANA 等数据库。这项基于 SaaS 的服务简化了传统的SnapCenter独立服务器部署，该部署通常需要在 Windows 域环境中运行的 Windows 服务器。
@@ -35,6 +36,7 @@ SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本�
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下受众：
@@ -47,12 +49,14 @@ SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本�
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。有关更多信息，请参阅<<部署考虑的关键因素>> 。
 
 
 
+[[architecture]]
 === 架构
 
 image:snapctr-svcs-azure-architect.png["此图提供了BlueXP控制台内应用程序的BlueXP backup and recovery的详细图片，包括其管理的 UI、连接器和资源。"]
@@ -61,6 +65,7 @@ image:snapctr-svcs-azure-architect.png["此图提供了BlueXP控制台内应用�
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 *硬件*
@@ -93,6 +98,7 @@ image:snapctr-svcs-azure-architect.png["此图提供了BlueXP控制台内应用�
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * *连接器将部署在与数据库和Azure NetApp Files相同的虚拟网络/子网中。*如果可能，连接器应部署在相同的 Azure 虚拟网络和资源组中，以便能够连接到Azure NetApp Files存储和 Azure 计算实例。
@@ -104,6 +110,7 @@ image:snapctr-svcs-azure-architect.png["此图提供了BlueXP控制台内应用�
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 NetApp拥有大量内容更丰富的文档，可以帮助您保护云原生应用程序数据。本文档的目标是提供分步过程，涵盖使用BlueXP控制台部署SnapCenter服务，以保护部署在Azure NetApp Files存储和 Azure 计算实例上的 Oracle 数据库。
@@ -119,6 +126,7 @@ video::48adf2d8-3f5e-4ab3-b25c-b04a014635ac[panopto]
 
 
 
+[[prerequisites-for-snapcenter-service-deployment]]
 === SnapCenter服务部署的先决条件
 
 [%collapsible%open]
@@ -134,6 +142,7 @@ video::48adf2d8-3f5e-4ab3-b25c-b04a014635ac[panopto]
 ====
 
 
+[[onboarding-to-bluexp-preparation]]
 === 加入BlueXP准备
 
 [%collapsible%open]
@@ -147,6 +156,7 @@ video::48adf2d8-3f5e-4ab3-b25c-b04a014635ac[panopto]
 ====
 
 
+[[deploy-a-connector-for-snapcenter-services]]
 === 为SnapCenter服务部署连接器
 
 [%collapsible%open]
@@ -196,6 +206,7 @@ image:snapctr-svcs-connector-011-azure.png["屏幕截图显示了 GUI 中的此�
 ====
 
 
+[[define-a-credential-in-bluexp-for-azure-resources-access]]
 === 在BlueXP中定义用于访问 Azure 资源的凭据
 
 [%collapsible%open]
@@ -219,6 +230,7 @@ image:snapctr-svcs-credential-003-azure.png["屏幕截图显示了 GUI 中的此
 ====
 
 
+[[snapcenter-services-setup]]
 === SnapCenter服务设置
 
 [%collapsible%open]
@@ -280,6 +292,7 @@ image:snapctr-svcs-setup-019-azure.png["屏幕截图显示了 GUI 中的此步�
 ====
 
 
+[[oracle-database-backup]]
 === Oracle数据库备份
 
 [%collapsible%open]
@@ -337,6 +350,7 @@ image:snapctr-svcs-bkup-006-azure.png["屏幕截图显示了 GUI 中的此步骤
 ====
 
 
+[[oracle-database-restore-and-recovery]]
 === Oracle 数据库还原和恢复
 
 [%collapsible%open]
@@ -370,6 +384,7 @@ image:snapctr-svcs-restore-006-azure.png["屏幕截图显示了 GUI 中的此步
 ====
 
 
+[[oracle-database-clone]]
 === Oracle 数据库克隆
 
 [%collapsible%open]
@@ -418,6 +433,7 @@ image:snapctr-svcs-clone-007-azure.png["该图显示输入/输出对话框或表
 ====
 
 
+[[additional-information]]
 == 追加信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

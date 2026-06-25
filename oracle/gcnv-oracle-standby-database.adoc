@@ -15,6 +15,8 @@ summary: 使用 Google Cloud NetApp Volumes 存储层复制、快照或克隆创
 
 
 
+[[step-1-configure-listener-and-data-guard-parameters]]
+[[primary-sys-password-and-dg-params]]
 == 步骤 1：配置侦听器和 Data Guard 参数
 
 在两个数据库主机上配置侦听器以支持 Data Guard 连接，包括代理所需的 `_DGMGRL`服务。设置密码文件并在主数据库上配置归档日志参数。
@@ -61,6 +63,8 @@ $GRID_HOME/bin/lsnrctl status
 
 
 
+[[step-2-prepare-standby-pfile-and-nomount]]
+[[standby-init-ora-and-nomount]]
 == 步骤 2：准备备用 pfile 和 NOMOUNT
 
 通过从主数据库复制密码文件、使用 Data Guard 参数创建最小 init.ora pfile 并以 NOMOUNT 模式启动实例来准备备用数据库实例。
@@ -140,6 +144,8 @@ SQL
 
 
 
+[[step-3-initialize-standby-storage-with-gcnv]]
+[[gcnv-standby-initialization]]
 == 步骤 3：使用 GCNV 初始化备用存储
 
 在 `oracle-pool-b`中植入备用卷，将其连接到 `oracdb2`，挂载 ASM 磁盘组，并在 MOUNT 状态下完成备用实例的配置。
@@ -148,6 +154,7 @@ SQL
 
 
 
+[[choose-the-seeding-path]]
 === 选择种子路径
 
 根据您的环境和恢复要求选择备用播种方法。
@@ -160,6 +167,8 @@ SQL
 
 
 
+[[check-prerequisites]]
+[[gcnv-seed-prereqs]]
 === 检查先决条件
 
 在播种备用卷之前，请确认以下先决条件。
@@ -190,6 +199,8 @@ gcloud netapp storage-pools create oracle-pool-b \
 
 
 
+[[create-and-sync-replications]]
+[[create-volume-replications]]
 === 创建和同步复制
 
 创建从主卷到备用卷的复制关系，然后等待初始同步完成。
@@ -212,6 +223,8 @@ gcloud netapp volumes replications create repl-oracdb2-reco \
 
 
 
+[[cut-over-and-attach-standby-volumes]]
+[[cutover-quiesce-stop-repl-attach]]
 === 切换并连接备用卷
 
 使主卷静默，在最终同步后停止复制，并将目标卷附加到备用主机组。
@@ -252,6 +265,8 @@ ALTER DATABASE END BACKUP;
 ----
 
 
+[[seed-from-snapshot]]
+[[snapshot-seed]]
 === 从 Snapshot 创建种子
 
 当不需要持续复制时，请使用此路径进行一次性实验室数据初始化。
@@ -260,6 +275,8 @@ ALTER DATABASE END BACKUP;
 
 
 
+[[mount-standby-asm-disk-groups]]
+[[standby-iscsi-and-asm-before-rman]]
 === 挂载备用 ASM 磁盘组
 
 在备用主机上，在数据库恢复前发现连接的存储路径并挂载 ASM 磁盘组。
@@ -274,6 +291,8 @@ ALTER DISKGROUP FRA MOUNT FORCE;
 ----
 
 
+[[finalize-the-standby-instance]]
+[[oracle-finalize]]
 === 完成备用实例
 
 还原备用控制文件，恢复到捕获的 SCN，转换为物理备用，并启动托管恢复。
@@ -299,6 +318,8 @@ ALTER DATABASE RECOVER MANAGED STANDBY DATABASE DISCONNECT FROM SESSION;
 
 
 
+[[step-4-register-standby-with-oracle-restart]]
+[[register-standby-with-oracle-restart]]
 == 步骤 4：向 Oracle Restart 注册备用数据库
 
 向 Oracle Restart 注册备用数据库，以便重新启动会自动恢复 ASM 磁盘组、挂载备用数据库并重新启动托管恢复。还将应用程序服务添加到两个数据库资源。
@@ -379,6 +400,7 @@ srvctl status database -db orcls
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 *特定层级：*

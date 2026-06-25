@@ -20,6 +20,7 @@ NetApp解决方案工程团队
 
 
 
+[[purpose]]
 == 目的
 
 该工具包可自动执行在 AWS 云中部署的 Oracle 数据库的高可用性和灾难恢复 (HR/DR) 环境的设置和管理任务，该数据库具有 FSx ONTAP存储和 EC2 计算实例。
@@ -36,6 +37,7 @@ NetApp解决方案工程团队
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -48,6 +50,7 @@ NetApp解决方案工程团队
 
 
 
+[[license]]
 == 许可证
 
 通过访问、下载、安装或使用此 GitHub 存储库中的内容，您同意link:https://github.com/NetApp/na_ora_hadr_failover_resync/blob/master/LICENSE.TXT["许可证文件"^]。
@@ -57,10 +60,12 @@ NOTE: 制作和/或共享此 GitHub 存储库中内容的任何衍生作品都�
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -86,6 +91,7 @@ AWS EC2 Instance
 ====
 
 
+[[download-the-toolkit]]
 === 下载工具包
 
 [%collapsible%open]
@@ -97,6 +103,7 @@ git clone https://github.com/NetApp/na_ora_hadr_failover_resync.git
 ====
 
 
+[[global-variables-configuration]]
 === 全局变量配置
 
 [%collapsible%open]
@@ -127,6 +134,7 @@ Linux and DB specific global variables - keep it as is.
 ====
 
 
+[[host-variables-configuration]]
 === 主机变量配置
 
 [%collapsible%open]
@@ -151,6 +159,7 @@ Linux - define host specific variables at Linux level
 ====
 
 
+[[db-server-host-file-configuration]]
 === 数据库服务器主机文件配置
 
 [%collapsible%open]
@@ -166,6 +175,7 @@ AWS EC2 实例默认使用 IP 地址进行主机命名。如果您在 Ansible �
 ====
 
 
+[[playbook-execution-executed-in-sequence]]
 === Playbook 执行 - 按顺序执行
 
 [%collapsible%open]
@@ -222,6 +232,7 @@ ansible-playbook -i hosts ontap_ora_resync.yml -u ec2-user --private-key db2.pem
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关NetApp解决方案自动化的更多信息，请访问以下网站link:https://docs.netapp.com/us-en/netapp-solutions-dataops/automation/automation-introduction.html["NetApp解决方案自动化^"^]

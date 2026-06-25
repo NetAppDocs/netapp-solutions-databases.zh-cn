@@ -18,6 +18,7 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle19c 的自动化方法
 
 
 
+[[automated-data-protection-for-oracle-databases]]
 == Oracle 数据库的自动数据保护
 
 组织正在实现其环境自动化，以提高效率、加速部署并减少人工工作量。 Ansible 等配置管理工具正被用于简化企业数据库操作。在此解决方案中，我们演示了如何使用 Ansible 通过NetApp ONTAP自动化 Oracle 的数据保护。通过使存储管理员、系统管理员和 DBA 能够一致且快速地设置数据复制到异地数据中心或公共云，您可以获得以下好处：
@@ -32,6 +33,7 @@ NetApp为客户提供经过验证的 Ansible 模块和角色，以加速 Oracle 
 
 
 
+[[on-prem-to-on-prem-replication]]
 === 本地到本地复制
 
 * 在源和目标上创建集群间 LIF
@@ -43,6 +45,7 @@ NetApp为客户提供经过验证的 Ansible 模块和角色，以加速 Oracle 
 
 
 
+[[on-prem-to-cvo-in-aws]]
 === 从本地到 AWS 中的 CVO
 
 * 创建 AWS 连接器

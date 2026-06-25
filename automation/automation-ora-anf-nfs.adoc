@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 在云中运行性能密集型和延迟敏感的 Oracle 工作负载可能具有挑战性。  Azure NetApp Files (ANF) 使企业业务线 (LOB) 和存储专业人员可以轻松迁移和运行要求苛刻的 Oracle 工作负载，而无需更改代码。  Azure NetApp Files被广泛用作各种场景中的底层共享文件存储服务，例如 Oracle 数据库的新部署或从本地到 Azure 的迁移（提升和转移）。
@@ -34,6 +35,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -46,18 +48,21 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在实验室环境中进行的，可能与最终部署环境不匹配。请参阅<<部署考虑的关键因素>>了解更多信息。
 
 
 
+[[architecture]]
 === 架构
 
 image:automation-ora-anf-nfs-architecture.png["此图提供了具有 iSCSI 和 ASM 的 AWS 公共云中的 Oracle 部署配置的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -104,6 +109,7 @@ image:automation-ora-anf-nfs-architecture.png["此图提供了具有 iSCSI 和 A
 |===
 
 
+[[oracle-database-configuration-in-the-lab-environment]]
 === 实验室环境中的 Oracle 数据库配置
 
 [cols="33%, 33%, 33%"]
@@ -123,6 +129,7 @@ image:automation-ora-anf-nfs-architecture.png["此图提供了具有 iSCSI 和 A
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * Oracle 数据库存储布局。在此自动化 Oracle 部署中，我们默认为每个数据库配置三个数据库卷来托管 Oracle 二进制文件、数据和日志。这些卷通过 NFS 安装在 Oracle DB 服务器上，作为 /u01 - 二进制、/u02 - 数据、/u03 - 日志。在 /u02 和 /u03 挂载点上配置双控制文件以实现冗余。
@@ -134,12 +141,14 @@ image:automation-ora-anf-nfs-architecture.png["此图提供了具有 iSCSI 和 A
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了在Azure NetApp Files上自动部署 Oracle 19c 和数据库迁移的分步过程，其中数据库卷通过 NFS 直接装载到 Azure VM。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -198,6 +207,7 @@ video::d1c859b6-e45a-44c7-8361-b10f012fc89b[panopto,width=360]
 ====
 
 
+[[automation-parameter-files]]
 === 自动化参数文件
 
 [%collapsible%open]
@@ -214,6 +224,7 @@ Ansible playbook 使用预定义参数执行数据库安装和配置任务。对
 ====
 
 
+[[parameter-files-configuration]]
 === 参数文件配置
 
 [%collapsible%open]
@@ -292,6 +303,7 @@ nfs_lif: 172.30.136.68
 ====
 
 
+[[playbook-execution]]
 === 剧本执行
 
 [%collapsible%open]
@@ -356,6 +368,7 @@ ansible-playbook -i hosts 5-destroy.yml -u azureuser -e @vars/vars.yml
 ====
 
 
+[[post-execution-validation]]
 === 执行后验证
 
 [%collapsible%open]
@@ -593,6 +606,7 @@ image:automation-ora-anf-nfs-em-001.png["此图像提供 Oracle Enterprise Manag
 ====
 
 
+[[migrate-oracle-database-to-azure]]
 === 将 Oracle 数据库迁移到 AzureMigrate Oracle database to Azure
 
 [%collapsible%open]
@@ -602,6 +616,7 @@ Oracle 数据库从本地迁移到云端是一项繁重的工作。使用正确�
 ====
 
 
+[[oracle-backup-restore-and-clone-with-snapcenter]]
 === 使用SnapCenter进行 Oracle 备份、恢复和克隆
 
 [%collapsible%open]
@@ -611,6 +626,7 @@ NetApp推荐使用SnapCenter UI 工具来管理部署在 Azure 云中的 Oracle 
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

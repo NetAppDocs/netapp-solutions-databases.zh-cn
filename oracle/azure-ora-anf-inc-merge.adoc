@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 使用 Oracle 恢复管理器 (RMAN) 备份工具恢复 Oracle 中的超大型数据库 (VLDB) 可能是一项极具挑战性的任务。发生故障时从备份媒体恢复数据库的过程可能非常耗时，从而延迟数据库恢复并可能严重影响您的服务水平协议 (SLA)。但是，从 10g 版本开始，Oracle 引入了 RMAN 功能，允许用户在位于 DB 服务器主机上的附加磁盘存储上创建 Oracle 数据库数据文件的分阶段映像副本。这些图像副本可以使用 RMAN 每天进行增量更新。如果发生故障，数据库管理员 (DBA) 可以迅速将 Oracle 数据库从故障媒体切换到映像副本，从而无需进行完整的数据库媒体还原。尽管所需的数据库存储量增加了一倍，但其结果是 SLA 得到了极大改善。
@@ -35,6 +36,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -47,18 +49,21 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在 Microsoft ANF 容量池存储和 Azure VM 计算环境中进行的，该环境可能与最终部署环境不匹配。有关更多信息，请参阅<<部署考虑的关键因素>> 。
 
 
 
+[[architecture]]
 === 架构
 
 image:azure-ora-anf-vldb-architecture.png["此图提供了 Azure 公共云中使用 ANF 实现 Oracle VLDB 增量合并的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -90,6 +95,7 @@ image:azure-ora-anf-vldb-architecture.png["此图提供了 Azure 公共云中使
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * *用于 RMAN 增量合并的 Oracle VLDB 存储布局。*在我们的测试和验证中，Oracle 增量备份和合并的 NFS 卷是从单个 ANF 容量池分配的，每个卷有 100 TiB，总容量限制为 1000 TiB。对于超过阈值的部署，可以将多个卷和 ANF 容量池与多个 NFS 挂载点并行连接以提供更高的容量。
@@ -102,6 +108,7 @@ image:azure-ora-anf-vldb-architecture.png["此图提供了 Azure 公共云中使
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 假设您已经在 VNet 内的 Azure 云环境中部署了 Oracle VLDB。如果您需要在 Azure 中部署 Oracle 的帮助，请参阅以下技术报告以获取帮助。
@@ -114,6 +121,7 @@ image:azure-ora-anf-vldb-architecture.png["此图提供了 Azure 公共云中使
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -131,6 +139,7 @@ NOTE: 确保在 Azure VM 根卷中分配了至少 128G，以便有足够的空�
 ====
 
 
+[[provision-and-export-nfs-volume-to-be-mounted-on-primary-oracle-vldb-server]]
 === 提供并导出要安装在主 Oracle VLDB 服务器上的 NFS 卷
 
 [%collapsible%open]
@@ -183,6 +192,7 @@ sudo chown oracle:oinstall /nfsanf
 ====
 
 
+[[setup-oracle-rman-incremental-merge-to-image-copy-on-anf]]
 === 在 ANF 上设置 Oracle RMAN 增量合并到映像副本
 
 [%collapsible%open]
@@ -810,6 +820,7 @@ total 399482176
 ====
 
 
+[[switch-oracle-vldb-to-image-copy-for-quick-recovery]]
 === 将 Oracle VLDB 切换到映像副本以实现快速恢复
 
 [%collapsible%open]
@@ -1092,6 +1103,7 @@ SQL>
 ====
 
 
+[[oracle-vldb-recovery-from-image-copy-to-a-standby-db-server]]
 === Oracle VLDB 从映像复制到备用数据库服务器的恢复
 
 [%collapsible%open]
@@ -1863,6 +1875,7 @@ SQL>
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

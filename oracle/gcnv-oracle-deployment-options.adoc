@@ -15,6 +15,7 @@ Google Cloud NetApp Volumes 跨多个部署层支持 Oracle Database 26ai，从�
 
 
 
+[[deployment-requirements]]
 == 部署要求
 
 在为 Oracle Database 26ai 高可用性配置 Google Cloud NetApp Volumes 之前，请确保已准备好以下项目：
@@ -62,6 +63,8 @@ timedatectl
 
 
 
+[[example-deployment-configuration]]
+[[example-configuration]]
 == 示例部署配置
 
 此解决方案使用以下部署配置：
@@ -83,6 +86,7 @@ timedatectl
 
 
 
+[[deployment-options]]
 == 部署选项
 
 下表比较了 HA 和 DR 部署模式，并重点介绍了自动化在哪些方面提供了最大的运营优势。
@@ -111,6 +115,7 @@ timedatectl
 
 
 
+[[deployment-tasks-by-ha-tier]]
 == 部署任务（按 HA 层）
 
 The xref:gcnv-oracle-deployment.html[部署工作流] 提供所有部署层的编号步骤序列。所有层级完成下面显示的基本部署任务，然后添加层级特定任务以实现生产高可用性：
@@ -144,6 +149,7 @@ The xref:gcnv-oracle-deployment.html[部署工作流] 提供所有部署层的�
 |===
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要在部署前准备环境，请继续 xref:gcnv-oracle-access-and-apis.html[访问和 API，适用于 Google Cloud NetApp Volumes 上的 Oracle Database 26ai]。

@@ -20,6 +20,7 @@ keywords: HA, DR, database, Oracle, RDS, AWS, SnapCenter
 
 
 
+[[ontap-storage-is-available-on-premises]]
 == ONTAP存储可在本地使用
 
 如果内部部署 Oracle 数据库位于ONTAP存储阵列上，则可以使用 AWS FSx ONTAP存储内置的NetApp SnapMirror技术更轻松地设置数据库迁移的复制。可以使用NetApp BlueXP控制台来协调迁移过程。
@@ -39,6 +40,7 @@ keywords: HA, DR, database, Oracle, RDS, AWS, SnapCenter
 video::c0df32f8-d6d3-4b79-b0bd-b01200f3a2e8[panopto]
 
 
+[[ontap-storage-is-not-available-on-premises]]
 == ONTAP存储在本地不可用
 
 如果内部部署 Oracle 数据库托管在ONTAP以外的第三方存储上，则数据库迁移将基于 Oracle 数据库备份副本的还原。您必须在切换之前播放存档日志以使其变为最新。
@@ -58,6 +60,7 @@ AWS S3 可用作数据库移动和迁移的暂存存储区域。请参阅此方�
 
 
 
+[[migrate-on-premises-oracle-databases-to-aws-fsxec2-using-pdb-relocation-with-maximum-availability]]
 == 使用 PDB 重定位将本地 Oracle 数据库迁移到 AWS FSx/EC2，并实现最高可用性
 
 这种迁移方法最适合已在 PDB/CDB 多租户模型中部署的 Oracle 数据库，并且ONTAP存储在本地不可用。  PDB 重定位方法利用 Oracle PDB 热克隆技术在源 CDB 和目标 CDB 之间移动 PDB，同时最大限度地减少服务中断。

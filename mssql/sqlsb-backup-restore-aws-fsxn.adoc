@@ -25,6 +25,7 @@ summary:
 
 
 
+[[snapcenter-configuration]]
 == SnapCenter配置
 
 必须执行以下步骤来配置SnapCenter并保护 Microsoft SQL Server 资源。以下各节详细介绍了以下每个步骤。
@@ -38,6 +39,7 @@ summary:
 
 
 
+[[snapcenter-newly-installed-user-interface]]
 == SnapCenter新安装的用户界面
 
 配置 SQL Server 备份的凭据并使用 sysadmin 权限恢复用户。
@@ -144,6 +146,7 @@ image:sqlsb-aws-015.png["该图显示输入/输出对话框或表示书面内容
 ====
 
 
+[[configure-a-backup-policy]]
 == 配置备份策略
 
 备份策略是一组控制如何管理、安排和保留备份的规则。它有助于根据您公司的 SLA 确定备份类型和频率。
@@ -196,6 +199,7 @@ image:sqlsb-aws-024.png["该图显示输入/输出对话框或表示书面内容
 ====
 
 
+[[configure-and-protect-mssql-server-database]]
 == 配置和保护 MSSQL Server 数据库
 
 . 设置备份策略的开始日期和到期日期。
@@ -223,6 +227,7 @@ image:sqlsb-aws-029.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[snapcenter-backup-operations]]
 == SnapCenter备份操作
 
 要创建按需 SQL Server 备份，请完成以下步骤：
@@ -243,6 +248,7 @@ image:sqlsb-aws-032.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[monitor-backup-job]]
 == 监视备份作业
 
 . 从“*监控*”选项卡中，单击该作业并选择右侧的“*详细信息*”以查看该作业。
@@ -258,6 +264,7 @@ image:sqlsb-aws-034.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[backup-operation-for-multiple-databases]]
 == 多个数据库的备份操作
 
 要为多个 SQL Server 数据库配置备份策略，请通过完成以下步骤创建资源组策略：
@@ -326,6 +333,7 @@ image:sqlsb-aws-047.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[configure-and-protect-multiple-sql-server-databases]]
 == 配置和保护多个 SQL Server 数据库
 
 . 单击 (*+*) 符号以配置开始日期和到期日期。
@@ -355,6 +363,7 @@ image:sqlsb-aws-053.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[trigger-on-demand-backup-for-multiple-sql-server-databases]]
 == 触发多个 SQL Server 数据库的按需备份
 
 . 从“*资源*”选项卡中，选择视图。从下拉菜单中选择“*资源组*”。
@@ -378,6 +387,7 @@ image:sqlsb-aws-057.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[monitor-multiple-database-backup-jobs]]
 == 监控多数据库备份作业
 
 从左侧导航栏中，单击*监控*，选择备份作业，然后单击*详细信息*查看作业进度。
@@ -390,6 +400,7 @@ image:sqlsb-aws-059.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[transaction-log-backup-for-multiple-database-backup]]
 == 多个数据库备份的事务日志备份
 
 SnapCenter支持完整、批量日志和简单恢复模型。简单恢复模式不支持事务日志备份。
@@ -446,6 +457,7 @@ image:sqlsb-aws-069.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[configure-and-protect-multiple-mssql-server-databases]]
 == 配置和保护多个 MSSQL Server 数据库
 
 . 单击新创建的事务日志备份策略。
@@ -477,6 +489,7 @@ image:sqlsb-aws-075.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[triggering-an-on-demand-transaction-log-backup-for-mutiple-sql-server-databases]]
 == 触发多个 SQL Server 数据库的按需事务日志备份
 
 要触发多个 SQL 服务器数据库的事务日志的按需备份，请完成以下步骤：
@@ -498,6 +511,7 @@ image:sqlsb-aws-078.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[monitoring]]
 == 监控
 
 移至“*监控*”选项卡并监控备份作业的进度。
@@ -506,6 +520,7 @@ image:sqlsb-aws-079.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[restore-and-recovery]]
 == 还原和恢复
 
 请参阅在SnapCenter中还原 SQL Server 数据库所必需的以下先决条件。
@@ -519,6 +534,7 @@ image:sqlsb-aws-079.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[restoring-deleted-tables-on-a-sql-server-database-to-a-point-in-time]]
 == 将 SQL Server 数据库上已删除的表恢复到某个时间点
 
 要将 SQL Server 数据库恢复到某个时间点，请完成以下步骤：
@@ -582,6 +598,7 @@ image:sqlsb-aws-090.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[monitoring-the-restore-progress]]
 == 监控恢复进度
 
 . 在“监控”选项卡中，单击还原作业详细信息以查看还原作业的进度。
@@ -600,6 +617,7 @@ image:sqlsb-aws-093.png["该图显示输入/输出对话框或表示书面内容
 
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

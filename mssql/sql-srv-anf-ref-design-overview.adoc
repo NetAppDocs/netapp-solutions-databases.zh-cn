@@ -34,6 +34,7 @@ image:sql-srv-anf-006.png["该图显示输入/输出对话框或表示书面内�
 
 
 
+[[data-layout]]
 == 数据布局
 
 用户数据库文件 (.mdf) 和用户数据库事务日志文件 (.ldf) 以及 tempDB 存储在同一卷上。服务级别为超高。
@@ -54,6 +55,7 @@ image:sql-srv-anf-006.png["该图显示输入/输出对话框或表示书面内�
 
 
 
+[[migration]]
 === 迁移
 
 有多种方法可以将本地 SQL Server 用户数据库迁移到 Azure 虚拟机中的 SQL Server。迁移可以是在线的，也可以是离线的。所选择的选项取决于 SQL Server 版本、业务需求以及组织内定义的 SLA。为了最大限度地减少数据库迁移过程中的停机时间， NetApp建议使用 AlwaysOn 选项或事务复制选项。如果无法使用这些方法，您可以手动迁移数据库。
@@ -86,6 +88,7 @@ NOTE: 恢复 21 个数据库大约需要九个小时。这种方法是针对这�
 
 
 
+[[backup-and-recovery]]
 === 备份和恢复
 
 备份和恢复是任何 SQL Server 部署的重要方面。必须拥有适当的安全网，以便与 AOAG 等高可用性解决方案结合，从各种数据故障和丢失情况中快速恢复。  SQL Server 数据库静默工具、Azure Backup（流式备份）或任何第三方备份工具（例如 Commvault）均可用于执行数据库的应用程序一致性备份，
@@ -103,6 +106,7 @@ Azure NetApp Files Snapshot 技术允许您轻松创建用户数据库的时间�
 
 
 
+[[monitoring]]
 === 监控
 
 Azure NetApp Files与 Azure Monitor 集成以获取时间序列数据，并提供有关分配存储、实际存储使用情况、卷 IOPS、吞吐量、磁盘读取字节数/秒、磁盘写入字节数/秒、磁盘读取数/秒和磁盘写入数/秒以及相关延迟的指标。这些数据可用于识别警报瓶颈并执行健康检查以验证您的 SQL Server 部署是否在最佳配置中运行。
@@ -113,6 +117,7 @@ image:sql-srv-anf-008.png["该图显示输入/输出对话框或表示书面内�
 
 
 
+[[devtest-using-thick-clones]]
 === 使用厚克隆的开发测试
 
 使用Azure NetApp Files，您可以创建数据库的即时副本，以便在应用程序开发周期中测试应使用当前数据库结构和内容实现的功能，在填充数据仓库时使用数据提取和操作工具，甚至恢复被错误删除或更改的数据。此过程不涉及从 Azure Blob 容器复制数据，因此非常高效。卷恢复后，可用于读/写操作，从而大大减少验证和上市时间。这需要与 SCSQLAPI 结合使用以确保应用程序的一致性。这种方法提供了另一种持续成本优化技术，同时Azure NetApp Files利用了“还原到新卷”选项。
@@ -125,6 +130,7 @@ image:sql-srv-anf-008.png["该图显示输入/输出对话框或表示书面内�
 
 
 
+[[hybrid-storage-options]]
 === 混合存储选项
 
 尽管NetApp建议对 SQL Server 可用性组中的所有节点使用相同的存储，但在某些情况下可以使用多个存储选项。对于Azure NetApp Files来说，这种情况是可能的，其中 AOAG 中的一个节点与Azure NetApp Files SMB 文件共享相连，而第二个节点与 Azure Premium 磁盘相连。在这些情况下，请确保Azure NetApp Files SMB 共享保存用户数据库的主副本，并且高级磁盘用作辅助副本。
@@ -137,12 +143,14 @@ image:sql-srv-anf-008.png["该图显示输入/输出对话框或表示书面内�
 
 
 
+[[business-continuity]]
 === 业务连续性
 
 在任何部署中，灾难恢复通常都是事后才考虑的事情。但是，必须在初始设计和部署阶段解决灾难恢复问题，以避免对您的业务产生任何影响。借助Azure NetApp Files，可以使用跨区域复制 (CRR) 功能将块级别的卷数据复制到配对区域，以处理任何意外的区域中断。启用 CRR 的目标卷可用于读取操作，这使其成为灾难恢复模拟的理想候选者。此外，可以为 CRR 目的地分配最低服务级别（例如标准），以降低总体 TCO。如果发生故障转移，复制可能会中断，从而导致相应的卷无法进行读/写。此外，可以使用动态服务级别功能更改卷的服务级别，以显著降低灾难恢复成本。这是Azure NetApp Files的另一个独特功能，具有 Azure 内的块复制功能。
 
 
 
+[[long-term-snapshot-copy-archive]]
 === 长期 Snapshot 副本存档
 
 许多组织必须执行数据库文件中快照数据的长期保留，这是强制性合规要求。虽然此 HLD 中未使用此过程，但可以使用简单的批处理脚本轻松完成此过程 https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10["AzCopy"^]将快照目录复制到 Azure Blob 容器。可以使用计划任务根据特定的计划触发批处理脚本。该过程很简单 - 它包括以下步骤：
@@ -196,6 +204,7 @@ Final Job Status: Completed
 
 
 
+[[cost-optimization]]
 === 成本优化
 
 通过对数据库完全透明的卷重塑和动态服务级别变化， Azure NetApp Files可以在 Azure 中持续优化成本。该功能在本 HLD 中得到广泛使用，以避免过度配置额外的存储空间来应对工作负载高峰。

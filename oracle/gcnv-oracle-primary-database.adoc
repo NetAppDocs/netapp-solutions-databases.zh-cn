@@ -13,6 +13,7 @@ summary: 在静默模式下使用 Oracle Database Configuration Assistant 在 Go
 [role="lead"]
 在静默模式下使用 Oracle Database Configuration Assistant 在 Google Cloud NetApp Volumes iSCSI 存储上创建 Oracle 主数据库。此过程包括在 GCNV 支持的 ASM 磁盘组上运行 `dbca`以创建容器数据库和可插拔数据库，配置归档日志目标，以及在启用 Data Guard 后添加基于角色的应用程序服务以实现透明故障转移。
 
+[[create-primary-database]]
 .步骤
 在 `oracdb1`上使用 `dbca`以静默模式创建 Oracle 容器数据库和可插拔数据库，配置归档日志目标，验证 Oracle Restart 注册，并为透明客户端故障转移添加基于角色的应用程序服务。
 
@@ -92,6 +93,7 @@ srvctl status service -db orcl -service orclapp
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要建立备用保护和故障转移准备，请转到 xref:gcnv-oracle-standby-database.adoc[创建 Oracle 备用数据库] on `oracdb2`。

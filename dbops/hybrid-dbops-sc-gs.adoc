@@ -18,6 +18,7 @@ keywords: introduction, workflow
 
 
 
+[[on-premises]]
 == 本地
 
 * 在SnapCenter中设置数据库管理员用户
@@ -33,6 +34,7 @@ keywords: introduction, workflow
 
 
 
+[[aws-public-cloud]]
 == AWS 公有云
 
 * 飞行前检查

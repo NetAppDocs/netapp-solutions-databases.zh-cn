@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 VMware vSphere 虚拟卷 (vVols) 是一个 SAN/NAS 管理和集成框架，它将虚拟磁盘作为本机存储对象公开，并在虚拟磁盘级别支持基于阵列的操作。换句话说， vVols使 SAN/NAS 设备能够感知虚拟机，并能够以虚拟机为中心的方式在单个虚拟磁盘的粒度上利用基于阵列的数据服务vVols使客户能够利用其当前存储投资的独特功能，并在不中断的情况下过渡到针对跨所有存储类型的虚拟环境优化的更简单、更高效的运营模式。
@@ -34,6 +35,7 @@ VMware vSphere 虚拟卷 (vVols) 是一个 SAN/NAS 管理和集成框架，它�
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -46,18 +48,21 @@ VMware vSphere 虚拟卷 (vVols) 是一个 SAN/NAS 管理和集成框架，它�
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在 VCF 的实验室环境中进行的，其中vVols数据存储在NetApp ONTAP AFF存储上，可能与最终部署环境不匹配。有关更多信息，请参阅<<部署考虑的关键因素>> 。
 
 
 
+[[architecture]]
 === 架构
 
 image:vcf-orarac-vvol-architecture.png["此图提供了具有 iSCSI 和 ASM 的 AWS 公共云中的 Oracle 部署配置的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -107,6 +112,7 @@ image:vcf-orarac-vvol-architecture.png["此图提供了具有 iSCSI 和 ASM 的 
 |===
 
 
+[[oracle-rac-database-configuration-in-vcf]]
 === VCF中的Oracle RAC数据库配置
 
 [cols="33%, 33%, 33%"]
@@ -126,6 +132,7 @@ image:vcf-orarac-vvol-architecture.png["此图提供了具有 iSCSI 和 ASM 的 
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * * vVols到ONTAP集群连接的协议。* NFS 或 iSCSI 都是不错的选择。性能水平相当。在此解决方案演示中，我们使用 iSCSI 作为vVols连接到下划线ONTAP存储集群的存储协议。如果 VCF 基础架构支持， NetApp ONTAP上的vVols数据存储也支持 FC/FCoE、NVMe/FC 协议。
@@ -138,12 +145,14 @@ image:vcf-orarac-vvol-architecture.png["此图提供了具有 iSCSI 和 ASM 的 
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 以下部分提供了在 Oracle RAC 配置中的NetApp ONTAP存储上使用vVols数据存储在 VCF 中部署 Oracle 19c 数据库的分步过程。
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -163,6 +172,7 @@ NOTE: 确保您已在 Oracle VM 根卷中分配至少 50G，以便有足够的�
 ====
 
 
+[[create-storage-capability-profile]]
 === 创建存储功能配置文件
 
 [%collapsible%open]
@@ -202,6 +212,7 @@ image:vcf-ora-vvol-scp-007.png["显示自定义存储功能配置文件配置的
 ====
 
 
+[[create-and-configure-vvols-datastore]]
 === 创建并配置vVols数据存储
 
 [%collapsible%open]
@@ -256,6 +267,7 @@ image:vcf-orarac-vvol-datastore-007.png["显示vVols数据存储配置的屏幕�
 ====
 
 
+[[create-vm-storage-policy-based-on-storage-capability-profile]]
 === 根据存储能力配置文件创建虚拟机存储策略
 
 [%collapsible%open]
@@ -299,6 +311,7 @@ image:vcf-ora-vvol-vm-policy-007.png["显示虚拟机存储策略配置的屏幕
 ====
 
 
+[[allocate-disks-to-rac-vms-from-vvols-datastores-and-configure-db-storage]]
 === 从vVols数据存储向 RAC VM 分配磁盘并配置 DB 存储
 
 [%collapsible%open]
@@ -467,6 +480,7 @@ UUID=aff942c4-b224-4b62-807d-6a5c22f7b623 /boot                   xfs     defaul
 ====
 
 
+[[oracle-rac-deployment-in-vcf]]
 === VCF中的Oracle RAC部署
 
 [%collapsible%open]
@@ -626,6 +640,7 @@ ansible-playbook -i hosts 0-all_playbook.yml -u admin -e @vars/vars.yml
 ====
 
 
+[[oracle-rac-deployment-validation-in-vcf]]
 === VCF 中的 Oracle RAC 部署验证
 
 [%collapsible%open]
@@ -939,6 +954,7 @@ image:vcf-orarac-vvol-em-001.png["显示 Oracle EM Express 配置的屏幕截图
 ====
 
 
+[[oracle-rac-database-backup-and-recovery-in-vcf-with-snapcenter]]
 === 使用SnapCenter在 VCF 中备份和恢复 Oracle RAC 数据库
 
 
@@ -1199,6 +1215,7 @@ Version 19.18.0.0.0
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

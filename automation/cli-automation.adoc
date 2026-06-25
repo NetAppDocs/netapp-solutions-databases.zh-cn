@@ -18,12 +18,14 @@ summary: 本页介绍在NetApp ONTAP存储上部署 Oracle19c 的自动化方法
 
 
 
+[[cli-deployment-oracle-19c-database]]
 == CLI 部署 Oracle 19c 数据库
 
 本节介绍使用 CLI 准备和部署 Oracle19c 数据库所需的步骤。确保您已查看link:getting-started-requirements.html["入门和要求部分"]并相应地准备您的环境。
 
 
 
+[[download-oracle19c-repo]]
 === 下载 Oracle19c 仓库
 
 . 从您的 ansible 控制器运行以下命令：
@@ -37,6 +39,7 @@ git clone https://github.com/NetApp-Automation/na_oracle19c_deploy.git
 
 
 
+[[edit-the-hosts-file]]
 === 编辑 hosts 文件
 
 部署前请完成以下操作：
@@ -72,6 +75,7 @@ NOTE: 无论您部署多少个 Oracle 主机和数据库，剧本的执行方式
 
 
 
+[[edit-the-hostname-yml-file-under-hostvars]]
 === 编辑 host_vars 下的 host_name.yml 文件
 
 每个 Oracle 主机都有一个由其主机名标识的主机变量文件，其中包含特定于主机的变量。您可以为您的主机指定任何名称。编辑并复制 `host_vars`从主机 VARS 配置部分并将其粘贴到您想要的 `host_name.yml`文件。
@@ -81,6 +85,7 @@ NOTE: 必须更改蓝色项目以匹配您的环境。
 
 
 
+[[host-vars-config]]
 === 主机 VARS 配置
 
 [source, shell]
@@ -119,6 +124,7 @@ host_datastores_nfs:
 ----
 
 
+[[edit-the-vars-yml-file]]
 === 编辑 vars.yml 文件
 
 这 `vars.yml`文件整合了 Oracle 部署的所有环境特定变量（ONTAP、Linux 或 Oracle ）。
@@ -222,6 +228,7 @@ initial_pwd_all: "netapp123"
 ----
 
 
+[[run-the-playbook]]
 === 运行剧本
 
 完成所需的环境前提条件并将变量复制到 `vars.yml`和 `your_host.yml`，您现在就可以部署剧本了。
@@ -251,6 +258,7 @@ ansible-playbook -i hosts all_playbook.yml -u username -k -K -t oracle_config -e
 
 
 
+[[deploy-additional-database-on-same-oracle-host]]
 === 在同一 Oracle 主机上部署附加数据库
 
 剧本的 Oracle 部分每次执行都会在 Oracle 服务器上创建一个 Oracle 容器数据库。要在同一服务器上创建额外的容器数据库，请完成以下步骤：
@@ -269,6 +277,7 @@ ansible-playbook -i hosts all_playbook.yml -u username -k -K -t oracle_config -e
 
 
 
+[[validate-oracle-installation]]
 === 验证 Oracle 安装
 
 . 以oracle用户登录Oracle服务器，执行以下命令：
@@ -360,6 +369,7 @@ CDB2_PDB1
 
 
 
+[[where-to-go-for-help]]
 === 去哪里寻求帮助？
 
 如果您需要工具包方面的帮助，请加入link:https://netapppub.slack.com/archives/C021R4WC0LC["NetApp解决方案自动化社区支持 Slack 频道"]并寻找解决方案自动化渠道来发布您的问题或询问。

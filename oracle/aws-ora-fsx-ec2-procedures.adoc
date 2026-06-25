@@ -18,12 +18,14 @@ keywords: AWS, Oracle, RDS, HA, DR, database
 
 
 
+[[deploy-an-ec2-linux-instance-for-oracle-via-ec2-console]]
 == 通过 EC2 控制台为 Oracle 部署 EC2 Linux 实例
 
 如果您是 AWS 新手，则首先需要设置 AWS 环境。 AWS 网站登录页面上的文档选项卡提供了 EC2 说明链接，介绍如何部署可用于通过 AWS EC2 控制台托管 Oracle 数据库的 Linux EC2 实例。以下部分是这些步骤的摘要。有关详细信息，请参阅链接的 AWS EC2 特定文档。
 
 
 
+[[setting-up-your-aws-ec2-environment]]
 === 设置您的 AWS EC2 环境
 
 您必须创建一个 AWS 账户来配置在 EC2 和 FSx 服务上运行 Oracle 环境所需的资源。以下 AWS 文档提供了必要的详细信息：
@@ -40,6 +42,7 @@ keywords: AWS, Oracle, RDS, HA, DR, database
 
 
 
+[[enabling-multiple-availability-zones-in-aws-account-attributes]]
 === 在 AWS 账户属性中启用多个可用区域
 
 对于架构图中所示的 Oracle 高可用性配置，您必须在一个区域中启用至少四个可用区域。多个可用区也可以位于不同的区域，以满足灾难恢复所需的距离。
@@ -48,6 +51,7 @@ image:aws-ora-fsx-ec2-inst-001.png["该图显示输入/输出对话框或表示�
 
 
 
+[[creating-and-connecting-to-an-ec2-instance-for-hosting-oracle-database]]
 === 创建并连接到用于托管 Oracle 数据库的 EC2 实例
 
 查看教程link:https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EC2_GetStarted.html["开始使用 Amazon EC2 Linux 实例"^]了解分步部署程序和最佳实践。
@@ -107,12 +111,14 @@ ssh -i ora-db1v2.pem ec2-user@54.80.114.77
 
 
 
+[[provision-fsx-ontap-file-systems-for-oracle-database-storage]]
 == 为 Oracle 数据库存储配置 FSx ONTAP文件系统
 
 EC2 实例部署为操作系统分配一个 EBS 根卷。  FSx ONTAP文件系统提供 Oracle 数据库存储卷，包括 Oracle 二进制、数据和日志卷。  FSx 存储 NFS 卷可以从 AWS FSx 控制台或 Oracle 安装中进行配置，并根据用户在自动化参数文件中的配置来分配卷的配置自动化。
 
 
 
+[[creating-fsx-ontap-file-systems]]
 === 创建 FSx ONTAP文件系统
 
 参考此文档 https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/managing-file-systems.html["管理 FSx ONTAP文件系统"^]用于创建 FSx ONTAP文件系统。
@@ -168,6 +174,7 @@ image:aws-ora-fsx-ec2-stor-008.png["该图显示输入/输出对话框或表示�
 
 
 
+[[provisioning-of-database-volumes-for-oracle-database]]
 === 为 Oracle 数据库配置数据库卷
 
 看link:https://docs.aws.amazon.com/fsx/latest/ONTAPGuide/managing-volumes.html["管理 FSx ONTAP卷 - 创建卷"^]了解详情。
@@ -193,18 +200,21 @@ NOTE: FSx 控制台当前不支持创建 iSCSI LUN。对于 Oracle 的 iSCSI LUN
 
 
 
+[[install-and-configure-oracle-on-an-ec2-instance-with-fsx-database-volumes]]
 == 使用 FSx 数据库卷在 EC2 实例上安装和配置 Oracle
 
 NetApp自动化团队提供了自动化工具包，以根据最佳实践在 EC2 实例上运行 Oracle 安装和配置。当前版本的自动化套件支持 NFS 上的 Oracle 19c，默认 RU 补丁为 19.8。如果需要，自动化套件可以轻松适应其他 RU 补丁。
 
 
 
+[[prepare-a-ansible-controller-to-run-automation]]
 === 准备 Ansible 控制器来运行自动化
 
 按照“<<创建并连接到用于托管 Oracle 数据库的 EC2 实例>> “配置一个小型 EC2 Linux 实例来运行 Ansible 控制器。与其使用 RedHat，不如使用具有 2vCPU 和 8G RAM 的 Amazon Linux t2.large 就足够了。
 
 
 
+[[retrieve-netapp-oracle-deployment-automation-toolkit]]
 === 检索NetApp Oracle 部署自动化工具包
 
 以 ec2-user 身份登录到步骤 1 中配置的 EC2 Ansible 控制器实例，并从 ec2-user 主目录执行 `git clone`命令来克隆自动化代码的副本。
@@ -219,6 +229,7 @@ git clone https://github.com/NetApp-Automation/na_rds_fsx_oranfs_config.git
 ----
 
 
+[[execute-automated-oracle-19c-deployment-using-automation-toolkit]]
 === 使用自动化工具包执行自动化 Oracle 19c 部署
 
 请参阅这些详细说明link:../automation/cli-automation.html["CLI 部署 Oracle 19c 数据库"^]使用 CLI 自动化部署 Oracle 19c。由于您使用 SSH 密钥对而不是密码进行主机访问身份验证，因此剧本执行的命令语法有细微的变化。以下列表是高度概括的：
@@ -262,6 +273,7 @@ ansible-playbook -i hosts all_playbook.yml -u ec2-user --private-key accesststke
 
 
 
+[[setting-up-snapmirror-between-primary-and-standby-fsx-ha-cluster]]
 == 在主 FSx HA 集群和备用 FSx HA 集群之间设置SnapMirror
 
 为了实现高可用性和灾难恢复，您可以在主 FSx 存储集群和备用 FSx 存储集群之间设置SnapMirror复制。与其他云存储服务不同，FSx 允许用户以所需的频率和复制吞吐量控制和管理存储复制。它还使用户能够测试 HA/DR，而不会对可用性产生任何影响。
@@ -401,16 +413,19 @@ NOTE: 将 Oracle 二进制文件从主集群复制到备用集群可能会涉及
 
 
 
+[[snapcenter-deployment]]
 == SnapCenter部署
 
 
 
+[[snapcenter-installation]]
 === SnapCenter安装
 
 跟随link:https://docs.netapp.com/ocsc-41/index.jsp?topic=%2Fcom.netapp.doc.ocsc-isg%2FGUID-D3F2FBA8-8EE7-4820-A445-BC1E5C0AF374.html["安装SnapCenter服务器"^]安装SnapCenter服务器。本文档介绍如何安装独立的SnapCenter服务器。 SnapCenter的 SaaS 版本目前处于 Beta 版审核阶段，可能很快就会推出。如果需要，请与您的NetApp代表联系以了解可用性。
 
 
 
+[[configure-snapcenter-plugin-for-ec2-oracle-host]]
 === 为 EC2 Oracle 主机配置SnapCenter插件
 
 . 自动安装SnapCenter后，以安装SnapCenter服务器的 Windows 主机的管理用户身份登录SnapCenter 。
@@ -474,6 +489,7 @@ image:aws-rds-custom-deploy-snp-008.png["该图显示输入/输出对话框或�
 
 
 
+[[configure-backup-policy-for-oracle-database]]
 === 配置 Oracle 数据库的备份策略
 
 参考本节link:../dbops/hybrid-dbops-sc-gs-onprem.html#7-setup-database-backup-policy-in-snapcenter["在SnapCenter中设置数据库备份策略"^]有关配置 Oracle 数据库备份策略的详细信息。
@@ -485,6 +501,7 @@ NOTE: 您可以在备份策略中启用 Oracle 存档日志修剪来控制日志
 
 
 
+[[configure-oracle-database-backup-and-scheduling]]
 === 配置Oracle数据库备份和调度
 
 SnapCenter中的数据库备份由用户配置，可以单独设置，也可以作为资源组中的组进行设置。备份间隔取决于 RTO 和 RPO 目标。  NetApp建议您每隔几个小时运行一次完整的数据库备份，并以更高的频率（例如 10-15 分钟）存档日志备份，以便快速恢复。

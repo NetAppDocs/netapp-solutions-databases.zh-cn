@@ -15,6 +15,7 @@ summary: 在部署Oracle Database 26ai高可用性之前，请查看 Google Clou
 
 
 
+[[access-and-apis]]
 == 访问和 API
 
 在开始主机和存储配置之前，请使用此清单验证权限和平台就绪性。
@@ -53,6 +54,7 @@ timedatectl
 |===
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要配置 Oracle 主机基础架构以实现高可用性，请继续 xref:gcnv-oracle-provision-compute.adoc[为 Oracle Database 26ai 预配 Google Compute Engine 实例]。

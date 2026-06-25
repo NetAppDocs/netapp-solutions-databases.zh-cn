@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 使用 Oracle 恢复管理器 (RMAN) 备份工具恢复 Oracle 中的超大型数据库 (VLDB) 可能是一项极具挑战性的任务。发生故障时从备份媒体恢复数据库的过程可能非常耗时，从而延迟数据库恢复并可能严重影响您的服务水平协议 (SLA)。但是，从 10g 版本开始，Oracle 引入了 RMAN 功能，允许用户在位于 DB 服务器主机上的附加磁盘存储上创建 Oracle 数据库数据文件的分阶段映像副本。这些图像副本可以使用 RMAN 每天进行增量更新。如果发生故障，数据库管理员 (DBA) 可以迅速将 Oracle 数据库从故障媒体切换到映像副本，从而无需进行完整的数据库媒体还原。尽管所需的数据库存储量增加了一倍，但其结果是 SLA 得到了极大改善。
@@ -37,6 +38,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下人群：
@@ -49,18 +51,21 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在可能与最终部署环境不匹配的 AWS FSx ONTAP和 EC2 环境中进行的。有关更多信息，请参阅<<部署考虑的关键因素>> 。
 
 
 
+[[architecture]]
 === 架构
 
 image:aws-ora-fsx-ec2-vldb-architecture.png["此图提供了使用 FSx ONTAP在 AWS 公共云中实施 Oracle VLDB 增量合并的详细图片。"]
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 [cols="33%, 33%, 33%"]
@@ -92,6 +97,7 @@ image:aws-ora-fsx-ec2-vldb-architecture.png["此图提供了使用 FSx ONTAP在 
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * *用于 RMAN 增量合并的 Oracle VLDB 存储布局。*在我们的测试和验证中，用于 Oracle 增量备份和合并的 NFS 卷是从单个 FSx 文件系统分配的，该系统具有 4GBps 吞吐量、160,000 原始 SSD IOPS 和 192TiB 容量限制。对于超过阈值的部署，可以将多个 FSx 文件系统与多个 NFS 挂载点并行连接以提供更高的容量。
@@ -106,6 +112,7 @@ image:aws-ora-fsx-ec2-vldb-architecture.png["此图提供了使用 FSx ONTAP在 
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 假设您已经在 VPC 内的 AWS EC2 环境中部署了 Oracle VLDB。如果您需要在 AWS 上部署 Oracle 的帮助，请参考以下技术报告寻求帮助。
@@ -119,6 +126,7 @@ image:aws-ora-fsx-ec2-vldb-architecture.png["此图提供了使用 FSx ONTAP在 
 
 
 
+[[prerequisites-for-deployment]]
 === 部署先决条件
 
 [%collapsible%open]
@@ -141,6 +149,7 @@ NOTE: 确保您已在 EC2 实例根卷中分配至少 50G，以便有足够的�
 ====
 
 
+[[provision-and-export-nfs-volume-to-be-mounted-to-ec2-db-instance-host]]
 === 预置并导出要挂载到 EC2 DB 实例主机的 NFS 卷
 
 [%collapsible%open]
@@ -200,6 +209,7 @@ sudo chown oracle:oinstall /nfsfsxn
 ====
 
 
+[[setup-oracle-rman-incremental-merge-to-image-copy-on-fsx]]
 === 在 FSx 上设置 Oracle RMAN 增量合并到映像副本
 
 [%collapsible%open]
@@ -637,6 +647,7 @@ total 70585148
 ====
 
 
+[[switch-oracle-db-to-image-copy-for-quick-recovery]]
 === 将 Oracle DB 切换到映像副本以实现快速恢复
 
 [%collapsible%open]
@@ -920,6 +931,7 @@ SQL>
 ====
 
 
+[[oracle-db-recovery-from-image-copy-to-different-ec2-db-instance-host]]
 === Oracle 数据库从映像副本恢复到不同的 EC2 DB 实例主机
 
 [%collapsible%open]
@@ -1661,6 +1673,7 @@ Update the Oracle init file from primary databse init file backup that is restor
 ====
 
 
+[[clone-oracle-standby-image-copy-for-other-use-cases]]
 === 克隆 Oracle 备用映像副本以供其他用例使用
 
 [%collapsible%open]
@@ -2464,6 +2477,7 @@ NOTE: 如果遇到错误 `RMAN-06571: datafile 1 does not have recoverable copy`
 ====
 
 
+[[where-to-find-additional-information]]
 == 在哪里可以找到更多信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

@@ -22,6 +22,7 @@ keywords: database, Oracle, Azure, ANF, Azure NetApp Files, migration
 
 
 
+[[converting-a-single-instance-non-cdb-to-a-pdb-in-a-multitenant-cdb]]
 == 将单实例非 CDB 转换为多租户 CDB 中的 PDB
 
 如果您仍然拥有单实例 Oracle 数据库，则无论您是否希望将其迁移到云中，都必须将其转换为多租户容器数据库，因为 Oracle 将很快停止支持单实例数据库。
@@ -116,6 +117,7 @@ alter session set container=ncdb;
 
 
 
+[[migrate-on-premises-oracle-databases-to-azure-with-pdb-relocation]]
 == 通过 PDB 迁移将本地 Oracle 数据库迁移到 Azure
 
 具有最大可用性选项的 Oracle PDB 重定位采用了 PDB 热克隆技术，该技术允许在 PDB 复制到目标时源 PDB 可用。在切换时，用户连接会自动重定向到目标 PDB。因此，无论 PDB 的大小如何，停机时间都可以最小化。  NetApp提供了基于 Ansible 的工具包，可自动执行迁移过程。
@@ -160,6 +162,7 @@ NOTE: Ansible 控制器可以位于本地或 Azure 云中。控制器需要连�
 
 
 
+[[additional-oracle-database-migration-options]]
 == 其他 Oracle 数据库迁移选项
 
 请参阅 Microsoft 文档以了解更多迁移选项：link:https://learn.microsoft.com/en-us/azure/architecture/example-scenario/oracle-migrate/oracle-migration-overview["Oracle 数据库迁移决策过程"^] 。

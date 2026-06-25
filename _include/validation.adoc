@@ -91,6 +91,7 @@ CDB2_PDB1
 
 
 
+[[where-to-go-for-help]]
 === 去哪里寻求帮助？
 
 如果您需要工具包方面的帮助，请加入link:https://netapppub.slack.com/archives/C021R4WC0LC["NetApp解决方案自动化社区支持 Slack 频道"]并寻找解决方案自动化渠道来发布您的问题或询问。

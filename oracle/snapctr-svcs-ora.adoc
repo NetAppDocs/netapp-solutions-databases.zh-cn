@@ -20,6 +20,7 @@ Allen Cao、Niyaz Mohamed， NetApp
 
 
 
+[[purpose]]
 == 目的
 
 SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本，可通过NetApp BlueXP云管理控制台使用。它是NetApp云备份、数据保护产品的重要组成部分，适用于在NetApp云存储上运行的 Oracle 和 HANA 等数据库。这项基于 SaaS 的服务简化了传统的SnapCenter独立服务器部署，该部署通常需要在 Windows 域环境中运行的 Windows 服务器。
@@ -35,6 +36,7 @@ SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本�
 
 
 
+[[audience]]
 == 受众
 
 此解决方案适用于以下受众：
@@ -47,12 +49,14 @@ SnapCenter Services 是经典SnapCenter数据库管理 UI 工具的 SaaS 版本�
 
 
 
+[[solution-test-and-validation-environment]]
 == 解决方案测试和验证环境
 
 该解决方案的测试和验证是在可能与最终部署环境不匹配的 AWS FSx 和 EC2 环境中进行的。有关更多信息，请参阅<<部署考虑的关键因素>> 。
 
 
 
+[[architecture]]
 === 架构
 
 image:snapctr-svcs-architecture.png["此图提供了BlueXP控制台内应用程序的BlueXP backup and recovery的详细图片，包括其管理的 UI、连接器和资源。"]
@@ -61,6 +65,7 @@ image:snapctr-svcs-architecture.png["此图提供了BlueXP控制台内应用程�
 
 
 
+[[hardware-and-software-components]]
 === 硬件和软件组件
 
 *硬件*
@@ -96,6 +101,7 @@ image:snapctr-svcs-architecture.png["此图提供了BlueXP控制台内应用程�
 |===
 
 
+[[key-factors-for-deployment-consideration]]
 === 部署考虑的关键因素
 
 * *连接器将与数据库和 FSx 部署在同一个 VPC 中。*如果可能，连接器应部署在同一个 AWS VPC 中，以便能够连接到 FSx 存储和 EC2 计算实例。
@@ -107,6 +113,7 @@ image:snapctr-svcs-architecture.png["此图提供了BlueXP控制台内应用程�
 
 
 
+[[solution-deployment]]
 == 解决方案部署
 
 NetApp拥有大量内容更丰富的文档，可以帮助您保护云原生应用程序数据。本文档的目标是提供分步程序，涵盖使用BlueXP控制台部署SnapCenter服务，以保护部署到Amazon FSx ONTAP和 EC2 计算实例的 Oracle 数据库。本文档补充了一般说明中可能缺少的某些细节。
@@ -121,6 +128,7 @@ NetApp拥有大量内容更丰富的文档，可以帮助您保护云原生应�
 video::4b0fd212-7641-46b8-9e55-b01200f9383a[panopto]
 
 
+[[prerequisites-for-snapcenter-service-deployment]]
 === SnapCenter服务部署的先决条件
 
 [%collapsible%open]
@@ -136,6 +144,7 @@ video::4b0fd212-7641-46b8-9e55-b01200f9383a[panopto]
 ====
 
 
+[[onboarding-to-bluexp-preparation]]
 === 加入BlueXP准备
 
 [%collapsible%open]
@@ -154,6 +163,7 @@ image:snapctr-svcs-connector-001-policy.png["屏幕截图显示了 GUI 中的此
 ====
 
 
+[[deploy-a-connector-for-snapcenter-services]]
 === 为SnapCenter服务部署连接器
 
 [%collapsible%open]
@@ -202,6 +212,7 @@ image:snapctr-svcs-connector-010-review.png["屏幕截图显示了 GUI 中的此
 ====
 
 
+[[define-a-credential-in-bluexp-for-aws-resources-access]]
 === 在BlueXP中定义凭证以访问 AWS 资源
 
 [%collapsible%open]
@@ -240,6 +251,7 @@ image:snapctr-svcs-credential-007-aws.png["屏幕截图显示了 GUI 中的此�
 ====
 
 
+[[snapcenter-services-setup]]
 === SnapCenter服务设置
 
 [%collapsible%open]
@@ -323,6 +335,7 @@ image:snapctr-svcs-setup-017.png["屏幕截图显示了 GUI 中的此步骤。"]
 ====
 
 
+[[oracle-database-backup]]
 === Oracle数据库备份
 
 [%collapsible%open]
@@ -365,6 +378,7 @@ image:snapctr-svcs-bkup-007.png["屏幕截图显示了 GUI 中的此步骤。"]
 ====
 
 
+[[oracle-database-restore-and-recovery]]
 === Oracle 数据库还原和恢复
 
 [%collapsible%open]
@@ -394,6 +408,7 @@ image:snapctr-svcs-restore-004.png["屏幕截图显示了 GUI 中的此步骤。
 ====
 
 
+[[oracle-database-clone]]
 === Oracle 数据库克隆
 
 [%collapsible%open]
@@ -435,6 +450,7 @@ image:snapctr-svcs-clone-008-db.png["该图显示输入/输出对话框或表示
 ====
 
 
+[[additional-information]]
 == 追加信息
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：

@@ -18,10 +18,12 @@ NetApp SnapCenter工具使用基于角色的访问控制 (RBAC) 来管理用户�
 
 
 
+[[on-premises]]
 == 内部部署
 
 
 
+[[1-setup-database-admin-user-in-snapcenter]]
 === 1.在SnapCenter中设置数据库管理员用户
 
 为SnapCenter支持的每个数据库平台设置专用的管理员用户 ID 以进行数据库备份、恢复和/或灾难恢复是有意义的。您还可以使用单个 ID 来管理所有数据库。在我们的测试用例和演示中，我们分别为 Oracle 和 SQL Server 创建了一个专用的管理员用户。
@@ -39,6 +41,7 @@ image:snapctr-admin-users.png["该图显示输入/输出对话框或表示书面
 
 
 
+[[2-snapcenter-plugin-installation-prerequisites]]
 === 2.SnapCenter插件安装前提条件
 
 SnapCenter使用在 DB 主机上运行的插件代理执行备份、恢复、克隆和其他功能。它通过在“设置和凭据”选项卡下配置的凭据连接到数据库主机和数据库，以进行插件安装和其他管理功能。根据目标主机类型（例如 Linux 或 Windows）以及数据库类型，有特定的权限要求。
@@ -70,6 +73,7 @@ Oracle 的 Unix 主机：
 
 
 
+[[3-snapcenter-host-plugin-installation]]
 === 3.SnapCenter主机插件安装
 
 
@@ -161,6 +165,7 @@ image:snapctr-add-linux-host-006.png["该图显示输入/输出对话框或表�
 
 
 
+[[4-database-resource-discovery]]
 === 4.数据库资源发现
 
 插件安装成功后，可以立即发现主机上的数据库资源。单击左侧菜单中的“资源”选项卡。根据数据库平台的类型，有许多可用的视图，例如数据库、资源组等等。如果未发现并显示主机上的资源，您可能需要单击“刷新资源”选项卡。
@@ -185,6 +190,7 @@ image:snapctr-add-windows-host-011.png["该图显示输入/输出对话框或表
 
 
 
+[[5-setup-storage-cluster-peering-and-db-volumes-replication]]
 === 5.设置存储集群对等和数据库卷复制
 
 为了使用公共云作为目标来保护您的内部部署数据库数据，内部部署ONTAP集群数据库卷将使用NetApp SnapMirror技术复制到云 CVO。然后可以克隆复制的目标卷以用于 DEV/OPS 或灾难恢复。以下高级步骤使您能够设置集群对等和数据库卷复制。
@@ -226,6 +232,7 @@ image:snapctr-vol-snapmirror-003.png["该图显示输入/输出对话框或表�
 
 
 
+[[6-add-cvo-database-storage-svm-to-snapcenter]]
 === 6.将 CVO 数据库存储 SVM 添加到SnapCenter
 
 . 使用具有 SnapCenterAdmin 权限的用户 ID 登录SnapCenter 。
@@ -245,6 +252,7 @@ image:snapctr-add-cvo-svm-003.png["该图显示输入/输出对话框或表示�
 
 
 
+[[7-setup-database-backup-policy-in-snapcenter]]
 === 7.在SnapCenter中设置数据库备份策略
 
 以下步骤演示了如何创建完整数据库或日志文件备份策略。然后可以实施该策略来保护数据库资源。恢复点目标 (RPO) 或恢复时间目标 (RTO) 决定了数据库和/或日志备份的频率。
@@ -392,6 +400,7 @@ image:snapctr-sql-policy-log-006.png["该图显示输入/输出对话框或表�
 
 
 
+[[8-implement-backup-policy-to-protect-database]]
 === 8.实施备份策略以保护数据库
 
 SnapCenter使用资源组来备份数据库资源逻辑分组中的数据库，例如托管在服务器上的多个数据库、共享相同存储卷的数据库、支持业务应用程序的多个数据库等等。保护单个数据库会创建其自己的资源组。以下步骤演示如何实施第 7 节中创建的备份策略来保护 Oracle 和 SQL Server 数据库。
@@ -542,6 +551,7 @@ image:snapctr-sql-rgroup-log-007.png["该图显示输入/输出对话框或表�
 
 
 
+[[9-validate-backup]]
 === 9.验证备份
 
 创建数据库备份资源组来保护数据库资源后，备份作业将按照预先定义的计划运行。在“监视”选项卡下检查作业执行状态。

@@ -31,12 +31,14 @@ SnapCenter UI 工具可以使用 Oracle 数据库的SnapCenter插件执行数据
 
 
 
+[[taking-a-snapshot]]
 == 拍摄快照
 
 EC2/FSx Oracle 数据库按照用户配置的间隔定期备份。用户还可以随时进行一次性快照备份。这适用于完整数据库快照备份以及仅存档日志快照备份。
 
 
 
+[[taking-a-full-database-snapshot]]
 === 拍摄完整的数据库快照
 
 完整的数据库快照包括所有 Oracle 文件，包括数据文件、控制文件和存档日志文件。
@@ -63,6 +65,7 @@ image:aws-rds-custom-deploy-snp-013.png["该图显示输入/输出对话框或�
 
 
 
+[[taking-an-archive-log-snapshot]]
 === 获取存档日志快照
 
 仅对 Oracle 存档日志卷进行存档日志快照。
@@ -89,6 +92,7 @@ image:aws-rds-custom-deploy-snp-016.png["该图显示输入/输出对话框或�
 
 
 
+[[restoring-to-a-point-in-time]]
 == 恢复到某个时间点
 
 基于SnapCenter的某个时间点的还原在同一 EC2 实例主机上执行。完成以下步骤来执行恢复：
@@ -160,6 +164,7 @@ image:aws-rds-custom-deploy-snp-029-b.png["该图显示输入/输出对话框或
 
 
 
+[[creating-a-database-clone]]
 == 创建数据库克隆
 
 以下部分演示如何使用SnapCenter克隆工作流创建从主数据库到备用 EC2 实例的数据库克隆。
@@ -247,6 +252,7 @@ NOTE: 除了主 Oracle 备份副本之外，还可以使用相同的程序从目
 
 
 
+[[ha-failover-to-standby-and-resync]]
 == HA 故障转移至待机并重新同步
 
 当主站点（计算层或存储层）发生故障时，备用 Oracle HA 集群可提供高可用性。该解决方案的一个显著优势是，用户可以随时以任何频率测试和验证基础设施。故障转移可以由用户模拟或由真实故障触发。故障转移过程相同，并且可以自动化以实现快速应用程序恢复。

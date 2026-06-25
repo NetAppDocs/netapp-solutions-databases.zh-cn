@@ -15,6 +15,7 @@ Google Cloud NetApp Volumes 为 Oracle Database 26ai 高可用性架构提供高
 
 
 
+[[architecture-overview]]
 == 架构概述
 
 此架构使用 *Google Cloud NetApp Volumes (GCNV)* iSCSI 块存储，通过 *Oracle Data Guard* 为 Google Cloud 上的 *Oracle Database 26ai* 提供高可用性。
@@ -58,6 +59,7 @@ Data Guard 提供*连续重做传输*、角色管理和*故障转移编排*（Br
 |===
 
 
+[[zoning]]
 === 分区
 
 为每个数据库区域部署一个 GCNV Flex Unified 池，并为每个主机分配专用卷。仅将启动磁盘用于操作系统。
@@ -66,6 +68,8 @@ Data Guard 提供*连续重做传输*、角色管理和*故障转移编排*（Br
 
 
 
+[[architecture-reference-diagram]]
+[[reference-diagram]]
 == 架构参考图
 
 解决方案架构提供了三条独立的数据路径。存储复制和 Data Guard 重做传输是分开的路径。
@@ -80,6 +84,7 @@ image::gcnv-oracle-26ai-ha.png[GCNV 参考架构]
 
 
 
+[[platform-roles]]
 == 平台角色
 
 下表总结了哪个平台层提供存储服务，哪个层提供数据库同步和故障转移控制。
@@ -98,6 +103,7 @@ GCNV 复制运行基线副本，然后根据策略进行增量块更新。Data G
 
 
 
+[[topology-and-storage]]
 == 拓扑和存储
 
 此拓扑将主、备用和观察者角色放置在不同的区域，并将每个数据库主机映射到专用 GCNV 池和 iSCSI 卷。
@@ -133,6 +139,7 @@ GCNV 复制运行基线副本，然后根据策略进行增量块更新。Data G
 
 
 
+[[whats-next]]
 == 下一步是什么？
 
 要选择与恢复和可用性目标匹配的部署路径，请转到 xref:gcnv-oracle-deployment-options.adoc[了解适用于 Google Cloud NetApp Volumes 的 Oracle Database 26ai 的部署选项]。
