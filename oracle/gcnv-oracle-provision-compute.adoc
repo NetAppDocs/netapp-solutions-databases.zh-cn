@@ -1,0 +1,212 @@
+---
+sidebar: sidebar 
+permalink: oracle/gcnv-oracle-provision-compute.html 
+keywords: oracle database, google cloud netapp volumes, gcnv, compute engine, iscsi, virtual machine, oracle linux, iqn 
+summary: 提供 Google Compute Engine 虚拟机，以在 Google Cloud NetApp Volumes iSCSI 存储上托管 Oracle Database 26ai。此过程包括创建主备用数据库主机和 Fast-Start Failover Observer VM、为 Oracle Net 配置 VPC 防火墙规则、设置主机名解析、准备操作系统以及捕获用于 GCNV 存储配置的 iSCSI 启动程序名称。 
+---
+= 为 Google Cloud NetApp Volumes 预置 Google Compute Engine 实例
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+提供 Google Compute Engine 虚拟机，以在 Google Cloud NetApp Volumes iSCSI 存储上托管 Oracle Database 26ai。此过程包括创建主备用数据库主机和 Fast-Start Failover Observer VM、为 Oracle Net 配置 VPC 防火墙规则、设置主机名解析、准备操作系统以及捕获用于 GCNV 存储配置的 iSCSI 启动程序名称。
+
+
+
+== 步骤 1：创建 VM
+
+在同一区域的不同可用区中创建三个 Google Compute Engine VM，以实现可用区故障隔离。使用 Cloud Console、 `gcloud`、Terraform 或您的标准配置工作流程。
+
+. 使用下表所示的规格创建三个虚拟机。
++
+在满足延迟和合规性需求的前提下，优先选择低碳区域以降低总拥有成本并提升可持续性（例如 `us-west1` 与 `us-central1`）：
+
++
+[cols="1,1,1,2,2,2"]
+|===
+| VM | 分区 | 机器类型 | 启动磁盘 | 网络 | 目的 
+
+
+| `oracdb1` | `us-west1-a` | `n4-highmem-8` (sample) 或 `c4-standard-*` | OL 10，50 GB Hyperdisk Balanced（仅限操作系统） | `oracle-vpc` / `oracle-subnet`，gVNIC | 主 DB 
+
+
+| `oracdb2` | `us-west1-b` | 与主体相同 | OL 10，50 GB Hyperdisk Balanced（仅限操作系统） | 相同 | 备用数据库 
+
+
+| `oradg-obs` | `us-west1-c` | `e2-medium` | OL 10，20 GB Hyperdisk Balanced | 相同 | FSFO Observer（仅限 Instant Client） 
+|===
++
+当延迟或出口（>~200 GiB/月）很重要时，使用 Premium 网络层；在开发/测试中使用 Standard 以降低 TCO。
+
+. 启用 Shielded VM 功能并验证启动磁盘配置：
++
+在所有三个虚拟机上启用 *Secure Boot*、*vTPM* 和 *Integrity Monitoring*。
+
++
+启动磁盘仅容纳操作系统。 `/u01`、Grid/DB 主目录、暂存和所有 ASM 数据均使用 GCNV iSCSI 卷（请参阅xref:gcnv-oracle-provision-storage.adoc#provision-gcnv-iscsi-volumes[配置 GCNV iSCSI 卷]）
+
++
+请勿为 `/u01`附加单独的 GCE 数据磁盘。
+
+
+
+
+
+== 步骤 2：为 TCP 1521 配置 VPC 防火墙
+
+创建 VPC 防火墙规则，以允许所有三个虚拟机之间的 TCP/1521 进行 Oracle Net redo 传输和 Observer 连接。缺少规则会中断 Data Guard 复制。
+
+. 创建 VPC 防火墙入口规则，以允许所有三个 VM 内部 IP 之间使用 TCP/1521。使用具有相同允许列表的 VPC 防火墙规则或防火墙策略：
++
+*Cloud Console:* VPC 网络 → 防火墙 → 创建规则 `allow-oracle-net-dbhosts` on `oracle-vpc` — 入口，允许，源 = 三个 `/32` IP，TCP 1521。如果需要，镜像出口。
+
+. 验证每个虚拟机的连接，以确认防火墙规则是否已就位：
++
+[source, bash]
+----
+sudo dnf install -y nmap-ncat
+
+for tgt in <oracdb1-ip> <oracdb2-ip> <oradg-obs-ip>; do
+  nc -zv -w 5 "$tgt" 22
+  nc -zv -w 5 "$tgt" 1521
+done
+----
++
+[cols="1,1,3"]
+|===
+| 端口 | 预期 | 含义 
+
+
+| `22` | 已连接 | SSH 路径有效 
+
+
+| `1521` | 连接被拒绝 | 防火墙打开；Grid 侦听器在 xref:gcnv-oracle-install-software.adoc#install-grid-infrastructure[步骤 1：在每个 DB 主机上安装 Oracle Grid Infrastructure (Oracle Restart)] 期间启动 
+
+
+| 要么 | 超时 | 修复防火墙或路由 
+|===
++
+从所有三个虚拟机向每个对等 IP 运行。
+
+
+
+
+
+== 步骤 3：配置主机名、DNS 和 `/etc/hosts`
+
+在所有三个虚拟机上配置主机名和 DNS 解析，以便正向和反向名称解析适用于 Oracle Net、Data Guard Broker 和 Observer。
+
+. 在所有三台主机上设置主机名并添加 `/etc/hosts`条目。替换 GCE 内部 IP 地址（在 *Compute Engine → VM instances* 列表中可见，_Internal IP_ 列）：
++
+[source, bash]
+----
+# Run on each VM, substituting the local short name (oracdb1, oracdb2, oradg-obs)
+sudo hostnamectl set-hostname <this-host>.example.internal
+
+# Run on every VM (same content)
+sudo tee -a /etc/hosts >/dev/null <<EOF
+
+# Oracle DG peers + FSFO Observer
+<oracdb1-ip>    oracdb1.example.internal    oracdb1
+<oracdb2-ip>    oracdb2.example.internal    oracdb2
+<oradg-obs-ip>  oradg-obs.example.internal  oradg-obs
+EOF
+----
+. 验证每个主机的名称解析：
++
+[source, bash]
+----
+ping -c 1 oracdb1 && ping -c 1 oracdb2 && ping -c 1 oradg-obs
+----
+
+
+
+
+== 步骤 4：仅在数据库主机上准备操作系统
+
+通过安装预安装软件包、创建用户和组、安装 iSCSI 和多路径软件包以及配置 iSCSI 启动程序，在 `oracdb1`和 `oracdb2`上为 Oracle Database 26ai 准备操作系统。观察者设置包含在xref:gcnv-oracle-data-guard.adoc#install-instant-client-on-observer[步骤 4：在 Observer 主机上安装 Oracle Instant Client]中。
+
+[NOTE]
+====
+*先决条件：* 出站 HTTPS 到 `yum.oracle.com`（私有子网上的 Cloud NAT 或内部镜像）。
+
+====
+. 安装 Oracle 数据库预安装包，创建 `grid`用户和 ASM 组，并将 `oracle`用户添加到 ASM 组：
++
+[source, bash]
+----
+# Oracle 26ai preinstall (package name varies by repo)
+sudo dnf install -y oracle-ai-database-preinstall-26ai \
+  || sudo dnf install -y oracle-database-preinstall-26ai \
+  || sudo dnf install -y oracle-database-preinstall-23ai
+
+# grid user + asm groups
+sudo groupadd -g 54327 asmadmin; sudo groupadd -g 54328 asmdba; sudo groupadd -g 54329 asmoper
+sudo useradd -u 54322 -g oinstall -G dba,oper,asmadmin,asmdba,asmoper grid
+sudo passwd -l grid; sudo passwd -l oracle
+sudo usermod -a -G asmdba,asmadmin oracle
+----
+. 安装 iSCSI、多路径和 JDK 包，然后验证 THP 和时间同步：
++
+[source, bash]
+----
+sudo dnf install -y iscsi-initiator-utils device-mapper-multipath sg3_utils \
+  java-21-openjdk-headless libxcrypt-compat
+
+# THP and time
+cat /sys/kernel/mm/transparent_hugepage/enabled   # expect [never]
+timedatectl
+chronyc tracking
+----
+. 配置 SELinux、防火墙和 iSCSI 启动程序设置，然后重新启动：
++
+[NOTE]
+====
+*安全态势 (OL 10):* 以下命令将 SELinux 设置为允许模式并禁用 `firewalld`。这仅适用于最小化实验室环境。有关强化的 SELinux 和防火墙配置，请参阅您组织的安全基准。
+
+====
++
+[source, bash]
+----
+sudo setenforce 0
+sudo sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+sudo systemctl disable --now firewalld
+
+sudo cp -n /etc/iscsi/iscsid.conf /etc/iscsi/iscsid.conf.orig
+sudo sed -i '/^[#[:space:]]*node\.session\.timeo\.replacement_timeout/d' /etc/iscsi/iscsid.conf
+echo "node.session.timeo.replacement_timeout = 120" | sudo tee -a /etc/iscsi/iscsid.conf
+sudo systemctl enable --now iscsid
+
+sudo reboot
+----
+
+
+
+
+== 第 5 步：捕获 iSCSI 启动程序名称 IQN
+
+重新启动后，从每个数据库主机捕获 iSCSI 启动程序名称 (IQN)。您将使用这些 IQN 在 xref:gcnv-oracle-provision-storage.adoc#create-host-groups[步骤 2：创建主机组] 中创建 GCNV 主机组。
+
+. 从 `oracdb1`捕获 IQN 并进行记录：
++
+[source, bash]
+----
+sudo cat /etc/iscsi/initiatorname.iscsi
+# InitiatorName=iqn.1994-05.com.redhat:abc123def456
+----
+. 重复 `oracdb2`并记录其 IQN。每个主机使用一个主机组，以便单个主机的重新启动或 IQN 重新生成不会影响另一个主机的 GCNV iSCSI 卷可见性：
++
+[NOTE]
+====
+*克隆的 VM：* 如果两台主机共享相同的 IQN，请重新生成 `oracdb2`（停止 `iscsi`，清除 `/var/lib/iscsi/nodes/*`，新建 `InitiatorName` `/etc/iscsi/initiatorname.iscsi`，重新启动 `iscsid`）。
+
+====
+
+
+
+
+== 下一步是什么？
+
+要为 Oracle 二进制文件和 ASM 磁盘组提供共享存储，请转到 xref:gcnv-oracle-provision-storage.adoc[预配 Google Cloud NetApp Volumes iSCSI 池、主机组和卷]。

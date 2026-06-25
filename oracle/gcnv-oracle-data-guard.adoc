@@ -1,0 +1,328 @@
+---
+sidebar: sidebar 
+permalink: oracle/gcnv-oracle-data-guard.html 
+keywords: oracle data guard, fast-start failover, fsfo, dgmgrl, observer, data guard broker, oracle 26ai, systemd, auto-login wallet 
+summary: 仅对于 Prod HA Data Guard 和 FSFO 层，使用 Google Cloud NetApp Volumes 上的 Oracle Database 26ai 专用 Observer 配置 Oracle Data Guard Broker 和 Fast-Start Failover。此过程包括启用代理、创建 Data Guard 配置、启用 FSFO、在 Observer 主机上安装 Oracle Instant Client、将 Observer 作为 systemd 服务启动以及测试切换和故障转移。 
+---
+= 在 Google Cloud NetApp Volumes 上为 Oracle Database 26ai 配置 Data Guard Broker 和 Fast-Start Failover
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+使用专用 Observer 配置 Oracle Data Guard Broker 和 Fast-Start Failover，以在 Google Cloud NetApp Volumes 上启用 Oracle Database 26ai 的自动角色转换。
+
+*特定于层级：* 此过程仅适用于 *Prod HA（Data Guard + FSFO）* 层级。
+
+此过程包括在两个数据库上启用代理，创建 Data Guard 配置，启用具有 MaxAvailability 保护模式的 FSFO，在 Observer 主机上安装 Oracle Instant Client，使用基于钱包的凭据将 Observer 作为 systemd 服务启动，以及测试切换和故障转移。之后 `ENABLE CONFIGURATION`，通过 *DGMGRL*（而非临时 `LOG_ARCHIVE_DEST_*` SQL）管理传输和角色。
+
+
+
+== 步骤 1：启用 Data Guard Broker
+
+在两个数据库主机上启用 Data Guard Broker，并创建在统一管理下链接主数据库和备用数据库的 Broker 配置。
+
+. 在主数据库主机和备用数据库主机上设置 `dg_broker_start=TRUE`：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+. ~/.bash_profile
+sqlplus / as sysdba <<SQL
+ALTER SYSTEM SET dg_broker_start=TRUE SCOPE=BOTH;
+EXIT
+SQL'
+----
+. 在主服务器上，使用 OS 身份验证连接到 DGMGRL 并创建 Broker 配置：
++
+[NOTE]
+====
+仅在 Observer 主机上，在自动登录钱包存在后使用 `dgmgrl /@orcl`。请勿将密码放在 `dgmgrl`命令行上。
+
+====
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export ORACLE_SID=orcl
+export PATH=$ORACLE_HOME/bin:$PATH
+dgmgrl /
+'
+----
++
+[source]
+----
+DGMGRL> CREATE CONFIGURATION 'orcl_dg' AS
+        PRIMARY DATABASE IS 'orcl' CONNECT IDENTIFIER IS orcl;
+DGMGRL> ADD DATABASE 'orcls' AS CONNECT IDENTIFIER IS orcls;
+DGMGRL> ENABLE CONFIGURATION;
+DGMGRL> SHOW CONFIGURATION;
+-- Expect: Configuration Status: SUCCESS, both members SUCCESS.
+----
+. 验证配置 — 在 <<configure-fsfo-properties-and-enable,步骤 3：配置 FSFO 属性并启用>> 之前修复任何  `WARNING` 或非 NULL  `ERROR`：
++
+[source]
+----
+DGMGRL> VALIDATE DATABASE 'orcls';
+DGMGRL> SHOW CONFIGURATION VERBOSE;
+----
+
+
+
+
+== 步骤 2：确认 FSFO 的闪回
+
+确认在两台主机上都启用了 flashback 数据库。FSFO 自动恢复需要闪回功能，这允许前主服务器在故障转移后自动作为备用节点重新加入配置。
+
+. 确认 `flashback_on`在两个数据库主机上 `YES`：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+. ~/.bash_profile
+sqlplus -s / as sysdba <<<"SELECT flashback_on FROM v\$database;"
+'
+# Expected on both hosts: YES
+----
+. 仅在主设备上，如果尚未设置闪回保留：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+. ~/.bash_profile
+export ORACLE_SID=orcl
+sqlplus / as sysdba <<SQL
+ALTER SYSTEM SET db_flashback_retention_target=1440 SCOPE=BOTH;
+EXIT
+SQL'
+----
+
+
+
+
+== 步骤 3：配置并启用 FSFO
+
+设置 SYNC 重做传输，配置MaxAvailability保护模式，在每个数据库上定义 FSFO 目标，并启用 Fast-Start Failover。
+
+. 在两个数据库上将重做传输模式设置为 `SYNC`，并将保护模式提升为 `MaxAvailability`：
++
+[source]
+----
+DGMGRL> EDIT DATABASE 'orcl'  SET PROPERTY LogXptMode='SYNC';
+DGMGRL> EDIT DATABASE 'orcls' SET PROPERTY LogXptMode='SYNC';
+DGMGRL> EDIT CONFIGURATION SET PROTECTION MODE AS MaxAvailability;
+----
+. 将 FSFO 目标设置为每个数据库将另一个命名为其故障转移目标，然后配置阈值和自动恢复行为：
++
+[source]
+----
+-- Each side names the other
+DGMGRL> EDIT DATABASE 'orcl'  SET PROPERTY FastStartFailoverTarget = 'orcls';
+DGMGRL> EDIT DATABASE 'orcls' SET PROPERTY FastStartFailoverTarget = 'orcl';
+
+-- 30 s is the default; lower for faster RTO but more sensitive to network blips
+DGMGRL> EDIT CONFIGURATION SET PROPERTY FastStartFailoverThreshold = 30;
+DGMGRL> EDIT CONFIGURATION SET PROPERTY FastStartFailoverAutoReinstate = TRUE;
+----
+. 启用快速启动故障转移并确认配置：
++
+[source]
+----
+DGMGRL> ENABLE FAST_START FAILOVER;
+DGMGRL> SHOW FAST_START FAILOVER;
+-- Expected: Threshold 30 seconds, Target orcls, Observer not yet registered.
+----
+
+
+
+
+== 步骤 4：在 Observer 上安装 Instant Client
+
+在专用 Observer VM 上安装 Oracle Instant Client (`oradg-obs`），创建专用 `oracle` OS 用户，并配置 Oracle Net 环境，以便 Observer 可以连接到 TCP/1521 上的两个数据库成员。
+
+. 在 Observer 主机上安装 Oracle Instant Client 软件包 (`oradg-obs`)：
++
+[source, bash]
+----
+# Use -el8 / -el9 if the Observer is on an older OL/RHEL release
+sudo dnf install -y oracle-instantclient-release-el10
+sudo dnf install -y oracle-instantclient-basic \
+                    oracle-instantclient-sqlplus \
+                    oracle-instantclient-tools
+----
+. 创建一个专用的 `oracle` OS 用户，该用户将拥有钱包和 systemd 单元：
++
+[source, bash]
+----
+sudo useradd -u 54321 -m oracle
+sudo passwd -l oracle
+----
+. 配置 Oracle Net 环境并创建 `tnsnames.ora`，其中包含两个数据库主机的条目：
++
+[source, bash]
+----
+sudo mkdir -p /etc/oracle/network/admin
+sudo chown -R oracle:oracle /etc/oracle
+
+sudo -u oracle tee /home/oracle/.bash_profile >/dev/null <<'EOF'
+export ORACLE_HOME=/usr/lib/oracle/26/client64
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib
+export PATH=$ORACLE_HOME/bin:$PATH
+export TNS_ADMIN=/etc/oracle/network/admin
+EOF
+
+# tnsnames.ora — must reach both DB hosts on TCP/1521
+sudo tee /etc/oracle/network/admin/tnsnames.ora >/dev/null <<'EOF'
+orcl =
+  (DESCRIPTION =
+  (ADDRESS = (PROTOCOL = TCP)(HOST = oracdb1)(PORT = 1521))
+                (CONNECT_DATA = (SERVER = DEDICATED)(SERVICE_NAME = orcl)))
+orcls =
+  (DESCRIPTION =
+  (ADDRESS = (PROTOCOL = TCP)(HOST = oracdb2)(PORT = 1521))
+                (CONNECT_DATA = (SERVER = DEDICATED)(SERVICE_NAME = orcls)))
+EOF
+sudo chown oracle:oracle /etc/oracle/network/admin/tnsnames.ora
+----
+
+
+
+
+== 第5步：将 Observer 作为 systemd 服务运行
+
+使用两个数据库成员的凭据创建一个自动登录钱包，然后将 Observer 配置并启动为 systemd 服务，以便它在重启后仍能正常运行并自动重新连接到配置。
+
+将专用 Data Guard 管理帐户（例如 `SYSDG`）的凭据存储在钱包中，而不是 `SYS`。凭据绝不能出现在 `dgmgrl`命令行上，因为它们对 `ps`和 `journalctl`可见；请始终在 Observer 上使用 `/@<tns_alias>`进行连接。
+
+. 创建加密钱包并填充两个数据库成员的凭据：
++
+[source, bash]
+----
+sudo -iu oracle bash <<'BASH'
+mkdir -p $TNS_ADMIN/wallet
+mkstore -wrl $TNS_ADMIN/wallet -create     # prompts for a wallet password — store in your secrets manager
+mkstore -wrl $TNS_ADMIN/wallet -createCredential orcl  sys ChangeMe!1
+mkstore -wrl $TNS_ADMIN/wallet -createCredential orcls sys ChangeMe!1
+BASH
+
+sudo tee /etc/oracle/network/admin/sqlnet.ora >/dev/null <<'EOF'
+WALLET_LOCATION = (SOURCE = (METHOD = FILE) (METHOD_DATA = (DIRECTORY = /etc/oracle/network/admin/wallet)))
+SQLNET.WALLET_OVERRIDE = TRUE
+EOF
+sudo chown oracle:oracle /etc/oracle/network/admin/sqlnet.ora
+sudo chmod -R 0700 /etc/oracle/network/admin/wallet
+
+sudo -iu oracle ls -l /etc/oracle/network/admin/wallet
+# Expected: cwallet.sso and ewallet.p12
+
+sudo -iu oracle bash <<'BASH'
+sqlplus -L "/@orcl as sysdba" <<'SQL'
+SELECT database_role FROM v$database;
+EXIT
+SQL
+BASH
+
+sudo -iu oracle bash <<'BASH'
+sqlplus -L "/@orcls as sysdba" <<'SQL'
+SELECT database_role FROM v$database;
+EXIT
+SQL
+BASH
+
+sudo -iu oracle dgmgrl /@orcl  'SHOW CONFIGURATION;'
+sudo -iu oracle dgmgrl /@orcls 'SHOW CONFIGURATION;'
+----
+. 生成自动登录钱包  `cwallet.sso`)，以便 Observer systemd 服务可以在没有密码提示的情况下启动。如果在运行  `mkstore` 后缺少  `cwallet.sso`，请使用 Instant Client 工具包或数据库主目录中的  `orapki` 来创建它，然后重新添加存储的凭据：
++
+[source, bash]
+----
+sudo -iu oracle orapki wallet create \
+  -wallet /etc/oracle/network/admin/wallet \
+  -auto_login
+sudo -iu oracle ls -l /etc/oracle/network/admin/wallet
+# Expected: cwallet.sso and ewallet.p12
+----
+. 创建systemd单元，启用服务，并验证Observer是否已连接：
++
+[source, ini]
+----
+sudo tee /etc/systemd/system/dgmgrl-observer.service >/dev/null <<'EOF'
+[Unit]
+Description=Oracle Data Guard Fast-Start Failover Observer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=oracle
+Group=oracle
+Environment=ORACLE_HOME=/usr/lib/oracle/26/client64
+Environment=LD_LIBRARY_PATH=/usr/lib/oracle/26/client64/lib
+Environment=TNS_ADMIN=/etc/oracle/network/admin
+Environment=PATH=/usr/lib/oracle/26/client64/bin:/usr/bin:/bin
+ExecStart=/usr/lib/oracle/26/client64/bin/dgmgrl -silent /@orcl "START OBSERVER FILE IS '/var/lib/oracle/dgmgrl-observer.dat'"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+----
++
+[source, bash]
+----
+sudo install -d -o oracle -g oracle -m 0755 /var/lib/oracle
+sudo install -o oracle -g oracle -m 0640 /dev/null /var/log/dgmgrl-observer.log
+
+sudo tee /etc/logrotate.d/dgmgrl-observer >/dev/null <<'EOF'
+/var/log/dgmgrl-observer.log {
+    weekly
+    rotate 8
+    compress delaycompress missingok notifempty
+    create 0640 oracle oracle
+    copytruncate
+}
+EOF
+
+sudo systemctl daemon-reload && sudo systemctl enable --now dgmgrl-observer.service
+sudo systemctl status dgmgrl-observer.service
+----
++
+观察者必须从主节点读取 `CONNECTED`（a `DISCONNECTED` 观察者静默暂停 FSFO）：
+
++
+[source]
+----
+DGMGRL> SHOW FAST_START FAILOVER;
+DGMGRL> SHOW CONFIGURATION;       -- Configuration Status: SUCCESS, FSFO: ENABLED
+----
+
+
+
+
+== 第6步：测试FSFO
+
+使用 `VALIDATE DATABASE`验证 Data Guard 配置，然后执行计划的切换，并在测试窗口中执行计划外的 VM 重置故障转移，以确认 FSFO 是否端到端正常运行。
+
+. 测试计划的切换并恢复原始拓扑：
++
+[source]
+----
+DGMGRL> VALIDATE DATABASE 'orcls';
+DGMGRL> SWITCHOVER TO 'orcls';
+DGMGRL> SHOW CONFIGURATION;
+DGMGRL> SWITCHOVER TO 'orcl';        -- restore topology
+----
+. 在受控测试窗口中使用虚拟机重置来测试计划外故障转移：
++
+使用虚拟机*重置*（崩溃式测试）；正常的*停止*可能不会触发 FSFO。跟踪 `/var/log/dgmgrl-observer.log` on `oradg-obs`以监控故障转移进度；完成后恢复拓扑。
+
+
+
+
+
+== 下一步是什么？
+
+Oracle Data Guard Broker、Fast-Start Failover 和 Observer 配置现已用于此部署。

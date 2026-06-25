@@ -1,0 +1,209 @@
+---
+sidebar: sidebar 
+permalink: oracle/gcnv-oracle-install-software.html 
+keywords: oracle database, grid infrastructure, oracle restart, asm, asm disk groups, oracle database 26ai, silent install, gridsetup 
+summary: 在每个数据库主机的 Google Cloud NetApp Volumes iSCSI 存储上安装 Oracle Grid Infrastructure with Oracle Restart 和 ASM，然后安装 Oracle Database 26ai 软件。此过程包括暂存和解压缩 Oracle Grid Infrastructure GoldImage、运行 gridSetup 响应文件、在 GCNV 卷上创建 ASM 磁盘组以及执行 Oracle Database 主目录的纯软件静默安装。 
+---
+= 在 Google Cloud NetApp Volumes 上安装 Oracle Grid Infrastructure 和 Oracle Database 26ai
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+在每个数据库主机的 Google Cloud NetApp Volumes iSCSI 存储上安装 Oracle Grid Infrastructure with Oracle Restart 和 ASM，然后安装 Oracle Database 26ai 软件。此过程包括暂存 Oracle GoldImages，使用响应文件运行静默安装，在 GCNV 卷上创建 ASM 磁盘组，以及在创建数据库之前使用相同的 Oracle 软件准备主机和备用主机。
+
+
+
+== 步骤 1：在每个数据库主机上安装 Grid Infrastructure
+
+在每个数据库主机上安装 Oracle Grid Infrastructure GoldImage，以启用 Oracle Restart 和 ASM。两台主机都需要各自的 Grid home、ASM 实例和磁盘组；Data Guard 通过 Oracle Net 复制数据，而不是通过共享存储。在 `oracdb1`上完成所有步骤，然后再在 `oracdb2`上重复操作。
+
+. [[stage-oracle-binaries-on-u01]]将 Oracle GoldImages、Release Update 和 OPatch 二进制文件暂存到 `/u01/stage`：
++
+[source, bash]
+----
+sudo chown oracle:oinstall /u01/stage && sudo chmod 775 /u01/stage
+# Upload GoldImages, RU, OPatch to /u01/stage.
+----
+. [[unzip-grid-home]]在目标 Grid 主目录中就地解压缩 Grid GoldImage。26ai GoldImage 通过直接解压缩到目标目录来完成安装：
++
+[source, bash]
+----
+sudo -u grid bash -c '
+cd /u01/app/26ai/grid
+unzip -q /u01/stage/LINUX.X64_<RELEASE>_grid_home.zip
+'
+sudo chown -R grid:oinstall /u01/app/26ai/grid
+----
++
+如果 Grid GoldImage 比目标 RU 旧，请在设置过程中使用 `gridSetup.sh -applyRU`流程修补 Grid 主目录，或使用捆绑了 RU 的 GoldImage。将 Grid 和 Database 主目录保持在相同的预期补丁级别。
+
+. [[gridsetup-response-file]]在每台主机上构建 `gridSetup`响应文件 `/tmp/grid.rsp`。替换主机名并使用强密码：
++
+[source, bash]
+----
+HOST=$(hostname -s)
+
+sudo -u grid bash -c "cat > /tmp/grid.rsp <<RSP
+oracle.install.responseFileVersion=/oracle/install/rspfmt_crsinstall_response_schema_v23.0.0
+INVENTORY_LOCATION=/u01/app/oraInventory
+installOption=HA_CONFIG
+ORACLE_BASE=/u01/app/grid
+clusterUsage=GENERAL_PURPOSE
+OSDBA=asmdba
+OSOPER=asmoper
+OSASM=asmadmin
+storageOption=FLEX_ASM_STORAGE
+sysasmPassword=WelcomeOracle1!
+asmsnmpPassword=WelcomeOracle1!
+diskGroupName=DATA
+redundancy=EXTERNAL
+auSize=4
+diskString=/dev/mapper/ora_${HOST}_*p*
+diskList=/dev/mapper/ora_${HOST}_data_01p1,/dev/mapper/ora_${HOST}_data_02p1
+managementOption=NONE
+RSP"
+sudo -u grid chmod 600 /tmp/grid.rsp
+----
+. 以静默模式运行 `gridSetup.sh`以复制二进制文件并暂存配置。Expect `Successfully Setup Software with warning(s).`和退出代码 6（警告）或 0：
++
+[source, bash]
+----
+sudo -u grid bash -c '
+export ORACLE_HOME=/u01/app/26ai/grid
+export ORACLE_BASE=/u01/app/grid
+cd /u01/app/26ai/grid
+./gridSetup.sh -silent -responseFile /tmp/grid.rsp -ignorePrereqFailure
+'
+----
+. [[run-orainstroot-and-root]]以 root 身份运行 `orainstRoot.sh`和 `root.sh`。 `root.sh`脚本创建 `crsctl`、 `srvctl`和 `asmcmd`包装器，并启动 OHAS：
++
+[source, bash]
+----
+sudo /u01/app/oraInventory/orainstRoot.sh
+sudo /u01/app/26ai/grid/root.sh
+----
+. [[execute-config-tools]]运行 `gridSetup.sh -executeConfigTools`以针对<<gridsetup-response-file,响应文件>>运行配置助理（NETCA、ASMCA、CVU）。这将创建 ASM 实例和 `+DATA`磁盘组。NETCA / ASMCA / CVU 之后的预期 `Successfully Configured Software.`：
++
+[source, bash]
+----
+sudo -u grid bash -c '
+export ORACLE_HOME=/u01/app/26ai/grid
+export ORACLE_BASE=/u01/app/grid
+cd /u01/app/26ai/grid
+./gridSetup.sh -silent -executeConfigTools -responseFile /tmp/grid.rsp
+'
+----
+. 使用  `asmca` 创建  `+RECO` 和  `+FRA` 磁盘组。单步安装仅创建  `+DATA`：
++
+[source, bash]
+----
+HOST=$(hostname -s)
+
+sudo -u grid bash -c "
+export ORACLE_HOME=/u01/app/26ai/grid
+export ORACLE_SID=+ASM
+
+\$ORACLE_HOME/bin/asmca -silent -createDiskGroup \
+  -diskGroupName RECO \
+  -disk /dev/mapper/ora_${HOST}_arch_01p1 \
+  -redundancy EXTERNAL -au_size 4
+
+\$ORACLE_HOME/bin/asmca -silent -createDiskGroup \
+  -diskGroupName FRA \
+  -disk /dev/mapper/ora_${HOST}_fra_01p1 \
+  -redundancy EXTERNAL -au_size 4
+"
+----
+. [[verify-asm-and-oracle-restart]]验证 ASM 磁盘组和 Oracle Restart 资源状态：
++
+[source, bash]
+----
+sudo -u grid ORACLE_HOME=/u01/app/26ai/grid ORACLE_SID=+ASM \
+  /u01/app/26ai/grid/bin/sqlplus -s / as sysasm <<'SQL'
+SELECT name, total_mb, free_mb, state FROM v$asm_diskgroup ORDER BY name;
+SQL
+
+sudo /u01/app/26ai/grid/bin/crsctl stat res -t
+# Expected ONLINE: ora.DATA.dg, ora.RECO.dg, ora.FRA.dg, ora.LISTENER.lsnr, ora.asm, ora.cssd, ora.evmd.
+----
+. 在  `oracdb2` 上重复上述步骤。 `HOST=$(hostname -s)` 和 <<gridsetup-response-file,步骤 3 和 4>> 中的 <<create-reco-and-fra-disk-groups,步骤 7>> 模式会自动选择该主机的 GCNV iSCSI 设备。
++
+使用相同的 ASM 磁盘组名称 — Data Guard 通过 Oracle Net 而不是存储进行复制。
+
+
+
+
+
+== 步骤 2：在每个数据库主机上安装 Oracle 数据库
+
+使用静默纯软件安装方式在每个数据库主机上安装 Oracle Database 26ai 软件主目录，并应用最新的版本更新。在 `oracdb1`上完成所有步骤后，再在 `oracdb2`上重复执行。
+
+. [[unzip-db-home-and-ru-patch]]将数据库主页、最新的 OPatch 和 RU 修补程序解压缩到各自的目录中。有关 RU 目录布局和 `-applyRU`路径，请参阅 Oracle 文档：
++
+[source, bash]
+----
+sudo su - oracle
+cd /u01/app/oracle/product/26ai/db_1
+unzip -q /u01/stage/LINUX.X64_<RELEASE>_db_home.zip
+rm -rf OPatch
+unzip -q /u01/stage/p6880880_<base>_Linux-x86-64.zip                    # latest OPatch
+unzip -q /u01/stage/p<RU_PATCH>_<base>_Linux-x86-64.zip -d /u01/stage   # latest 26ai RU
+----
+. [[silent-db-home-install]]编写安装响应文件，并在应用 RU 的情况下运行静默仅软件安装。在 OL 8/9 上，从 `runInstaller`行中省略 `-applyOneOffs`：
++
+[source, bash]
+----
+sudo -u oracle tee /u01/stage/dbinstall.rsp >/dev/null <<'EOF'
+oracle.install.option=INSTALL_DB_SWONLY
+UNIX_GROUP_NAME=oinstall
+INVENTORY_LOCATION=/u01/app/oraInventory
+ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+ORACLE_BASE=/u01/app/oracle
+oracle.install.db.InstallEdition=EE
+oracle.install.db.OSDBA_GROUP=dba
+oracle.install.db.OSOPER_GROUP=oper
+oracle.install.db.OSBACKUPDBA_GROUP=backupdba
+oracle.install.db.OSDGDBA_GROUP=dgdba
+oracle.install.db.OSKMDBA_GROUP=kmdba
+oracle.install.db.OSRACDBA_GROUP=racdba
+oracle.install.db.rootconfig.executeRootScript=false
+EOF
+
+sudo -u oracle bash -c '
+export CV_ASSUME_DISTID=OEL10    # OEL9 / OEL8.10 if cluvfy requires it
+cd /u01/app/oracle/product/26ai/db_1
+./runInstaller -applyRU /u01/stage/<RU_PATCH> \
+  -applyOneOffs /u01/stage/39292021 \
+  -silent -ignorePrereqFailure -responseFile /u01/stage/dbinstall.rsp
+'
+----
+. 运行安装后根脚本：
++
+[source, bash]
+----
+sudo /u01/app/oracle/product/26ai/db_1/root.sh
+----
+. [[set-oracle-environment]]在每个数据库主机上设置 Oracle 环境。在 `ORACLE_SID=orcl`上使用 `oracdb1`，在 `ORACLE_SID=orcls`上使用 `oracdb2`：
++
+[source, bash]
+----
+sudo -u oracle tee -a /home/oracle/.bash_profile >/dev/null <<'EOF'
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export ORACLE_SID=orcl                          # use 'orcls' on oracdb2
+export GRID_HOME=/u01/app/26ai/grid
+export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+export TNS_ADMIN=$ORACLE_HOME/network/admin
+EOF
+----
++
+备用数据库在 xref:gcnv-oracle-standby-database.adoc[创建备用数据库] 中创建。
+
+
+
+
+
+== 下一步是什么？
+
+要为 HA 部署创建生产主实例，请转到 xref:gcnv-oracle-primary-database.adoc[创建 Oracle 主数据库] on `oracdb1`。

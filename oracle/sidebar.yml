@@ -1,0 +1,31 @@
+---
+section: gcnv-oracle
+title: 适用于 Oracle 数据库的 Google Cloud NetApp Volumes 26ai
+entries:
+- title: 部署工作流
+  url: "/oracle/gcnv-oracle-deployment.html"
+- title: 了解适用于 Oracle HA 的 Google Cloud NetApp Volumes
+  entries:
+  - title: 解决方案架构
+    url: "/oracle/gcnv-oracle-solution-architecture.html"
+  - title: 部署选项
+    url: "/oracle/gcnv-oracle-deployment-options.html"
+  - title: 访问和 API
+    url: "/oracle/gcnv-oracle-access-and-apis.html"
+- title: 使用 Oracle HA 部署 Google Cloud NetApp Volumes
+  pdf-filename: 使用 Oracle HA 部署 Google Cloud NetApp Volumes
+  entries:
+  - title: 配置 Compute Engine 实例
+    url: "/oracle/gcnv-oracle-provision-compute.html"
+  - title: 预配 GCNV iSCSI 存储
+    url: "/oracle/gcnv-oracle-provision-storage.html"
+  - title: 安装 Oracle 软件
+    url: "/oracle/gcnv-oracle-install-software.html"
+  - title: 创建主数据库
+    url: "/oracle/gcnv-oracle-primary-database.html"
+  - title: 创建备用数据库
+    url: "/oracle/gcnv-oracle-standby-database.html"
+  - title: 为 Data Guard 完成备用数据库
+    url: "/oracle/gcnv-oracle-standby-finalize-dg.html"
+  - title: 配置 Data Guard Broker、FSFO 和 Observer
+    url: "/oracle/gcnv-oracle-data-guard.html"

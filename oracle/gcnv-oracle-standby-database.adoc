@@ -1,0 +1,388 @@
+---
+sidebar: sidebar 
+permalink: oracle/gcnv-oracle-standby-database.html 
+keywords: oracle database, standby database, data guard, gcnv replication, iscsi, asm, oracle restart, managed recovery, physical standby 
+summary: 使用 Google Cloud NetApp Volumes 存储层复制、快照或克隆创建 Oracle 物理备用数据库，以加速备用初始化。此过程包括配置侦听器和备用 pfile，使用 GCNV 复制播种备用卷，完成 Oracle 实例，构建备用重做日志，启用托管恢复的重做应用，以及向 Oracle Restart 注册备用。 
+---
+= 使用 Google Cloud NetApp Volumes 存储层种子设定创建 Oracle 备用数据库
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+使用 Google Cloud NetApp Volumes 存储层复制、快照或克隆创建 Oracle 物理备用数据库，与传统的 RMAN 方法相比，这可以加快备用数据库的初始化。此步骤包括配置监听程序、创建备用 pfile、使用 GCNV 复制植入备用卷、最终确定 Oracle 实例以及向 Oracle Restart 注册备用数据库。所有 HA 层级都需要完成这些步骤。对于 *Prod HA (Data Guard + FSFO)* 层级，请在配置 xref:gcnv-oracle-data-guard.adoc[Data Guard Broker、Fast-Start Failover 和 Observer] 之前继续执行 xref:gcnv-oracle-standby-finalize-dg.adoc[Data Guard 最终确定]。
+
+
+
+== 步骤 1：配置侦听器和 Data Guard 参数
+
+在两个数据库主机上配置侦听器以支持 Data Guard 连接，包括代理所需的 `_DGMGRL`服务。设置密码文件并在主数据库上配置归档日志参数。
+
+. 在 `oracdb1`上配置主侦听器并验证环境：
++
+[source, bash]
+----
+sudo su - oracle
+. ~/.bash_profile        # ORACLE_SID=orcl, ORACLE_HOME set
+----
+. 将备用侦听器配置 `oracdb2`为包括 `orcls`和 `orcls_DGMGRL`服务：
++
+[source, bash]
+----
+GRID_HOME=/u01/app/26ai/grid
+sudo -u grid tee "$GRID_HOME/network/admin/listener.ora" >/dev/null <<'EOF'
+LISTENER =
+  (DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = oracdb2.example.internal)(PORT = 1521)))
+
+SID_LIST_LISTENER =
+  (SID_LIST =
+    (SID_DESC = (GLOBAL_DBNAME = orcls)        (ORACLE_HOME = /u01/app/oracle/product/26ai/db_1) (SID_NAME = orcls))
+    (SID_DESC = (GLOBAL_DBNAME = orcls_DGMGRL) (ORACLE_HOME = /u01/app/oracle/product/26ai/db_1) (SID_NAME = orcls)))
+EOF
+----
+. 通过两台主机上的 Oracle Restart 重新启动监听器，并验证  `_DGMGRL` 服务是否已注册：
++
+[source, bash]
+----
+sudo -u grid bash -c '
+export GRID_HOME=/u01/app/26ai/grid
+export ORACLE_HOME=$GRID_HOME
+$GRID_HOME/bin/srvctl stop listener
+$GRID_HOME/bin/srvctl start listener
+$GRID_HOME/bin/lsnrctl status
+'
+----
++
+`lsnrctl status` 必须列出  `<SID>` 和  `<SID>_DGMGRL`。
+
+
+
+
+
+== 步骤 2：准备备用 pfile 和 NOMOUNT
+
+通过从主数据库复制密码文件、使用 Data Guard 参数创建最小 init.ora pfile 并以 NOMOUNT 模式启动实例来准备备用数据库实例。
+
+. 使用 IAP 和 `gcloud compute scp`将主密码文件复制到备用主机：
++
+[source, bash]
+----
+PRIMARY_ZONE=us-west1-a       # zone of oracdb1
+STANDBY_ZONE=us-west1-b       # zone of oracdb2
+
+gcloud compute scp \
+  oracdb1:/u01/app/oracle/product/26ai/db_1/dbs/orapworcl ./orapworcl \
+  --zone=$PRIMARY_ZONE --tunnel-through-iap
+
+gcloud compute scp \
+  ./orapworcl oracdb2:/u01/app/oracle/product/26ai/db_1/dbs/orapworcls \
+  --zone=$STANDBY_ZONE --tunnel-through-iap
+----
+. 从主数据库查询 `compatible`参数值：
++
+[source, bash]
+----
+# On oracdb1
+sudo -u oracle sqlplus -s / as sysdba \
+  <<<"SELECT value FROM v\$parameter WHERE name='compatible';"
+----
+. 在  `oracdb2` 上创建备用 pfile，设置密码文件的所有权，并在 NOMOUNT 模式下启动实例。将上一步中的  `compatible` 值替换为  `<COPY_FROM_PRIMARY>`：
++
+[source, bash]
+----
+sudo -u oracle mkdir -p /u01/app/oracle/admin/orcls/adump
+sudo chown oracle:oinstall /u01/app/oracle/product/26ai/db_1/dbs/orapworcls
+sudo chmod 0600 /u01/app/oracle/product/26ai/db_1/dbs/orapworcls
+
+sudo -u oracle tee /u01/app/oracle/product/26ai/db_1/dbs/initorcls.ora >/dev/null <<'EOF'
+*.db_name='orcl'
+*.db_unique_name='orcls'
+*.audit_file_dest='/u01/app/oracle/admin/orcls/adump'
+*.diagnostic_dest='/u01/app/oracle'
+*.compatible='<COPY_FROM_PRIMARY>'
+*.sga_target=3072m
+*.pga_aggregate_target=1024m
+*.processes=320
+*.remote_login_passwordfile='EXCLUSIVE'
+*.standby_file_management='AUTO'
+*.fal_server='orcl'
+*.log_archive_config='DG_CONFIG=(orcl,orcls)'
+*.log_archive_dest_1='LOCATION=+RECO VALID_FOR=(ALL_LOGFILES,ALL_ROLES) DB_UNIQUE_NAME=orcls'
+*.log_archive_dest_2='SERVICE=orcl AFFIRM SYNC VALID_FOR=(ONLINE_LOGFILES,PRIMARY_ROLE) DB_UNIQUE_NAME=orcl'
+*.log_archive_dest_state_2='DEFER'
+*.log_archive_format='%t_%s_%r.arc'
+*.dg_broker_start=TRUE
+*.undo_tablespace='UNDOTBS1'
+*.open_cursors=300
+*.db_create_file_dest='+DATA'
+*.db_create_online_log_dest_1='+DATA'
+*.db_recovery_file_dest='+FRA'
+*.db_recovery_file_dest_size=25000m
+EOF
+
+echo "orcls:/u01/app/oracle/product/26ai/db_1:N" | sudo tee -a /etc/oratab
+
+sudo -u oracle bash -c '
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export ORACLE_SID=orcls
+sqlplus / as sysdba <<SQL
+STARTUP NOMOUNT PFILE=/u01/app/oracle/product/26ai/db_1/dbs/initorcls.ora;
+EXIT
+SQL
+'
+----
++
+备用实例现在处于 NOMOUNT 模式，在 <<gcnv-standby-initialization,步骤 3：使用 GCNV 初始化备用存储>> 之前没有数据文件。
+
+
+
+
+
+== 步骤 3：使用 GCNV 初始化备用存储
+
+在 `oracle-pool-b`中植入备用卷，将其连接到 `oracdb2`，挂载 ASM 磁盘组，并在 MOUNT 状态下完成备用实例的配置。
+
+使用 GCNV 复制进行生产播种，并使用快照播种进行一次性实验室工作流程。
+
+
+
+=== 选择种子路径
+
+根据您的环境和恢复要求选择备用播种方法。
+
+* *推荐用于生产：* 使用 <<create-volume-replications,复制路径：创建和同步复制>> 和 <<cutover-quiesce-stop-repl-attach,复制路径：切换并连接备用卷>> 中的复制路径。
+* *实验室替代方案：* 使用 <<snapshot-seed,备用路径：来自 Snapshot 的种子>>。
+
+
+所有路径在 <<standby-iscsi-and-asm-before-rman,挂载备用 ASM 磁盘组>> 和 <<oracle-finalize,完成备用实例>> 处重新汇合。
+
+
+
+=== 检查先决条件
+
+在播种备用卷之前，请确认以下先决条件。
+
+* `gcloud netapp` 支持卷复制。
+* 两个 *Default-mode* 池位于不同位置 (`oracle-pool-a`, `oracle-pool-b`)。
+* 连接到 `oracdb1-hg`的主池上的源卷；通过复制创建的目标卷。
+* 从 Cloud Shell 或工作站运行复制，而不是从 DB VM。
+* 在 `oracdb2`上，从 xref:gcnv-oracle-provision-storage.adoc#configure-iscsi-and-multipath[第 4 步]、xref:gcnv-oracle-provision-storage.adoc#partition-asm-backing-devices[第 5 步] 和 xref:gcnv-oracle-provision-storage.adoc#format-and-mount-u01[第 6 步] 完成 iSCSI 和 ASM 主机设置。
++
+[source, bash]
+----
+export PROJECT=<your-gcp-project>
+export LOC_A=us-west1-a
+export LOC_B=us-west1-b
+export DEST_POOL="projects/${PROJECT}/locations/${LOC_B}/storagePools/oracle-pool-b"
+----
+* 如有需要，创建备用池：
++
+[source, bash]
+----
+gcloud netapp storage-pools create oracle-pool-b \
+  --project="${PROJECT}" --location="${LOC_B}" \
+  --service-level=flex --type=unified --mode=default \
+  --capacity=1024 --network=name=<your-vpc>
+----
+
+
+
+
+=== 创建和同步复制
+
+创建从主卷到备用卷的复制关系，然后等待初始同步完成。
+
+[source, bash]
+----
+gcloud netapp volumes replications create repl-oracdb2-data \
+  --project="${PROJECT}" --location="${LOC_A}" --volume=oracdb1_data \
+  --replication-schedule=EVERY_10_MINUTES \
+  --destination-volume-parameters="storage_pool=${DEST_POOL},volume_id=oracdb2_data,share_name=oracdb2_data"
+
+gcloud netapp volumes replications create repl-oracdb2-reco \
+  --project="${PROJECT}" --location="${LOC_A}" --volume=oracdb1_reco \
+  --replication-schedule=EVERY_10_MINUTES \
+  --destination-volume-parameters="storage_pool=${DEST_POOL},volume_id=oracdb2_reco,share_name=oracdb2_reco"
+----
++
+
+等待，直到 `mirrorState`为 `MIRRORED`，且每个复制的初始同步完成。
+
+
+
+=== 切换并连接备用卷
+
+使主卷静默，在最终同步后停止复制，并将目标卷附加到备用主机组。
+
+在主节点上，暂停写入并捕获恢复元数据：
+
+[source]
+----
+ALTER DATABASE BEGIN BACKUP;
+SELECT CURRENT_SCN FROM V$DATABASE;
+ALTER DATABASE CREATE STANDBY CONTROLFILE AS '/tmp/orcls_stby.ctl';
+----
+允许最后一个复制周期，然后停止复制：
+
+[source, bash]
+----
+gcloud netapp volumes replications stop repl-oracdb2-data \
+  --project="${PROJECT}" --location="${LOC_A}" --volume=oracdb1_data --force
+
+gcloud netapp volumes replications stop repl-oracdb2-reco \
+  --project="${PROJECT}" --location="${LOC_A}" --volume=oracdb1_reco --force
+----
+将目标卷附加到 `oracdb2-hg`（复制的 LUN 可能保留源名称）：
+
+[source, bash]
+----
+HG=$(gcloud netapp host-groups describe oracdb2-hg --project="${PROJECT}" \
+  --location=us-west1 --format='value(name)')
+
+gcloud netapp volumes update oracdb2_data --project="${PROJECT}" --location="${LOC_B}" \
+  --block-devices="name=oracdb1_data_lun,host-groups=${HG},os-type=LINUX"
+----
+将备用控制文件复制到 `oracdb2`，然后结束主数据库的备份模式：
+
+[source]
+----
+ALTER DATABASE END BACKUP;
+----
+
+
+=== 从 Snapshot 创建种子
+
+当不需要持续复制时，请使用此路径进行一次性实验室数据初始化。
+
+对于一次性实验室种子，请创建源快照，并在 `oracle-pool-b`（Cloud Console 或 API）中从该快照创建备用卷。将创建的卷附加到 `oracdb2-hg`，然后继续<<standby-iscsi-and-asm-before-rman,挂载备用 ASM 磁盘组>>。
+
+
+
+=== 挂载备用 ASM 磁盘组
+
+在备用主机上，在数据库恢复前发现连接的存储路径并挂载 ASM 磁盘组。
+
+在 `oracdb2`上，登录到备用池 iSCSI 门户并重新扫描多路径设备。如果 ASM 磁盘标头与实验室工作流程中的主命名匹配，请使用主样式别名（例如 `ora_oracdb1_data_01`， `ora_oracdb1_arch_01`），设置 `asm_diskstring='/dev/mapper/ora_oracdb1_*p*'`，并确认分区所有权为 `grid:asmadmin`，然后挂载磁盘组：
+
+[source]
+----
+ALTER DISKGROUP DATA MOUNT FORCE;
+ALTER DISKGROUP RECO MOUNT FORCE;
+ALTER DISKGROUP FRA MOUNT FORCE;
+----
+
+
+=== 完成备用实例
+
+还原备用控制文件，恢复到捕获的 SCN，转换为物理备用，并启动托管恢复。
+
+[source]
+----
+STARTUP NOMOUNT;
+RESTORE STANDBY CONTROLFILE FROM '/tmp/orcls_stby.ctl';
+ALTER DATABASE MOUNT;
+RECOVER DATABASE UNTIL SCN <quiesce_scn>;
+ALTER DATABASE CONVERT TO PHYSICAL STANDBY;
+SHUTDOWN IMMEDIATE;
+STARTUP MOUNT;
+ALTER DATABASE RECOVER MANAGED STANDBY DATABASE DISCONNECT FROM SESSION;
+----
+此时，待机状态应为 `PHYSICAL STANDBY`并且 `MOUNTED`已启动托管恢复。
+
+*特定层级的后续步骤：*
+
+* *Prod HA（无 Data Guard）：* 直接继续 <<register-standby-with-oracle-restart,步骤 4：向 Oracle Restart 注册备用数据库>>。
+* *Prod HA (Data Guard + FSFO):* 继续<<register-standby-with-oracle-restart,步骤 4：向 Oracle Restart 注册备用数据库>>，然后继续xref:gcnv-oracle-standby-finalize-dg.adoc[Data Guard 最终确定步骤]。
+
+
+
+
+== 步骤 4：向 Oracle Restart 注册备用数据库
+
+向 Oracle Restart 注册备用数据库，以便重新启动会自动恢复 ASM 磁盘组、挂载备用数据库并重新启动托管恢复。还将应用程序服务添加到两个数据库资源。
+
+. 从备用数据库捕获 spfile 位置，并将其注册到 Oracle Restart `oracdb2`。替换查询中的 `<STANDBY_SPFILE_PATH>`（通常在 `+DATA`下）：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+export ORACLE_SID=orcls
+sqlplus -s / as sysdba <<< "SHOW PARAMETER spfile;"
+'
+
+sudo -u oracle bash -c '
+export GRID_HOME=/u01/app/26ai/grid
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+
+srvctl add database \
+  -db orcls \
+  -dbname orcl \
+  -oraclehome /u01/app/oracle/product/26ai/db_1 \
+  -spfile <STANDBY_SPFILE_PATH> \
+  -pwfile /u01/app/oracle/product/26ai/db_1/dbs/orapworcls \
+  -role PHYSICAL_STANDBY \
+  -startoption MOUNT \
+  -stopoption IMMEDIATE \
+  -diskgroup DATA,RECO,FRA
+
+srvctl config database -db orcls
+srvctl status database -db orcls
+'
+----
+. 验证并更新  `oracdb1` 上的主数据库资源，以包括所有 ASM 磁盘组依赖项：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+export GRID_HOME=/u01/app/26ai/grid
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+srvctl config database -db orcl
+srvctl modify database -db orcl -diskgroup DATA,RECO,FRA
+srvctl config database -db orcl
+'
+----
+. 将应用服务添加到备用数据库资源 (`orcls` 上 `oracdb2`）。在两侧使用  `role PRIMARY`，以便切换后  `orclapp` 可用：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+export GRID_HOME=/u01/app/26ai/grid
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+
+srvctl add service \
+  -db orcls \
+  -service orclapp \
+  -pdb orclpdb \
+  -role PRIMARY \
+  -policy AUTOMATIC
+
+srvctl config service -db orcls -service orclapp
+'
+----
+. 验证以下位置的备用数据库资源 `oracdb2`：
++
+[source, bash]
+----
+sudo -u oracle bash -c '
+export GRID_HOME=/u01/app/26ai/grid
+export ORACLE_HOME=/u01/app/oracle/product/26ai/db_1
+export PATH=$ORACLE_HOME/bin:$GRID_HOME/bin:$PATH
+srvctl status database -db orcls
+'
+----
+
+
+
+
+== 下一步是什么？
+
+*特定层级：*
+
+* *Prod HA（无 Data Guard）：* 要维护基于存储复制的恢复目标，备用初始化已完成，备用数据库已向 Oracle Restart 注册为备份实例。
+* *Prod HA (Data Guard + FSFO):* 要启用代理管理的切换和快速启动故障转移，请继续 xref:gcnv-oracle-standby-finalize-dg.adoc[完成 Data Guard 的备用数据库]。
+

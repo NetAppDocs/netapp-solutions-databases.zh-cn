@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar 
 permalink: dbops/hybrid-dbops-snapcenter-devtest.html 
-summary: 公共云的敏捷性、价值实现时间、成本节省都是企业采用公共云进行数据库应用程序开发和测试工作的有意义的价值主张。没有比SnapCenter更好的工具可以快速实现这一目标。 SnapCenter不仅可以保护您的本地生产数据库，还可以快速克隆副本以用于公共云中的应用程序开发或代码测试，同时仅消耗很少的额外存储空间。以下是使用该工具的逐步过程的详细信息。 
-keywords: hybrid cloud, database, solutions, dev/test, workflow 
+summary: 对于采用公有云进行数据库应用程序开发和测试的企业来说，公有云的敏捷性、实现价值的时间和成本节约都是有意义的价值主张。 
+keywords: hybrid cloud, database, solutions, devtest, workflow 
 ---
-= 开发/测试爆发至云端的工作流程
+= 开发测试突发到云的工作流程
 :hardbreaks:
 :allow-uri-read: 
 :nofooter: 

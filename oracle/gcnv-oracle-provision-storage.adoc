@@ -1,0 +1,293 @@
+---
+sidebar: sidebar 
+permalink: oracle/gcnv-oracle-provision-storage.html 
+keywords: oracle database, google cloud netapp volumes, gcnv, iscsi, multipath, asm, storage pool, host group, iSCSI initiator 
+summary: 在 Google Compute Engine 上为 Oracle Database 26ai 高可用性配置 Google Cloud NetApp Volumes iSCSI 存储。此过程包括创建 Flex Unified 存储池、定义主机组、为每个数据库主机创建 iSCSI 卷、配置 Linux iSCSI 和多路径、对 ASM 备份设备进行分区以及挂载 /u01 文件系统。 
+---
+= 为 Oracle Database 26ai 预配 Google Cloud NetApp Volumes iSCSI 存储
+:allow-uri-read: 
+:icons: font
+:imagesdir: ../media/
+
+
+[role="lead"]
+在 Google Compute Engine 上为 Oracle Database 26ai 高可用性配置 Google Cloud NetApp Volumes iSCSI 块存储。此过程包括创建 GCNV Flex Unified 存储池、定义主机组、为每个数据库主机创建 iSCSI 卷、配置 Linux iSCSI 和多路径、对 ASM 后备设备进行分区以及挂载 `/u01`文件系统。
+
+
+
+== 步骤 1：创建 GCNV iSCSI 池
+
+创建两个 Flex Unified 存储池，每个数据库区域一个，为主主机和备用主机提供 iSCSI 卷。每个数据库主机都使用其本地区域池中的卷。
+
+. 使用 Cloud Console 创建两个存储池。使用下表中的规格，并为每个区域重复创建过程：
++
+[cols="1,1,2"]
+|===
+| 池名称 | 分区 | 使用者 
+
+
+| `oracle-pool-a` | `us-west1-a` | `oracdb1` (主要) 
+
+
+| `oracle-pool-b` | `us-west1-b` | `oracdb2`（待机） 
+|===
++
+*NetApp Volumes → Storage pools → Create* 为每个池：
+
++
+** *服务级别：* Flex（非 Premium）
+** *类型：* 统一
+** *区域：* 匹配数据库 VM 区域 (`us-west1-a` / `us-west1-b`)
+** *PSA：* 连接到 `oracle-vpc`
+** *容量：*针对工作负载进行大小调整；当重做、备份或还原超过默认余量时，使用自定义配置的吞吐量/IOPS（每个池高达 5120 MiB/s 或 160K IOPS，每个产品限制）
+
+
+. 请等待两个池都达到 `READY`状态后再继续。将池大小调整为与数据库占用空间匹配（<<create-gcnv-iscsi-volumes,步骤 3：创建 GCNV iSCSI 卷>>中的大小仅为示例）：
++
+[NOTE]
+====
+*默认模式（本指南）：* Flex 统一池使用默认模式 (`--mode=default`）。使用 Cloud Console 或  `gcloud netapp` 创建池和 iSCSI 卷。卷复制、快照和克隆使用 Google Cloud API （xref:gcnv-oracle-standby-database.adoc#gcnv-standby-initialization[步骤 3：GCNV 待机初始化]）。
+
+====
+
+
+
+
+== 步骤 2：创建主机组
+
+为每个数据库主机创建一个主机组，以便每个虚拟机只能看到自己的卷。主节点和备用主机不得共享 GCNV iSCSI 卷，以维护独立存储。
+
+. 使用 Cloud Console 为 `oracdb1`创建主机组：
++
+*NetApp 卷 → 主机组 → 创建*
+
++
+** *名称：* `oracdb1-hg`
+** *区域：* `us-west1`
+** *类型：* iSCSI 启动程序
+** *OS 类型:* Linux
+** *主机：* 粘贴来自  `oracdb1` 的 IQN（ `/etc/iscsi/initiatorname.iscsi` 的值）
+** *描述：* "Oracle 主主机 oracdb1"
+** *创建*
+
+
+. 对 `oracdb2`重复此过程，使用名称 `oracdb2-hg`和 `oracdb2` 的 IQN。Observer 主机不需要 GCNV 资源。
+
+
+
+
+== 步骤 3：创建 GCNV iSCSI 卷
+
+为每个数据库主机创建五个 GCNV iSCSI 卷：一个用于 `/u01`，四个用于 ASM 后备设备。每个主机的卷必须在其本地区域的存储池中使用其对应的主机组创建。
+
+. 在  `oracle-pool-a` 中为  `oracdb1` 创建五个卷，主机组为  `oracdb1-hg`。请使用下表中的规范：
++
+[cols="2,1,3,2"]
+|===
+| GCNV iSCSI 卷 | 大小 | 用途 | 多路径别名 
+
+
+| `ora_<host>_u01` | 100 GiB | `/u01` GCNV iSCSI 卷 — 网格/Oracle 主目录，暂存 | `/dev/mapper/ora_<host>_u01` 
+
+
+| `ora_<host>_data_01` | 50 GiB | ASM `+DATA` | `/dev/mapper/ora_<host>_data_01` 
+
+
+| `ora_<host>_data_02` | 50 GiB | ASM `+DATA` (条纹) | `/dev/mapper/ora_<host>_data_02` 
+
+
+| `ora_<host>_arch_01` | 100 GiB | ASM `+RECO` | `/dev/mapper/ora_<host>_arch_01` 
+
+
+| `ora_<host>_fra_01` | 100 GiB | ASM `+FRA` | `/dev/mapper/ora_<host>_fra_01` 
+|===
++
+卷名：仅限字母、数字、下划线（无连字符）。
+
++
+[NOTE]
+====
+*最小布局（仅验证）：*每个主机两个 LUN (`*_data`, `*_reco`) with `arch_01p1`→`+RECO` and `arch_01p2`→`+FRA` 对于实验室是可接受的；生产环境每个 <<create-gcnv-iscsi-volumes,步骤 3：创建 GCNV iSCSI 卷>> 使用五个卷。
+
+====
+. 使用相同的规范为 `oracdb2`中 `oracle-pool-b`与主机组 `oracdb2-hg`创建五个卷。对于每个池，使用 *NetApp Volumes → Volumes → Create* — iSCSI，正确的池和主机组，Linux。记录以下信息：
++
+** iSCSI 门户 IP → `<ISCSI_PORTAL_1>`， `<ISCSI_PORTAL_2>`（主池门户位于 `oracdb1`；备用池门户位于 `oracdb2`——它们可能不同）
+** 来自 Cloud Console 的卷序列 — 与主机发现的 WWID 一起使用 <<configure-iscsi-and-multipath,步骤 4：为 GCNV iSCSI 卷配置 Linux iSCSI 和多路径>>
+
+
+
+
+
+
+== 步骤 4：配置 iSCSI 和多路径
+
+在每个数据库主机上配置 iSCSI 和 device-mapper-multipath，以通过两个存储门户 IP 访问 GCNV 卷。在 `oracdb1`上使用主池的门户 IP 运行这些步骤，然后在 `oracdb2`上使用备用池的门户 IP 重复这些步骤。如果主机出口受到限制，请允许 TCP/3260 从每个数据库虚拟机到其 GCNV iSCSI 门户 IP（除了来自xref:gcnv-oracle-provision-compute.adoc#vpc-firewall-allow-1521[步骤 2：VPC 防火墙 — 跨所有三个区域的允许列表 TCP/1521]的虚拟机间 TCP/1521）。
+
+. 发现目标、登录并持久化节点启动：
++
+[source, bash]
+----
+sudo iscsiadm --mode discovery --op update --type sendtargets --portal <ISCSI_PORTAL_1>
+sudo iscsiadm --mode discovery --op update --type sendtargets --portal <ISCSI_PORTAL_2>
+sudo iscsiadm --mode node --op update --name node.startup --value automatic
+sudo iscsiadm --mode node -l all
+sudo systemctl enable --now iscsid iscsi multipathd
+sudo iscsiadm --mode session         # expect 10 sessions (5 GCNV iSCSI volumes × 2 portals)
+sudo lsblk -o NAME,SIZE,WWN,VENDOR,MODEL
+----
++
+重新启动后，在启动 Oracle 之前重新检查：
+
++
+[source, bash]
+----
+sudo iscsiadm --mode session
+sudo multipath -ll
+----
+. 使用默认值和黑名单规则配置 `device-mapper-multipath`：
++
+[source, bash]
+----
+sudo tee /etc/multipath.conf >/dev/null <<'EOF'
+defaults {
+    find_multipaths     yes
+    user_friendly_names yes
+}
+blacklist {
+    devnode "^(ram|raw|loop|fd|md|dm-|sr|scd|st)[0-9]*"
+    devnode "^hd[a-z]"
+    devnode "^cciss.*"
+}
+EOF
+
+sudo systemctl enable --now multipathd
+sudo multipath -ll
+----
+. 将主机发现的 WWID 别名添加到 `/etc/multipath.conf`（不要猜测— `multipath.conf` *不*展开 shell 变量）。发现 WWID：
++
+[source, bash]
+----
+sudo multipath -ll
+for dev in /dev/sd*; do
+  [ -b "$dev" ] || continue
+  printf '%s: ' "$dev"
+  sudo /usr/lib/udev/scsi_id --whitelisted --device="$dev" 2>/dev/null || true
+  echo
+done
+----
++
+将该主机的具体别名附加到 `/etc/multipath.conf`，然后 `sudo systemctl restart multipathd`。
+
++
+在 `oracdb1`上，追加：
+
++
+[source]
+----
+multipaths {
+    multipath { wwid <host-discovered-wwid-for-u01>      alias ora_oracdb1_u01     }
+    multipath { wwid <host-discovered-wwid-for-data-01>  alias ora_oracdb1_data_01 }
+    multipath { wwid <host-discovered-wwid-for-data-02>  alias ora_oracdb1_data_02 }
+    multipath { wwid <host-discovered-wwid-for-arch-01>  alias ora_oracdb1_arch_01 }
+    multipath { wwid <host-discovered-wwid-for-fra-01>   alias ora_oracdb1_fra_01  }
+}
+----
++
+在 `oracdb2`上，对 `ora_oracdb2_*`别名使用相同的模式，然后：
+
++
+[source, bash]
+----
+sudo systemctl restart multipathd
+ls -l /dev/mapper/ora_$(hostname -s)_*
+----
+
+
+
+
+== 第 5 步：对 ASM 设备进行分区
+
+对四个 ASM 后备设备（不包括 `u01`）进行分区，每个设备配置一个 GPT 分区供 ASM 使用，然后为 grid 所有权配置 udev 规则。在每个数据库主机上运行这些步骤。
+
+. 使用 GPT 对四个 ASM 备用设备进行分区，并验证分区：
++
+[source, bash]
+----
+HOST=$(hostname -s)        # oracdb1 on the primary, oracdb2 on the standby
+for dev in /dev/mapper/ora_${HOST}_data_01 \
+           /dev/mapper/ora_${HOST}_data_02 \
+           /dev/mapper/ora_${HOST}_arch_01 \
+           /dev/mapper/ora_${HOST}_fra_01; do
+  sudo parted -s "$dev" mklabel gpt
+  sudo parted -s "$dev" mkpart primary 0% 100%
+done
+sudo partprobe
+sudo systemctl reload multipathd
+ls /dev/mapper/ora_${HOST}_*p1     # expect 4 partitions
+----
+. 配置 udev 规则以分配 grid 所有权并触发更改：
++
+[source, bash]
+----
+HOST=$(hostname -s)
+sudo tee /etc/udev/rules.d/99-oracle-asm.rules >/dev/null <<'EOF'
+KERNEL=="dm-*", ENV{DM_UUID}=="part?-mpath-*", ENV{DM_NAME}=="ora_oracdb*_*p?", \
+    OWNER="grid", GROUP="asmadmin", MODE="0660"
+EOF
+
+sudo udevadm control --reload-rules
+for part in /dev/mapper/ora_${HOST}_*p1; do
+  dm=$(readlink -f "$part" | xargs basename)
+  sudo udevadm trigger --action=change --name-match="/dev/${dm}"
+done
+sudo udevadm settle
+ls -lL /dev/mapper/ora_${HOST}_*p1    # grid:asmadmin 0660
+----
+
+
+
+
+== 第6步：格式化和挂载 `/u01`
+
+使用 XFS 格式化 `ora_<host>_u01` GCNV 卷，并使用 `/etc/fstab`中的 UUID 将其永久挂载。 `/u01`文件系统保存 Grid home、Oracle home 和暂存文件。
+
+. 使用 XFS 格式化多路径设备并捕获其 UUID：
++
+[source, bash]
+----
+HOST=$(hostname -s)
+U01_DEV=/dev/mapper/ora_${HOST}_u01
+ls -l "$U01_DEV"
+
+sudo mkfs.xfs -f "$U01_DEV"
+U01_UUID=$(sudo blkid -s UUID -o value "$U01_DEV")
+----
+. 将基于 UUID 的挂载条目添加到 `/etc/fstab`并挂载文件系统：
++
+[source, bash]
+----
+sudo mkdir -p /u01
+echo "UUID=${U01_UUID} /u01 xfs defaults,_netdev,nofail,x-systemd.requires=iscsi.service,x-systemd.requires=multipathd.service,x-systemd.after=iscsi.service,x-systemd.after=multipathd.service 0 0" | sudo tee -a /etc/fstab
+sudo mount -a
+----
+. 为 Grid 和 Oracle 软件创建具有适当所有权的目录结构：
++
+[source, bash]
+----
+sudo mkdir -p /u01/app/oraInventory /u01/app/26ai/grid /u01/app/grid \
+  /u01/app/oracle/product/26ai/db_1 /u01/stage
+sudo chown -R grid:oinstall /u01/app/oraInventory /u01/app/26ai /u01/app/grid
+sudo chown -R oracle:oinstall /u01/app/oracle /u01/stage
+sudo chmod -R 775 /u01/app /u01/stage
+----
++
+重新启动一次并确认  `/u01` 挂载在 xref:gcnv-oracle-install-software.adoc[安装 Oracle 软件] 之前。
+
+
+
+
+
+== 下一步是什么？
+
+要在准备好的主机上安装 Oracle Grid Infrastructure 和 Database 二进制文件，请转到两台主机上的 xref:gcnv-oracle-install-software.adoc[安装 Oracle Grid Infrastructure 和 Oracle Database 软件]。
