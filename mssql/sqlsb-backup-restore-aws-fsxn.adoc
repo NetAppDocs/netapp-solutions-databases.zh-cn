@@ -622,9 +622,9 @@ image:sqlsb-aws-093.png["该图显示输入/输出对话框或表示书面内容
 
 要了解有关本文档中描述的信息的更多信息，请查看以下文档和/或网站：
 
-* https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf["TR-4714：使用NetApp SnapCenter 的Microsoft SQL Server 最佳实践指南"^]
+* https://www.netapp.com/pdf.html?item=/media/12400-tr4714.pdf["TR-4714：使用NetApp SnapCenter 的Microsoft SQL Server 最佳实践指南"^]
 +
-https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf["https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf"^]
+https://www.netapp.com/pdf.html?item=/media/12400-tr4714.pdf["https://www.netapp.com/pdf.html?item=/media/12400-tr4714pdf.pdf"^]
 
 * https://docs.netapp.com/us-en/snapcenter-45/protect-scsql/concept_requirements_for_restoring_a_database.html["恢复数据库的要求"^]
 +

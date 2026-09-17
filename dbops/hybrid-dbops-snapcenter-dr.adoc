@@ -186,4 +186,4 @@ image:snapctr-sql-dr-012.png["该图显示输入/输出对话框或表示书面�
 [[where-to-go-for-help]]
 == 去哪里寻求帮助？
 
-如果您需要有关此解决方案和用例的帮助，请加入link:https://netapppub.slack.com/archives/C021R4WC0LC["NetApp解决方案自动化社区支持 Slack 频道"]并寻找解决方案自动化渠道来发布您的问题或询问。
+如果您需要有关工具包的帮助，请访问 link:https://community.netapp.com/["NetApp 社区"^] 并发布您的问题。
