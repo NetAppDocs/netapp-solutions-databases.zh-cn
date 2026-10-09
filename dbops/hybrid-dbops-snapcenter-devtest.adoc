@@ -153,10 +153,3 @@ image:snapctr-sql-clone-010.png["该图显示输入/输出对话框或表示书�
 . 删除克隆的数据库并清理云数据库服务器环境。然后按照前面的步骤克隆一个包含新数据的新数据库。克隆一个新数据库只需要几分钟。
 . 关闭克隆数据库，使用 CLI 运行克隆刷新命令。有关详细信息，请参阅以下SnapCenter文档：link:https://docs.netapp.com/us-en/snapcenter/protect-sco/task_refresh_a_clone.html["刷新克隆"^] 。
 
-
-
-
-[[where-to-go-for-help]]
-== 去哪里寻求帮助？
-
-如果您需要有关此解决方案和用例的帮助，请加入link:https://netapppub.slack.com/archives/C021R4WC0LC["NetApp解决方案自动化社区支持 Slack 频道"]并寻找解决方案自动化渠道来发布您的问题或询问。
