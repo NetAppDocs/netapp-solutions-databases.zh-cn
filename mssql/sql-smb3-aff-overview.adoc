@@ -1,0 +1,115 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-smb3-aff-overview.html 
+keywords: Microsoft SQL server, SMB 3, AFF, ONTAP, continuous availability 
+summary: SQL Server 2025 可以将数据库存储在运行 ONTAP 的 NetApp AFF 系统上的 SMB 3 持续可用共享上。了解优势、解决方案组件、设计原则，以及持续可用性如何在控制器故障转移期间使数据库保持在线。 
+---
+= 了解具有 SMB 3 持续可用性的 NetApp AFF 上的 SQL Server 2025
+:allow-uri-read: 
+:icons: font
+:experimental: 
+:nofooter: 
+:source-highlighter: highlight.js
+:svm: a50-sql
+:host: sql-1
+:svc-account: SAPCC\sql1admin
+:imagesdir: ../media/
+
+
+[role="lead"]
+SQL Server 2025 可以将数据库存储在运行 ONTAP 的 NetApp AFF 系统上的 SMB 3 持续可用（CA）共享上。了解此配置的优势、解决方案组件和设计原则，以及持续可用性如何在控制器故障转移期间使数据库保持在线。
+
+自 SQL Server 2012 以来，Microsoft SQL Server 一直支持将数据库文件放置在 SMB 文件共享上。借助 SMB 3 连续可用（CA）共享，文件共享是 SQL Server 数据库支持的存储选项，也是块存储（iSCSI 或 FCP LUN）的替代方案。
+
+AFF 全闪存系统上的 ONTAP 原生实现 SMB 3。结合 SQL Server 2025 和 Windows Server 2025，这提供了一种与 NetApp 数据保护相集成的容错存储架构。
+
+要部署此配置，请参见 link:sql-smb3-aff.html["使用 SMB 3 持续可用共享在 NetApp AFF 上部署 SQL Server 2025"]。
+
+
+
+[[benefits-of-sql-server-on-smb-3-with-netapp-ontap]]
+[[why]]
+== 采用 NetApp ONTAP 在 SMB 3 上运行 SQL Server 的优势
+
+[cols="1,3"]
+|===
+| 优势 | 说明 
+
+
+| 简单配置 | 没有要管理的 LUN、igroup、MPIO、磁盘初始化或驱动器号。数据库文件位置只是 UNC 路径，例如 `+\\a50-sql\sql1_data+`。 
+
+
+| 联机容量管理 | 您在 ONTAP 中在线扩展（或缩小）卷，SQL Server 会立即看到新容量。不需要 Windows 磁盘或分区操作，自动增长功能可以自动执行此操作。 
+
+
+| 无中断操作 | CA 共享在 ONTAP 接管/交还、无中断升级（NDU）、LIF 迁移和卷移动期间保持 SQL Server 运行。 
+
+
+| 性能和故障恢复能力 | SMB 多通道将 I/O 分布在多个网络路径和 NIC 上，并在单个路径丢失的情况下继续运行。SMB 共享还支持 SQL Server 故障转移群集实例（FCI）。 
+
+
+| 存储效率 | 实时重复数据删除、数据压缩和数据压实，再加上精简资源调配，减少了数据库和备份使用的物理容量。 
+
+
+| 集成数据保护 | ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由 NetApp SnapCenter 编排，可在几秒钟内提供备份，在几分钟内完成恢复，并提供即时数据库克隆。 
+
+
+| 灵活性 | 只需将数据库附加到另一台服务器上，即可在主机之间移动数据库，而无需重新映射存储。同一个 SVM 还可以为主目录、文件服务或其他应用程序提供服务。 
+|===
+
+
+[[solution-components]]
+[[architecture]]
+== 解决方案组件
+
+解决方案包括以下组件：
+
+[cols="1,3"]
+|===
+| 组件 | 角色 
+
+
+| Windows Server 2025 主机 (`{host}`） | 运行 SQL Server 2025。SQL Server 二进制文件和系统数据库位于本地磁盘上；通过 SMB 3 访问所有用户数据库、日志、TempDB 和备份。 
+
+
+| SQL Server 2025 | 数据库引擎，在有权访问 SMB 共享的域服务帐户 (`{svc-account}`）下运行。 
+
+
+| Active Directory 和 DNS | 对 SQL Server 服务帐户和 CIFS 服务器（Kerberos）进行身份验证，并提供名称解析和时间同步。 
+
+
+| NetApp AFF A50 HA 对 | 两个具有共享 NVMe 存储的控制器。如果一个控制器发生故障或升级，配对控制器将接管其存储和网络接口。 
+
+
+| SVM `{svm}` | 专用、加入 Active Directory 的 CIFS 服务器，每个节点有一个 SMB 数据 LIF，托管四个具有 CA 共享的卷。 
+|===
+image::sql25_smb_bp_001.svg[解决方案架构：采用 NetApp AFF 的 SMB 3 CA 共享上的 SQL Server 2025]
+
+
+
+[[design-principles]]
+[[design]]
+== 设计原则
+
+该设计遵循 NetApp 针对 SQL Server over SMB 的最佳实践：
+
+* *每个文件类型单独的卷。*数据、事务日志、TempDB 和备份放置在单独的 FlexVol 卷和共享中。每个卷都可以有自己的大小、QoS、效率、快照和复制设置。TempDB 被排除在备份之外。
+* *卷分布在两个节点上。*数据和备份卷在节点 1 上，日志和 TempDB 卷在节点 2 上，因此两个控制器都可以执行有效工作。
+* *每个节点一个 SMB 数据 LIF。*主机始终具有指向拥有卷的节点的直接路径，SMB 多通道可以同时使用这两种路径。
+* *NTFS 安全样式和 CA 共享。*对于 ONTAP 上基于 SMB 的 SQL Server，这些是必需的。
+* *数据库卷上没有计划的 ONTAP 快照。*备份必须与应用程序一致；它们由 SnapCenter 创建。
+
+
+image::sql25_smb_bp_002.svg[存储布局：从 SQL Server 文件到 SMB 共享]
+
+
+
+[[how-continuous-availability-works]]
+[[ca]]
+== 持续可用性的工作原理
+
+使用标准 SMB 共享时，控制器故障转移会关闭打开的文件句柄。然后，SQL Server 会将受影响的数据库标记为可疑，并且必须手动恢复这些数据库。
+
+通过 CA 共享，ONTAP 会将打开的文件（持续句柄）的状态镜像到 HA 合作伙伴。在接管期间，故障节点的 SMB LIF 会迁移到合作伙伴。SQL Server 主机上的 SMB 3 客户端会自动重新连接并回收其句柄。SQL Server 只会看到几秒钟的短暂 I/O 暂停；数据库保持在线，并且不会丢失任何事务。这同样适用于计划内事件，例如 ONTAP 升级、交还、LIF 迁移和卷移动。
+
+image::sql25_smb_bp_003.svg[SMB 3 持续可用性如何保护 SQL Server]

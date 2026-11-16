@@ -169,6 +169,13 @@ sidebar:
     - title: 使用 Google Cloud NetApp Volumes 的 SQL Server Always On
       pdf-filename: 使用 Google Cloud NetApp Volumes 的 SQL Server Always On
       url: "/mssql/gcnv-sql-aoag-setup.html"
+    - title: 基于 NetApp AFF 的 SQL Server
+      pdf-filename: 基于 NetApp AFF 的 SQL Server
+      entries:
+      - title: 关于 NetApp AFF 上的 SQL Server 2025
+        url: "/mssql/sql-smb3-aff-overview.html"
+      - title: 在 NetApp AFF 上部署 SQL Server 2025
+        url: "/mssql/sql-smb3-aff.html"
     - title: 在 Windows 上使用 Clustered Data ONTAP 的SAP 与 Microsoft SQL Server
       pdf-filename: 在 Windows 上使用 Cluster Data ONTAP 的SAP 与 Microsoft SQL Server
       url: "/mssql/tr-4467.html"

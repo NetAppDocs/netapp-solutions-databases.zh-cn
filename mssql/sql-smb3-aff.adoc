@@ -1,0 +1,850 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-smb3-aff.html 
+keywords: Microsoft SQL server, SMB 3, AFF, ONTAP 
+summary: 在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统的 SMB 3 持续可用共享上。此过程包括配置 ONTAP SVM、卷和共享，安装 SQL Server，以及使用 SnapCenter 保护数据库。 
+---
+= 使用 SMB 3 持续可用共享在 NetApp AFF 上部署 SQL Server 2025
+:allow-uri-read: 
+:icons: font
+:experimental: 
+:nofooter: 
+:source-highlighter: highlight.js
+:cluster: SAPCC-A50-01-02
+:svm: a50-sql
+:cifs: A50-SQL
+:domain: SAPCC
+:fqdn-domain: sapcc.stl.netapp.com
+:host: sql-1
+:svc-account: SAPCC\sql1admin
+:imagesdir: ../media/
+
+
+[role="lead"]
+在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统的 SMB 3 持续可用共享上。此过程包括配置 ONTAP SVM、卷和共享，安装 SQL Server，以及使用 SnapCenter 保护数据库。
+
+
+
+[[scope]]
+[[intro-scope]]
+== 范围
+
+此过程在单个 Windows Server 2025 主机上部署独立的 SQL Server 2025 实例，并在 SMB 3 连续可用（CA）共享上部署用户数据库、事务日志、TempDB 和备份。相同的存储设计适用于 SQL Server 故障转移群集实例（FCI）和 Always On 可用性组，但不涵盖其特定于群集的配置。SQL Server 性能调整和规模估算也超出了范围。有关优势、解决方案组件、设计原则以及持续可用性工作原理的说明，请参阅 link:sql-smb3-aff-overview.html["了解具有 SMB 3 持续可用性的 NetApp AFF 上的 SQL Server 2025"]。
+
+
+
+[[audience]]
+[[intro-audience]]
+== 受众
+
+此过程用于：
+
+* *存储管理员*，负责配置 ONTAP 集群、SVM、卷和 SMB 共享。
+* *Windows 和 Active Directory 管理员*，负责准备 Windows Server 2025 主机、服务帐户和网络。
+* *数据库管理员*，负责安装和配置 SQL Server 2025 并设置备份和恢复。
+
+
+假设您具备 ONTAP System Manager、Windows Server 和 SQL Server 管理的基本知识。
+
+
+
+[[lab-environment]]
+[[overview]]
+== 实验室环境
+
+本过程中的屏幕截图是在以下实验室环境中截取的。将这些值替换为您所在环境的值。
+
+[cols="1,2"]
+|===
+| 组件 | 实验室中使用的值 
+
+
+| 存储系统 | NetApp AFF A50 HA 对，集群 `{cluster}`，ONTAP 9.19.1 
+
+
+| SVM | `{svm}` （CIFS 服务器名称 `{cifs}`） 
+
+
+| SMB 数据 LIF | 192.168.175.138（节点 1），192.168.175.139（节点 2） 
+
+
+| Active Directory 域 | `{domain}` (`{fqdn-domain}`) 
+
+
+| SQL Server 主机 | `{host}.{fqdn-domain}`，Windows Server 2025 数据中心（桌面体验） 
+
+
+| SQL 服务器 | SQL Server 2025 企业版（17.0.1000.7），默认实例 `MSSQLSERVER` 
+
+
+| SQL Server 服务帐户 | `{svc-account}` （域帐户） 
+|===
+[cols="1,1,1,2"]
+|===
+| 卷 / 共享 | 大小 | UNC 路径 | 内容 
+
+
+| `sql1_data` | 1024 GiB | `+\\a50-sql\sql1_data+` | 用户数据库数据文件 (`.mdf`， `.ndf`） 
+
+
+| `sql1_log` | 512 GiB | `+\\a50-sql\sql1_log+` | 用户数据库事务日志文件 (`.ldf`） 
+
+
+| `sql1_tempdb` | 500 GiB | `+\\a50-sql\sql1_tempdb+` | TempDB 数据和日志文件 
+
+
+| `sql1_backups` | 2000 GiB | `+\\a50-sql\sql1_backups+` | 本机 SQL Server 备份文件 (`.bak`， `.trn`） 
+|===
+
+TIP: 对数据、日志、TempDB 和备份使用单独的卷。这样，您就可以为每个卷应用不同的 QoS、快照、效率和复制设置。它还可以将不断变化的 TempDB 排除在用户数据库的快照之外。
+
+
+
+[[prerequisites]]
+== 前提条件
+
+在开始之前，请确保满足以下要求：
+
+.NetApp ONTAP
+* AFF HA 对已安装，并且集群已设置且运行正常。
+* 已安装 CIFS （SMB） 许可证。它包含在 ONTAP One 中。
+* 每个节点上至少存在一个数据聚合（本地层）。
+* 通过 NTP 在群集和 Active Directory 之间同步时间。Kerberos 允许的最大时钟偏差为 5 分钟。
+* SMB LIF 的数据网络端口、广播域和（可选）VLAN 已配置。
+
+
+.Active Directory 和 DNS
+* Active Directory 域可用，并且可以从 SVM 数据 LIF 访问 DNS 服务器。
+* 您拥有一个帐户，该帐户具有在目标 OU 中为 CIFS 服务器创建计算机对象的权限。
+* 专用域用户帐户作为服务帐户可用于 SQL Server 数据库引擎和 SQL Server 代理服务。
+
+
+
+IMPORTANT: 当其文件位于 SMB 共享上时，SQL Server 必须在*域帐户*下运行。内置虚拟帐户(`NT SERVICE\MSSQLSERVER`）和本地帐户无法被授予对远程文件共享的访问权限。
+
+.Windows Server
+* Windows Server 2025（桌面体验）已安装、修补并加入域。
+* SQL Server 2025 安装介质（ISO）和有效的产品密钥（或免费版本）可用。
+
+
+.ONTAP 上的 SQL Server 的 SMB 要求和限制
+* 必须在 SVM 上启用 SMB 3.0 或更高版本。
+* 托管 CA 共享的所有卷必须使用 *NTFS* 安全样式，并且从一开始就必须是 NTFS。
+* 不支持 SMB Direct (RDMA)。
+* 不支持 ReFS。ONTAP (WAFL) 为共享提供文件系统。
+
+
+
+
+[[step-1-prepare-the-ontap-cluster]]
+[[cluster-prep]]
+== 步骤 1：准备 ONTAP 集群
+
+连接到 ONTAP System Manager 并确保集群时间与 Active Directory 同步。如果时钟偏差超过 5 分钟，SMB 共享的 Kerberos 身份验证将失败。
+
+.步骤
+. 打开 Web 浏览器并连接到 ONTAP System Manager，网址为 `+https://<cluster-management-IP>+`。使用集群管理员帐户登录。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_004.png["ONTAP System Manager 登录"]
+
+====
+. *仪表板*是 System Manager 中进一步配置的入口点。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_005.png["System Manager 仪表板"]
+
+====
+. 如果尚未配置 NTP，请使用 CLI（通过 SSH 连接到集群管理 LIF）添加域控制器或企业 NTP 服务器：
++
+[source, console]
+----
+cluster::> cluster time-service ntp server create -server <NTP-server-IP>
+----
+
+
+
+
+[[step-2-create-and-configure-the-storage-vm-svm]]
+[[svm]]
+== 步骤 2：创建和配置 Storage VM （SVM）
+
+使用专用的 SQL Server SVM。SVM 作为 CIFS 服务器加入 Active Directory，并在 HA 对的每个节点上提供一个 SMB 数据 LIF。
+
+.步骤
+. 使用 System Manager 或 CLI 创建 SVM：
++
+[role="tabbed-block"]
+====
+.System Manager
+--
+.. 在 System Manager 中，转到 menu:Cluster[Storage VMs] 并单击 *+ Add*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_smb_bp_006.png["集群 > Storage VM > 添加"]
+
+=====
+.. 输入*存储 VM 名称* `a50-sql`。在*访问协议*中，选择 *SMB/CIFS、NFS、S3* 选项卡，然后选择*启用 SMB/CIFS*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_smb_bp_007.png["添加 Storage VM - 名称和协议"]
+
+=====
++
+
+NOTE: Storage VM 名称是 CIFS 服务器的 SMB 名称。
+
+.. 输入 Active Directory 信息（域、管理员名称和密码以及 OU）和 DNS 信息（DNS 域和名称服务器）。
+.. 在*网络接口*下，在*每个*节点上配置一个数据 LIF。
++
+
+TIP: 每个节点一个 LIF 为 SQL Server 提供通往每个节点的直接（本地）路径，这是 SMB 多通道和无中断故障转移的先决条件。使用 25 GbE 或更快的端口，并在端到端使用相同的 MTU。
+
++
+
+NOTE: 您必须在 DNS 服务器中注册这些网络接口。有关详细信息，请参见 https://docs.netapp.com/us-en/ontap-system-manager-classic/smb-config/task_mapping_smb_server_dns_server.html["将 SMB 服务器映射到 DNS 服务器"^]。
+
+.. 单击*保存*。System Manager 创建 SVM、根卷、LIF 和 DNS 配置，并将 CIFS 服务器加入域。
+.. 验证 SVM 根卷 (`a50_sql_root` 在实验室中）。它必须使用 *NTFS* 安全样式，否则 SMB 共享将不起作用。转到 menu:存储[卷]，选择根卷，然后单击 *编辑* 以查看其设置。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_smb_bp_012.png["编辑 SVM 根卷 a50_sql_root"]
+
+=====
+
+
+--
+.ONTAP 命令行界面
+--
+以下命令从 CLI 创建相同的配置。替换尖括号中的占位符值。
+
+[source, console]
+----
+cluster::> vserver create -vserver a50-sql -rootvolume a50_sql_root -aggregate <aggr_node1> -rootvolume-security-style ntfs
+
+cluster::> vserver modify -vserver a50-sql -allowed-protocols cifs
+
+cluster::> network interface create -vserver a50-sql -lif a50-sql_smb_n1 -service-policy default-data-files -home-node <node1> -home-port <port> -address 192.168.175.138 -netmask <netmask>
+cluster::> network interface create -vserver a50-sql -lif a50-sql_smb_n2 -service-policy default-data-files -home-node <node2> -home-port <port> -address 192.168.175.139 -netmask <netmask>
+
+cluster::> vserver services name-service dns create -vserver a50-sql -domains sapcc.stl.netapp.com -name-servers <dns1>,<dns2>
+
+cluster::> vserver cifs create -vserver a50-sql -cifs-server A50-SQL -domain sapcc.stl.netapp.com -ou CN=Computers
+----
+--
+====
+. [[svm-smb-options,Configure the SMB server options]]配置 SMB 服务器选项。验证是否在 SVM 上启用了 SQL Server 所需的 SMB 选项：
++
+[source, console]
+----
+cluster::> set -privilege advanced
+cluster::*> vserver cifs options show -vserver a50-sql -fields smb3-enabled,is-multichannel-enabled,is-large-mtu-enabled,copy-offload-enabled,shadowcopy-enabled
+cluster::*> vserver cifs options modify -vserver a50-sql -smb3-enabled true -is-multichannel-enabled true -is-large-mtu-enabled true -copy-offload-enabled true -shadowcopy-enabled true
+cluster::*> set -privilege admin
+----
++
+[cols="1,3"]
+|===
+| 选项 | 目的 
+
+
+| `smb3-enabled` | 持续可用的共享需要 SMB 3.x。 
+
+
+| `is-multichannel-enabled` | SMB 多通道使用多个 TCP 连接和网络路径，以提高吞吐量和恢复能力。 
+
+
+| `is-large-mtu-enabled` | 允许高达 1 MB 的 SMB 读取和写入。 
+
+
+| `copy-offload-enabled` | ODX 副本卸载；复制操作在存储系统内执行。 
+
+
+| `shadowcopy-enabled` | SMB 共享的远程 VSS。使用 SMB 共享的 VSS 的备份应用程序所需。 
+|===
+. 验证 CIFS 服务器已在 DNS 中注册，并且可以从 SQL Server 主机进行解析：
++
+[source, powershell]
+----
+PS C:\> Resolve-DnsName a50-sql.sapcc.stl.netapp.com
+----
+
+
+
+
+[[step-3-create-the-sql-server-volumes-and-smb-shares]]
+[[volumes]]
+== 步骤 3：创建 SQL Server 卷和 SMB 共享
+
+为每种文件类型创建一个卷和一个 SMB 共享。System Manager 将共享与卷一起创建。
+
+.步骤
+. 在 System Manager 中，展开 *Storage* 并单击 *Volumes*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_013.png["System Manager 中的“存储”菜单"]
+
+====
+. 此时将打开卷列表。单击 *+ 添加*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_014.png["带过滤器的“卷”页面"]
+
+====
+. 为用户数据库数据文件创建 `sql1_data`卷及其 SMB 共享。
++
+.. 在*添加卷*对话框中，输入以下值：
++
+*** *名称*： `sql1_data`
+*** *Storage VM*： `a50-sql`
+*** *容量*： `1024 GiB`
+*** *性能服务级别*：*自定义*，*分配 QoS 策略组*：*现有* > `none`
+*** *访问权限*：选择*通过 SMB/CIFS 共享*。共享名 `sql1_data`，授予用户访问权限 `Everyone`，权限*完全控制*。
+*** *保护*：保持*启用快照（本地）*处于清除状态。应用程序一致性备份由 NetApp SnapCenter 创建。
++
+点击*保存*。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_015.png["添加卷 sql1_data，宽度=450"]
+
+====
+
+
+.. 该卷已创建并显示为 *在线*。展开卷行以查看详细信息：NTFS 安全样式、通过两个 LIF (`+\\192.168.175.138\sql1_data+` 和 `+\\192.168.175.139\sql1_data+`）的 SMB 访问路径，以及 QoS 策略组。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_016.png["使用 SMB 共享创建的卷 sql1_data"]
+
+====
+
+
+. 对 <<overview>> 中列出的大小和名称的日志卷、TempDB 卷和备份卷重复上述步骤。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_022.png["所有四个 SQL Server 卷联机，width=800"]
+
+====
++
+
+WARNING: 为了简单起见，实验室在共享级别上授予 *所有人 / 完全控制*。在生产环境中，将共享 ACL 限制为 SQL Server 服务帐户、SQL Server 代理帐户和 DBA 管理组，例如：
+
++
+[source, console]
+----
+cluster::> vserver cifs share access-control create -vserver a50-sql -share sql1_data -user-or-group SAPCC\sql1admin -permission Full_Control
+cluster::> vserver cifs share access-control create -vserver a50-sql -share sql1_data -user-or-group "SAPCC\SQL Admins" -permission Full_Control
+cluster::> vserver cifs share access-control delete -vserver a50-sql -share sql1_data -user-or-group Everyone
+----
+. 重复 `sql1_log`、 `sql1_tempdb`和 `sql1_backups`的命令。服务帐户还需要对共享根的 NTFS 权限具有*完全控制*。SQL Server 安装程序会检查此项，如<<sql-dbengine>>中所示。
+
+
+
+
+[[step-4-adjust-the-volume-settings]]
+[[volume-settings]]
+== 步骤 4：调整卷设置
+
+查看并调整每个 SQL Server 卷的空间和快照设置。
+
+.步骤
+. 在卷列表中，将鼠标悬停在卷上，然后单击铅笔图标（*编辑*）。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_023.png["卷列表中的编辑图标"]
+
+====
+. 按如下方式配置卷（如 `sql1_data`所示）：
++
+** *启用精简配置*：已选择
+** *自动调整大小*：已选择，*自动增长模式*：*增长*，*最大大小*：例如 `1.3 TiB`（约为卷大小的 125–130%）
+** *启用预留百分比（100%）*：已清除
+** *安全类型*： `NTFS`
+** *Snapshot 预留 %*： `5` (`0` 用于 `sql1_tempdb`）
+** *计划快照*：已清除。非应用程序一致的快照对 SQL Server 无用；请改用 NetApp SnapCenter。
+** *向客户端显示快照目录*：可选（实验室将其保留为选中状态；清除此选项会从共享中隐藏 `~snapshot`）
++
+单击*保存*，然后对 `sql1_log`、 `sql1_tempdb`和 `sql1_backups`重复此操作。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_024.png["编辑卷 sql1_data 设置,width=450"]
+
+====
+
+
+
+
+[source, console]
+----
+cluster::> volume modify -vserver a50-sql -volume sql1_data -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
+----
+
+TIP: 保持在 AFF 上启用存储效率（重复数据删除、压缩、数据压实）。它是内联的，对 SQL Server 性能没有可衡量的影响。
+
+
+
+[[step-5-enable-continuous-availability-on-the-smb-shares]]
+[[ca-shares]]
+== 步骤 5：在 SMB 共享上启用连续可用性
+
+持续可用性是 SMB 上的 SQL Server 最重要的设置。如果没有它，SQL Server 在 ONTAP 接管或 LIF 迁移期间会丢失其打开的文件句柄，并且数据库会变为可疑状态。
+
+.步骤
+. 使用 System Manager 或 CLI 在 SMB 共享上启用连续可用性：
++
+[role="tabbed-block"]
+====
+.System Manager
+--
+.. 转到菜单：存储 [SMB 共享]。该列表显示四个新共享和默认管理共享  `c$` 和  `ipc$`。
++
+.显示示例
+[%collapsible]
+=====
+image::sql25_smb_bp_025.png[SMB 共享列表]
+
+=====
+.. 单击共享旁边的更多图标（*⋮*） `sql1_data`，然后选择 *编辑*。
++
+.显示示例
+[%collapsible]
+=====
+image::sql25_smb_bp_026.png[带有“编辑”的共享上下文菜单]
+
+=====
+.. 在*共享属性*下，设置以下内容：
++
+*** *启用连续可用性*：*已选择*
+*** *允许客户端访问快照目录*：已清除
+*** *访问此共享时加密数据*：已清除（可选，具体取决于您的安全要求）
+*** *启用 oplock*：已选择
+*** *启用更改通知*：已选择
+*** *启用基于访问的枚举（ABE）*：已清除
++
+点击*保存*。
+
++
+.显示示例
+[%collapsible]
+=====
+image::sql25_smb_bp_027.png[编辑启用了连续可用性的共享]
+
+=====
+
+
+.. 对 `sql1_log`、 `sql1_tempdb`和 `sql1_backups`重复这些步骤。
+
+
+--
+.ONTAP 命令行界面
+--
+[source, console]
+----
+cluster::> vserver cifs share properties add -vserver a50-sql -share-name sql1_data -share-properties continuously-available
+cluster::> vserver cifs share properties add -vserver a50-sql -share-name sql1_log -share-properties continuously-available
+cluster::> vserver cifs share properties add -vserver a50-sql -share-name sql1_tempdb -share-properties continuously-available
+cluster::> vserver cifs share properties add -vserver a50-sql -share-name sql1_backups -share-properties continuously-available
+
+cluster::> vserver cifs share show -vserver a50-sql -fields share-name,path,share-properties
+----
+--
+====
+
+
+
+
+[[step-6-prepare-windows-server-2025]]
+[[windows-prep]]
+== 步骤 6：准备 Windows Server 2025
+
+请以域管理员身份在 SQL Server 主机 `{host}`上执行以下步骤。
+
+.步骤
+. 验证此服务器是否已加入域，以及 CIFS 服务器是否可以解析（请参阅 <<svm-smb-options>>）。
+. 确保 SQL Server 服务帐户存在于 Active Directory 中，例如 `SAPCC\sql1admin`。对数据库引擎和 SQL Server 代理使用相同的帐户，或者为每个服务使用单独的帐户。无论您选择哪种方式，都要授予每个帐户对所有四个共享的访问权限。
+. 在服务帐户的安全上下文中测试对共享的访问权限：
++
+[source, powershell]
+----
+PS C:\> runas /user:SAPCC\sql1admin "cmd /c dir \\a50-sql\sql1_data && echo test > \\a50-sql\sql1_data\write-test.txt && del \\a50-sql\sql1_data\write-test.txt"
+----
+. 在 Windows 防火墙中打开 SQL Server 端口：
++
+[source, powershell]
+----
+PS C:\> New-NetFirewallRule -DisplayName "SQL Server (TCP 1433)" -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow
+----
+. 验证 SMB 与 SVM 的连接。方言必须为 3.x，并且 `ContinuouslyAvailable`必须为 `True`：
++
+[source, powershell]
+----
+PS C:\> dir \\a50-sql\sql1_data | Out-Null
+PS C:\> Get-SmbConnection -ServerName a50-sql | Format-Table ServerName,ShareName,Dialect,ContinuouslyAvailable,Encrypted,Signed
+PS C:\> Get-SmbMultichannelConnection -ServerName a50-sql
+----
+
+
+
+NOTE: 默认情况下，Windows Server 2025 要求对所有出站 SMB 连接进行 SMB 签名。ONTAP 支持 SMB 签名并自动协商。签名会增加双方的 CPU 开销，因此请将其包含在性能测试中。请勿在未经安全审核的情况下禁用签名。
+
+
+
+[[step-7-install-sql-server-2025]]
+[[sql-install]]
+== 第 7 步：安装 SQL Server 2025
+
+使用安装向导在 Windows Server 主机上安装 SQL Server 2025。在本地磁盘上安装二进制文件和系统数据库，并将用户数据库、事务日志、TempDB 和备份位置指向您创建的 SMB 共享。
+
+.步骤
+. 从 SQL Server 安装中心启动独立安装。
++
+.. 装载 SQL Server 2025 ISO 映像。在文件资源管理器中，打开实验室中的 DVD 驱动器 (`D:`）并双击 *setup*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_029.png["SQL Server 2025 安装正在启动"]
+
+====
+.. 此时将打开 *SQL Server 安装中心*。选择左窗格中的*安装*，然后单击*新建 SQL Server 独立安装或向现有安装添加功能*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_030.png["SQL Server 安装中心,width=600"]
+
+image:sql25_smb_bp_031.png["独立安装正在开始,width=600"]
+
+====
+
+
+. 选择 SQL Server 版本，接受许可条款，然后让安装程序检查产品更新。
++
+.. 在*版本*页面上，选择*输入产品密钥*并输入您的产品密钥，或选择免费版本（评估、企业开发人员、标准开发人员或 Express）。选择适用于您的许可证类型（在实验室中为*我仅有 SQL Server 许可证*），然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_032.png["版本页面,width=600"]
+
+====
+.. 在*许可条款*页面上，阅读条款，选择*我接受许可条款和隐私声明*，然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_033.png["许可条款页面,width=600"]
+
+====
+.. 在 *Microsoft Update* 页面上，选择 *使用 Microsoft Update 检查更新（推荐）*，然后单击 *下一步*。安装程序随后运行 *全局规则*、*产品更新*、*安装安装文件* 和 *安装规则* 检查。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_034.png["Microsoft Update 页面,width=600"]
+
+====
+
+
+. 选择要安装的 SQL Server 功能和实例。二进制文件保留在本地磁盘上；只有数据库文件放置在 SMB 共享上。
++
+.. 在*功能选择*页面上，选择*数据库引擎服务*和所需的任何其他功能（实验室还选择了 *SQL Server Replication* ）。将*实例根目录*和*共享功能目录*保留在本地磁盘上 `C:`。二进制文件在本地安装；只有数据库文件转到 SMB 共享。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_035.png["功能选择页面,width=600"]
+
+====
+.. 在*实例配置*页面上，选择*默认实例* (`MSSQLSERVER`），或输入命名实例，然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_036.png["实例配置页面，width=600"]
+
+====
+
+
+. 将 SQL Server 数据库引擎和 SQL Server 代理服务配置为在可以访问 SMB 共享的域帐户下运行。
++
+.. 在*服务器配置*页面的*服务帐户*选项卡上，输入*SQL Server 代理*和*SQL Server 数据库引擎*的域帐户和密码，并将*启动类型*设置为*自动*。
++
+
+IMPORTANT: 使用对 SMB 共享具有完全控制权限的域帐户。屏幕截图显示了两种不同的拼写 (`SAPCC\sql1_admin` 和  `SAPCC\sql1admin`）。请确保您输入的每个帐户都存在于 Active Directory 中，并且可以访问所有四个共享。
+
++
+
+TIP: 选择 *授予 SQL Server 数据库引擎服务执行卷维护任务的权限*。这可以实现即时文件初始化，从而大大加快数据库创建、文件增长和恢复的速度。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_037.png["服务器配置 - 服务帐户,width=600"]
+
+====
+
+
+. 设置身份验证模式和 SQL Server 管理员，并输入用户数据库、事务日志、备份和 TempDB 文件的 SMB 共享的 UNC 路径。
++
+.. 在*数据库引擎配置*页面的*服务器配置*选项卡上，选择身份验证模式。实验室使用*混合模式*，并为 `sa`帐户提供强密码。单击*添加当前用户*和*添加……*以添加 SQL Server 管理员（用户，最好是 AD 组）。
++
+
+TIP: 请使用 *Windows 身份验证模式*，除非应用程序需要 SQL Server 登录。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_038.png["数据库引擎配置 - 身份验证,width=600"]
+
+====
+.. 在*数据目录*选项卡上，输入 SMB 共享的 UNC 路径：
++
+[cols="1,2"]
+|===
+| 设置 | 值 
+
+
+| 数据根目录 | `C:\Program Files\Microsoft SQL Server\` （本地；系统数据库保留在 `C:`） 
+
+
+| 用户数据库目录 | `+\\a50-sql\sql1_data+` 
+
+
+| 用户数据库日志目录 | `+\\a50-sql\sql1_log+` 
+
+
+| 备份目录 | `+\\a50-sql\sql1_backups+` 
+|===
++
+
+TIP: 要将系统数据库 (`master`、 `model`、 `msdb`）也放置在 SMB 共享上，请将 *数据根目录* 设置为 UNC 路径。如果需要，请为系统数据库创建新卷和共享。
+
++
+
+NOTE: 您需要使用目录的 UNC 路径，因为不支持映射的驱动器。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_039.png["带有 UNC 路径的数据目录，width=600"]
+
+====
+.. 在 *TempDB* 选项卡上，选择默认的本地数据目录，然后单击 *删除*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_040.png["TempDB 选项卡 - 删除默认目录，width=600"]
+
+====
+.. 单击*添加……*。在*浏览文件夹*对话框中，在*文件夹*字段中键入 UNC 路径 `+\\a50-sql\sql1_tempdb\data+`，然后单击*确定*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_041.png["TempDB 选项卡 - 浏览具有 UNC 路径的文件夹,width=600"]
+
+====
+.. 将*日志目录*设置为相同的共享（单击*……*）。本实验将 `+\\a50-sql\sql1_tempdb\data+`用于 TempDB 数据文件和 TempDB 日志文件。黄色警告（表示文件服务器被指定为数据目录）是预期之中的。
++
+
+TIP: 每个逻辑 CPU 核心使用一个 TempDB 数据文件，最多 8 个文件。将初始大小设置为预期的 TempDB 工作集，以便 TempDB 在运行期间不需要增长。所有数据文件必须具有相同的大小和自动增长。
+
++
+
+NOTE: 您需要为 TempDB 数据和日志文件使用文件夹，否则安装将失败。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_042.png["在 SMB 共享上配置的 TempDB 带有警告，width=600"]
+
+====
+.. 根据您的规模配置 *MaxDOP* 和 *Memory* 选项卡（建议的默认值是一个很好的起点），然后单击 *Next*。
+.. [[sql-dbengine,Step 7]]对于每个 UNC 路径，安装程序将显示一个对话框，要求您验证 SQL Server 服务帐户在文件服务器上具有完全控制共享权限。验证权限后（请参阅 <<volumes>> 和 <<windows-prep>>），单击*是*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_043.png["文件服务器权限确认对话框,width=600"]
+
+====
+
+
+. 查看安装摘要，运行安装，并确认已成功安装所有功能。
++
+.. 在*准备安装*页面上，查看摘要并单击*安装*。
++
+
+TIP: 复制 *配置文件路径* 下显示的 `ConfigurationFile.ini`。您可以将其用于其他 SQL Server 主机的无人参与安装(`setup.exe /ConfigurationFile=<path>`）。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_044.png["准备安装摘要,width=600"]
+
+====
+.. 正在运行安装，请稍候。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_045.png["安装进度,width=600"]
+
+====
+.. 安装完成后，验证所有功能是否显示*成功*，然后单击*关闭*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_046.png["安装完成,width=600"]
+
+====
+
+
+
+
+
+
+[[step-8-verify-the-installation-and-create-a-database]]
+[[post-install]]
+== 第 8 步：验证安装并创建数据库
+
+使用 SQL Server Management Studio (SSMS) 创建测试数据库，并验证其数据和日志文件是否位于 SMB 共享上。（可选）在 ONTAP 上确认打开的文件使用连续可用性。
+
+.步骤
+. 从安装中心的 *安装 SQL Server 管理工具* 链接或从 Microsoft 网站安装 SQL Server Management Studio （SSMS）。
+. 启动 SSMS 并使用 Windows 身份验证连接到实例 (`sql-1`）。
+. 右键单击*数据库*并选择*新建数据库……*。输入数据库名称 (`SQ1` 在实验室中），设置初始文件大小，然后单击*确定*。数据和日志文件路径默认为 `+\\a50-sql\sql1_data+`和 `+\\a50-sql\sql1_log+`。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_047.png["具有 UNC 路径的新数据库对话框，width=800"]
+
+====
+. 新数据库将显示在*对象资源管理器*中。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_smb_bp_048.png["具有数据库 SQ1 的 SSMS 对象资源管理器,width=800"]
+
+====
+. 使用 T-SQL 验证文件位置：
++
+[source, sql]
+----
+SELECT DB_NAME(database_id) AS database_name,
+       type_desc,
+       name AS logical_name,
+       physical_name,
+       size * 8 / 1024 AS size_mb
+FROM   sys.master_files
+ORDER  BY database_id, type_desc;
+----
+. 可选：验证 ONTAP 上打开的文件的持续可用性：
++
+[source, console]
+----
+cluster::> vserver cifs session show -vserver a50-sql
+cluster::> vserver cifs session file show -vserver a50-sql -fields share,path,continuously-available
+----
++
+所有 SQL Server 文件必须显示 `continuously-available: Yes`。
+
+
+
+
+
+[[use-an-ontap-cli-script-to-configure-the-storage-in-one-pass]]
+== 使用 ONTAP CLI 脚本一次性配置存储
+
+以下脚本包含此过程的完整存储配置。在运行之前，请替换尖括号中的值。
+
+[source, console]
+----
+# --- SVM -----------------------------------------------------------------
+vserver create -vserver a50-sql -rootvolume a50_sql_root -aggregate <aggr_node1> -rootvolume-security-style ntfs
+vserver modify -vserver a50-sql -allowed-protocols cifs
+
+network interface create -vserver a50-sql -lif a50-sql_smb_n1 -service-policy default-data-files -home-node <node1> -home-port <port> -address 192.168.175.138 -netmask <netmask>
+network interface create -vserver a50-sql -lif a50-sql_smb_n2 -service-policy default-data-files -home-node <node2> -home-port <port> -address 192.168.175.139 -netmask <netmask>
+
+vserver services name-service dns create -vserver a50-sql -domains sapcc.stl.netapp.com -name-servers <dns1>,<dns2>
+vserver cifs create -vserver a50-sql -cifs-server A50-SQL -domain sapcc.stl.netapp.com -ou CN=Computers
+
+set -privilege advanced
+vserver cifs options modify -vserver a50-sql -smb3-enabled true -is-multichannel-enabled true -is-large-mtu-enabled true -copy-offload-enabled true -shadowcopy-enabled true
+set -privilege admin
+
+# --- Volumes -------------------------------------------------------------
+volume create -vserver a50-sql -volume sql1_data    -aggregate <aggr_node1> -size 1TB   -security-style ntfs -junction-path /sql1_data    -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
+volume create -vserver a50-sql -volume sql1_log     -aggregate <aggr_node2> -size 512GB -security-style ntfs -junction-path /sql1_log     -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
+volume create -vserver a50-sql -volume sql1_tempdb  -aggregate <aggr_node2> -size 500GB -security-style ntfs -junction-path /sql1_tempdb  -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 0 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
+volume create -vserver a50-sql -volume sql1_backups -aggregate <aggr_node1> -size 2000GB -security-style ntfs -junction-path /sql1_backups -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 2600GB
+
+# --- CA shares -----------------------------------------------------------
+vserver cifs share create -vserver a50-sql -share-name sql1_data    -path /sql1_data    -share-properties oplocks,browsable,changenotify,continuously-available
+vserver cifs share create -vserver a50-sql -share-name sql1_log     -path /sql1_log     -share-properties oplocks,browsable,changenotify,continuously-available
+vserver cifs share create -vserver a50-sql -share-name sql1_tempdb  -path /sql1_tempdb  -share-properties oplocks,browsable,changenotify,continuously-available
+vserver cifs share create -vserver a50-sql -share-name sql1_backups -path /sql1_backups -share-properties oplocks,browsable,changenotify,continuously-available
+
+# --- Share permissions (repeat for each share) ----------------------------
+vserver cifs share access-control create -vserver a50-sql -share sql1_data -user-or-group SAPCC\sql1admin -permission Full_Control
+vserver cifs share access-control delete -vserver a50-sql -share sql1_data -user-or-group Everyone
+
+# --- Verification ----------------------------------------------------------
+vserver cifs show -vserver a50-sql
+vserver cifs share show -vserver a50-sql -fields share-name,path,share-properties
+vserver cifs session file show -vserver a50-sql -fields share,path,continuously-available
+----
+
+TIP: 将卷分布在两个节点的聚合中，例如节点 1 上的数据和备份，以及节点 2 上的日志和 TempDB。这将使用两个控制器的资源。
+
+
+
+[[additional-information]]
+[[references]]
+== 追加信息
+
+有关此过程中主题的详细信息，请参见以下资源：
+
+* NetApp： https://docs.netapp.com/us-en/ontap-apps-dbs/microsoft/win_smb.html["基于 ONTAP 的 Microsoft SQL Server 和 SMB"]
+* NetApp: https://docs.netapp.com/us-en/ontap/smb-hyper-v-sql/configure-solutions-concept.html["配置适用于 Microsoft Hyper-V 和 SQL Server over SMB 解决方案的 ONTAP"]
+* NetApp： https://docs.netapp.com/us-en/ontap/smb-hyper-v-sql/server-volume-requirements-sql-serve-concept.html["基于 SMB 的 SQL Server 的 SMB 服务器和卷要求"]
+* Microsoft： https://learn.microsoft.com/en-us/sql/database-engine/install-windows/install-sql-server-with-smb-fileshare-as-a-storage-option["安装带有 SMB 文件共享存储的 SQL Server"]
+* NetApp: https://docs.netapp.com/us-en/snapcenter/protect-scsql/concept_snapcenter_plug_in_for_microsoft_sql_server_overview.html["适用于 Microsoft SQL Server 的 SnapCenter 插件概述"]
+* NetApp： https://imt.netapp.com/matrix/["互操作性表工具 (IMT)"]
+
