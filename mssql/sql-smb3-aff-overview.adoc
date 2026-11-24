@@ -51,7 +51,7 @@ AFF 全闪存系统上的 ONTAP 原生实现 SMB 3。结合 SQL Server 2025 和 
 | 存储效率 | 实时重复数据删除、数据压缩和数据压实，再加上精简资源调配，减少了数据库和备份使用的物理容量。 
 
 
-| 集成数据保护 | ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由 NetApp SnapCenter 编排，可在几秒钟内提供备份，在几分钟内完成恢复，并提供即时数据库克隆。 
+| 集成数据保护 | ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由  https://docs.netapp.com/us-en/snapcenter/protect-scsql/concept_snapcenter_plug_in_for_microsoft_sql_server_overview.html["NetApp SnapCenter"] 编排，可提供秒级备份、分钟级恢复和即时数据库克隆。 
 
 
 | 灵活性 | 只需将数据库附加到另一台服务器上，即可在主机之间移动数据库，而无需重新映射存储。同一个 SVM 还可以为主目录、文件服务或其他应用程序提供服务。 

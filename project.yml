@@ -147,12 +147,28 @@ sidebar:
         url: "/oracle/tr-4794.html"
   - title: Microsoft SQL Server
     entries:
-    - title: AWS FSx ONTAP上的 Microsoft SQL Server 备份和恢复
-      pdf-filename: AWS FSx ONTAP上的 Microsoft SQL Server 备份和恢复
-      url: "/mssql/sqlsb-backup-restore-aws-fsxn.html"
-    - title: 使用Amazon FSx ONTAP在 AWS EC2 上执行 SQL Server
-      pdf-filename: 使用Amazon FSx ONTAP在 AWS EC2 上执行 SQL Server
-      url: "/mssql/sql-aws-ec2.html"
+    - title: 基于 NetApp AFF 的 SQL Server
+      entries:
+      - title: 关于带有 SMB 的 SQL Server 2025
+        pdf-filename: 关于带有 SMB 的 SQL Server 2025
+        entries:
+        - title: 在带有 SMB 的 NetApp AFF 上部署 SQL Server 2025
+          url: "/mssql/sql-smb3-aff.html"
+        url: "/mssql/sql-smb3-aff-overview.html"
+      - title: 关于带有 iSCSI 的 SQL Server 2025
+        pdf-filename: 关于带有 iSCSI 的 SQL Server 2025
+        entries:
+        - title: 使用 iSCSI 部署 SQL Server 2025
+          url: "/mssql/sql-iscsi-aff.html"
+        url: "/mssql/sql-iscsi-aff-overview.html"
+    - title: AWS FSx ONTAP 上的 SQL Server
+      entries:
+      - title: AWS FSx ONTAP上的 Microsoft SQL Server 备份和恢复
+        pdf-filename: AWS FSx ONTAP上的 Microsoft SQL Server 备份和恢复
+        url: "/mssql/sqlsb-backup-restore-aws-fsxn.html"
+      - title: 使用Amazon FSx ONTAP在 AWS EC2 上执行 SQL Server
+        pdf-filename: 使用Amazon FSx ONTAP在 AWS EC2 上执行 SQL Server
+        url: "/mssql/sql-aws-ec2.html"
     - title: Azure NetApp Files上的 SQL Server
       pdf-filename: Azure NetApp Files上的 SQL Server
       entries:
@@ -169,13 +185,6 @@ sidebar:
     - title: 使用 Google Cloud NetApp Volumes 的 SQL Server Always On
       pdf-filename: 使用 Google Cloud NetApp Volumes 的 SQL Server Always On
       url: "/mssql/gcnv-sql-aoag-setup.html"
-    - title: 基于 NetApp AFF 的 SQL Server
-      pdf-filename: 基于 NetApp AFF 的 SQL Server
-      entries:
-      - title: 关于 NetApp AFF 上的 SQL Server 2025
-        url: "/mssql/sql-smb3-aff-overview.html"
-      - title: 在 NetApp AFF 上部署 SQL Server 2025
-        url: "/mssql/sql-smb3-aff.html"
     - title: 在 Windows 上使用 Clustered Data ONTAP 的SAP 与 Microsoft SQL Server
       pdf-filename: 在 Windows 上使用 Cluster Data ONTAP 的SAP 与 Microsoft SQL Server
       url: "/mssql/tr-4467.html"

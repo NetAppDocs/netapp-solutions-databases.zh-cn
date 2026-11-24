@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720" font-family="Segoe UI, Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2E8540"/>
+    </marker>
+    <marker id="arro" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E08A00"/>
+    </marker>
+  </defs>
+  <style>
+    .title { font-size: 24px; font-weight: 700; fill: #003366; }
+    .sub { font-size: 14px; fill: #4A5A6A; }
+    .hdr { font-size: 15px; font-weight: 700; fill: #FFFFFF; }
+    .t { font-size: 13px; fill: #1F2D3D; }
+    .tb { font-size: 13px; font-weight: 700; fill: #1F2D3D; }
+    .ts { font-size: 11.5px; fill: #4A5A6A; }
+    .tw { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+    .lbl { font-size: 12px; fill: #2E8540; font-weight: 700; }
+    .lblo { font-size: 12px; fill: #B36B00; font-weight: 700; }
+  </style>
+
+  <rect width="1200" height="720" fill="#FFFFFF"/>
+  <text x="40" y="40" class="title">iSCSI multipathing with MPIO and ALUA</text>
+  <text x="40" y="64" class="sub">One iSCSI session per target LIF · Microsoft DSM uses the active/optimized paths and fails over to the partner node automatically</text>
+
+  <!-- Host -->
+  <rect x="300" y="90" width="600" height="170" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="2"/>
+  <rect x="300" y="90" width="600" height="34" rx="8" fill="#0067C5"/>
+  <rect x="300" y="110" width="600" height="14" fill="#0067C5"/>
+  <text x="600" y="113" class="hdr" text-anchor="middle">sql-iscsi-1 · initiator iqn.1991-05.com.microsoft:sql-iscsi-1.sapcc.stl.netapp.com</text>
+  <rect x="320" y="136" width="560" height="36" rx="5" fill="#0067C5"/>
+  <text x="600" y="159" class="tw" text-anchor="middle">Disk E: (one MPIO disk per LUN, NETAPP LUN C-Mode)</text>
+  <rect x="320" y="180" width="560" height="32" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="600" y="201" class="t" text-anchor="middle">MPIO · Microsoft DSM · load-balance policy Round Robin with Subset (ALUA)</text>
+  <rect x="540" y="220" width="120" height="30" rx="4" fill="#003366"/>
+  <text x="600" y="240" class="tw" text-anchor="middle">192.168.175.44</text>
+
+  <!-- Network -->
+  <rect x="100" y="320" width="1000" height="36" rx="6" fill="#F2F4F7" stroke="#6B7B8C"/>
+  <text x="600" y="343" class="tb" text-anchor="middle">iSCSI VLAN / subnet 192.168.175.0/24 · broadcast domain MT9000 · jumbo frames end to end</text>
+  <line x1="600" y1="250" x2="600" y2="318" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)" marker-start="url(#arr)"/>
+
+  <!-- Node 1 (owner) -->
+  <rect x="60" y="430" width="500" height="250" rx="8" fill="#FFFFFF" stroke="#2E8540" stroke-width="2"/>
+  <rect x="60" y="430" width="500" height="34" rx="8" fill="#2E8540"/>
+  <rect x="60" y="450" width="500" height="14" fill="#2E8540"/>
+  <text x="310" y="453" class="hdr" text-anchor="middle">SAPCC-A50-01 · owns volume sql_iscsi_1_data</text>
+  <rect x="100" y="480" width="180" height="40" rx="4" fill="#003366"/>
+  <text x="190" y="505" class="tw" text-anchor="middle">LIF 192.168.175.134</text>
+  <rect x="340" y="480" width="180" height="40" rx="4" fill="#003366"/>
+  <text x="430" y="505" class="tw" text-anchor="middle">LIF 192.168.175.135</text>
+  <rect x="140" y="560" width="340" height="50" rx="6" fill="#FFF6E5" stroke="#E08A00" stroke-width="1.5"/>
+  <text x="310" y="582" class="tb" text-anchor="middle">LUN sql_iscsi_1_data_1</text>
+  <text x="310" y="600" class="ts" text-anchor="middle">on local tier of node 01</text>
+  <text x="310" y="650" class="lbl" text-anchor="middle">ALUA state: Active/Optimized (direct path)</text>
+
+  <!-- Node 2 (partner) -->
+  <rect x="640" y="430" width="500" height="250" rx="8" fill="#FFFFFF" stroke="#E08A00" stroke-width="2"/>
+  <rect x="640" y="430" width="500" height="34" rx="8" fill="#E08A00"/>
+  <rect x="640" y="450" width="500" height="14" fill="#E08A00"/>
+  <text x="890" y="453" class="hdr" text-anchor="middle">SAPCC-A50-02 · HA partner</text>
+  <rect x="680" y="480" width="180" height="40" rx="4" fill="#003366"/>
+  <text x="770" y="505" class="tw" text-anchor="middle">LIF 192.168.175.136</text>
+  <rect x="920" y="480" width="180" height="40" rx="4" fill="#003366"/>
+  <text x="1010" y="505" class="tw" text-anchor="middle">LIF 192.168.175.137</text>
+  <rect x="720" y="560" width="340" height="50" rx="6" fill="#F7F9FB" stroke="#6B7B8C" stroke-dasharray="5 4"/>
+  <text x="890" y="582" class="t" text-anchor="middle">I/O forwarded over the cluster</text>
+  <text x="890" y="600" class="ts" text-anchor="middle">interconnect to the owning node</text>
+  <text x="890" y="650" class="lblo" text-anchor="middle">ALUA state: Active/Non-optimized (standby)</text>
+
+  <!-- paths -->
+  <line x1="190" y1="358" x2="190" y2="428" stroke="#2E8540" stroke-width="4"/>
+  <line x1="190" y1="464" x2="190" y2="478" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)"/>
+  <line x1="430" y1="358" x2="430" y2="428" stroke="#2E8540" stroke-width="4"/>
+  <line x1="430" y1="464" x2="430" y2="478" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)"/>
+  <line x1="770" y1="358" x2="770" y2="428" stroke="#E08A00" stroke-width="3" stroke-dasharray="8 5"/>
+  <line x1="770" y1="464" x2="770" y2="478" stroke="#E08A00" stroke-width="3" stroke-dasharray="8 5" marker-end="url(#arro)"/>
+  <line x1="1010" y1="358" x2="1010" y2="428" stroke="#E08A00" stroke-width="3" stroke-dasharray="8 5"/>
+  <line x1="1010" y1="464" x2="1010" y2="478" stroke="#E08A00" stroke-width="3" stroke-dasharray="8 5" marker-end="url(#arro)"/>
+  <text x="200" y="400" class="lbl">session 1</text>
+  <text x="440" y="400" class="lbl">session 2</text>
+  <text x="780" y="400" class="lblo">session 3</text>
+  <text x="1020" y="400" class="lblo">session 4</text>
+  <line x1="190" y1="520" x2="250" y2="558" stroke="#2E8540" stroke-width="2"/>
+  <line x1="430" y1="520" x2="370" y2="558" stroke="#2E8540" stroke-width="2"/>
+  <line x1="560" y1="585" x2="640" y2="585" stroke="#E08A00" stroke-width="3" stroke-dasharray="4 3"/>
+
+  <text x="40" y="708" class="ts">During a takeover or giveback, ONTAP reports the new ALUA states; the Microsoft DSM switches I/O to the surviving optimized paths within seconds, without host or SQL Server intervention.</text>
+</svg>

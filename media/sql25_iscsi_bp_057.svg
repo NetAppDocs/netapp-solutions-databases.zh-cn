@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 460" width="1200" height="460" font-family="Segoe UI, Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7B8C"/>
+    </marker>
+  </defs>
+  <style>
+    .title { font-size: 24px; font-weight: 700; fill: #003366; }
+    .sub { font-size: 14px; fill: #4A5A6A; }
+    .num { font-size: 20px; font-weight: 700; fill: #FFFFFF; }
+    .tb { font-size: 14px; font-weight: 700; fill: #1F2D3D; }
+    .t { font-size: 12.5px; fill: #1F2D3D; }
+    .ts { font-size: 11.5px; fill: #4A5A6A; }
+    .lbl { font-size: 12px; fill: #2E8540; font-weight: 700; }
+  </style>
+
+  <rect width="1200" height="460" fill="#FFFFFF"/>
+  <text x="40" y="40" class="title">NetApp Console local backup workflow for SQL Server</text>
+  <text x="40" y="64" class="sub">Scheduled or on-demand · application-consistent · the database is quiesced for only a few seconds</text>
+
+  <!-- step boxes: x = 40, 270, 500, 730, 960 ; width 200 -->
+  <g>
+    <rect x="40" y="100" width="200" height="200" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="1.5"/>
+    <circle cx="80" cy="135" r="20" fill="#0067C5"/><text x="80" y="142" class="num" text-anchor="middle">1</text>
+    <text x="110" y="141" class="tb">Start job</text>
+    <text x="56" y="182" class="t">NetApp Console triggers</text>
+    <text x="56" y="200" class="t">the backup according to</text>
+    <text x="56" y="218" class="t">the policy schedule or</text>
+    <text x="56" y="236" class="t">on demand, through the</text>
+    <text x="56" y="254" class="t">Console agent.</text>
+  </g>
+  <g>
+    <rect x="270" y="100" width="200" height="200" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="1.5"/>
+    <circle cx="310" cy="135" r="20" fill="#0067C5"/><text x="310" y="142" class="num" text-anchor="middle">2</text>
+    <text x="340" y="141" class="tb">Quiesce</text>
+    <text x="286" y="182" class="t">The plug-in on sql-iscsi-1</text>
+    <text x="286" y="200" class="t">uses SQL Server VDI/VSS</text>
+    <text x="286" y="218" class="t">to freeze write I/O of the</text>
+    <text x="286" y="236" class="t">selected databases</text>
+    <text x="286" y="254" class="t">(a few seconds).</text>
+  </g>
+  <g>
+    <rect x="500" y="100" width="200" height="200" rx="8" fill="#FFF6E5" stroke="#E08A00" stroke-width="1.5"/>
+    <circle cx="540" cy="135" r="20" fill="#E08A00"/><text x="540" y="142" class="num" text-anchor="middle">3</text>
+    <text x="570" y="141" class="tb">Snapshot</text>
+    <text x="516" y="182" class="t">ONTAP creates consistent</text>
+    <text x="516" y="200" class="t">snapshots of the volumes</text>
+    <text x="516" y="218" class="t">sql_iscsi_1_data and</text>
+    <text x="516" y="236" class="t">sql_iscsi_1_log.</text>
+    <text x="516" y="254" class="t">No data is copied.</text>
+  </g>
+  <g>
+    <rect x="730" y="100" width="200" height="200" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="1.5"/>
+    <circle cx="770" cy="135" r="20" fill="#0067C5"/><text x="770" y="142" class="num" text-anchor="middle">4</text>
+    <text x="800" y="141" class="tb">Resume + catalog</text>
+    <text x="746" y="182" class="t">Databases resume. The</text>
+    <text x="746" y="200" class="t">backup is recorded in msdb</text>
+    <text x="746" y="218" class="t">and in the Console catalog</text>
+    <text x="746" y="236" class="t">with its retention.</text>
+  </g>
+  <g>
+    <rect x="960" y="100" width="200" height="200" rx="8" fill="#EEF7F0" stroke="#2E8540" stroke-width="1.5"/>
+    <circle cx="1000" cy="135" r="20" fill="#2E8540"/><text x="1000" y="142" class="num" text-anchor="middle">5</text>
+    <text x="1030" y="141" class="tb">Log backups</text>
+    <text x="976" y="182" class="t">Frequent transaction log</text>
+    <text x="976" y="200" class="t">backups (for example</text>
+    <text x="976" y="218" class="t">every 15 min) to H:\ enable</text>
+    <text x="976" y="236" class="t">point-in-time recovery.</text>
+  </g>
+  <g stroke="#6B7B8C" stroke-width="2.5" marker-end="url(#arrg)">
+    <line x1="240" y1="200" x2="266" y2="200"/>
+    <line x1="470" y1="200" x2="496" y2="200"/>
+    <line x1="700" y1="200" x2="726" y2="200"/>
+    <line x1="930" y1="200" x2="956" y2="200"/>
+  </g>
+
+  <!-- restore band -->
+  <rect x="40" y="330" width="1120" height="100" rx="8" fill="#F7F9FB" stroke="#003366" stroke-width="1.5"/>
+  <text x="60" y="358" class="tb">Restore and clone</text>
+  <text x="60" y="382" class="t">Restore: SnapRestore / single-file restore of the database files from the snapshot, then roll forward the log backups to the desired point in time.</text>
+  <text x="60" y="404" class="t">Clone: FlexClone of the data and log volumes, mapped as new LUNs to the same or another host, and attached as a new database in seconds.</text>
+  <text x="60" y="422" class="ts">TempDB (volume sql_iscsi_1_tempdb) is never part of a backup.</text>
+</svg>

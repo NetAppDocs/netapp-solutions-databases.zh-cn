@@ -6262,7 +6262,6 @@
   <block id="fd18465573ec21a6218982055981f6b1" category="cell">存储效率</block>
   <block id="e90342eadcdbbde63477faa85e7759f3" category="cell">实时重复数据删除、数据压缩和数据压实，再加上精简资源调配，减少了数据库和备份使用的物理容量。</block>
   <block id="e9552b607b183029e792a5ae3c72820f" category="cell">集成数据保护</block>
-  <block id="72bf6e4cd7f88ed4ad150bfa8e586930" category="cell">ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由 NetApp SnapCenter 编排，可在几秒钟内提供备份，在几分钟内完成恢复，并提供即时数据库克隆。</block>
   <block id="44cc246b0c3bc5602ca81ab19e6a364f" category="cell">灵活性</block>
   <block id="35558d3f65b3d3fc51d1c7623d42c263" category="cell">只需将数据库附加到另一台服务器上，即可在主机之间移动数据库，而无需重新映射存储。同一个 SVM 还可以为主目录、文件服务或其他应用程序提供服务。</block>
   <block id="7e897f23ed71aef1c0a8acf1ae54e9e4" category="section-title">解决方案组件</block>
@@ -6290,7 +6289,6 @@
   <block id="a0b539c0ef7a8f8540d1f81601e6279a" category="paragraph">使用标准 SMB 共享时，控制器故障转移会关闭打开的文件句柄。然后，SQL Server 会将受影响的数据库标记为可疑，并且必须手动恢复这些数据库。</block>
   <block id="9a9611a2fc2b0e3111b95798abee853b" category="paragraph">通过 CA 共享，ONTAP 会将打开的文件（持续句柄）的状态镜像到 HA 合作伙伴。在接管期间，故障节点的 SMB LIF 会迁移到合作伙伴。SQL Server 主机上的 SMB 3 客户端会自动重新连接并回收其句柄。SQL Server 只会看到几秒钟的短暂 I/O 暂停；数据库保持在线，并且不会丢失任何事务。这同样适用于计划内事件，例如 ONTAP 升级、交还、LIF 迁移和卷移动。</block>
   <block id="68a7fec81dacdbb2eb199d187d47c01d" category="image-alt">SMB 3 持续可用性如何保护 SQL Server</block>
-  <block id="b1bdda888100157c9145c80c4415c635" category="summary">在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统的 SMB 3 持续可用共享上。此过程包括配置 ONTAP SVM、卷和共享，安装 SQL Server，以及使用 SnapCenter 保护数据库。</block>
   <block id="5d113f2038d289f391614c39043629e8" category="section-title">范围</block>
   <block id="ef8f344fc12b771b420c627513b85bab" category="paragraph">此过程在单个 Windows Server 2025 主机上部署独立的 SQL Server 2025 实例，并在 SMB 3 连续可用（CA）共享上部署用户数据库、事务日志、TempDB 和备份。相同的存储设计适用于 SQL Server 故障转移群集实例（FCI）和 Always On 可用性组，但不涵盖其特定于群集的配置。SQL Server 性能调整和规模估算也超出了范围。有关优势、解决方案组件、设计原则以及持续可用性工作原理的说明，请参阅 <block ref="7c0cf893e1efe2282bb825673eeea746" category="inline-link-macro-rx"></block>。</block>
   <block id="8d241ce2b8937cc22e15c547dc425518" category="paragraph">此过程用于：</block>
@@ -6413,7 +6411,6 @@
   <block id="2e9c9da433717e3904b631c17a098e1d" category="list-text">*容量*：<block ref="a4d507be1fa6eb57912137f10a4d585f" prefix=" " category="inline-code"></block></block>
   <block id="f32838a8c552a77ff5623e82dd018b3d" category="list-text">*性能服务级别*：*自定义*，*分配 QoS 策略组*：*现有* &gt;<block ref="334c4a4c42fdb79d7ebc3e73b517e6f8" prefix=" " category="inline-code"></block></block>
   <block id="ef796e380e6d5499f8eb2466ca8c2e14" category="list-text">*访问权限*：选择*通过 SMB/CIFS 共享*。共享名<block ref="1db0e2a92e9428ed5a57e01255595054" prefix=" " category="inline-code"></block>，授予用户访问权限<block ref="f9ae5e5c44e59f94680af569879f704a" prefix=" " category="inline-code"></block>，权限*完全控制*。</block>
-  <block id="569ed61f1e2cfb2cfd75db609e5c1b3d" category="list-text">*保护*：保持*启用快照（本地）*处于清除状态。应用程序一致性备份由 NetApp SnapCenter 创建。</block>
   <block id="4cc186df234138a57b2e8c5d8e5f7f8d" category="paragraph">点击*保存*。</block>
   <block id="3de97c3b26b1ae011bf44baba4c8d59b" category="inline-image-macro">添加卷 sql1_data，宽度=450</block>
   <block id="2a9e3cd6688299a4bb67c67224a554d6" category="paragraph"><block ref="2a9e3cd6688299a4bb67c67224a554d6" category="inline-image-macro-rx" type="image"></block></block>
@@ -6436,7 +6433,6 @@
   <block id="1fcd93cf125cc9a73c8daecf349ece95" category="list-text">*启用预留百分比（100%）*：已清除</block>
   <block id="0dd0b5f20877c8e5fcf3b32a226f6e46" category="list-text">*安全类型*：<block ref="bead6bebc11dade4ccad97fa037b72a6" prefix=" " category="inline-code"></block></block>
   <block id="c387a4387bc3c1be71901787cffc8336" category="list-text">*Snapshot 预留 %*：<block ref="e4da3b7fbbce2345d7772b0674a318d5" prefix=" " category="inline-code"></block> <block ref="cfcd208495d565ef66e7dff9f98764da" prefix="(" category="inline-code"></block> 用于<block ref="ecd1cf5febfdccaf7a3f8d1731f7f412" prefix=" " category="inline-code"></block>）</block>
-  <block id="2fb2bd83802e486a5b59ba5ff6a12a39" category="list-text">*计划快照*：已清除。非应用程序一致的快照对 SQL Server 无用；请改用 NetApp SnapCenter。</block>
   <block id="a8e7ba92ead6bd5a56abb5430fe0ba56" category="list-text">*向客户端显示快照目录*：可选（实验室将其保留为选中状态；清除此选项会从共享中隐藏<block ref="26bef40a7b3e14ad93e80f8f4be79090" prefix=" " category="inline-code"></block>）</block>
   <block id="f8013fcad1f7db2cbf2422e638bf6345" category="paragraph">单击*保存*，然后对<block ref="3149f7cfc8b673bf880af3bdebe8f7f5" prefix=" " category="inline-code"></block>、<block ref="ecd1cf5febfdccaf7a3f8d1731f7f412" prefix=" " category="inline-code"></block>和<block ref="dff642c9077793457a5a71aa6310a28e" prefix=" " category="inline-code"></block>重复此操作。</block>
   <block id="d96144930d10a358a3f6d8d1ebec983a" category="inline-image-macro">编辑卷 sql1_data 设置,width=450</block>
@@ -6572,9 +6568,419 @@
   <block id="c9dd6bad4c7d561872f2e2d498a990bf" category="inline-link">互操作性表工具 (IMT)</block>
   <block id="2e744d7458420edb1d67decd482527b8" category="list-text">NetApp：<block ref="e044cdc411e34564fc609d8f08e0201d" category="inline-link-rx"></block></block>
   <block id="dff5ea1c0f4431208a1e86445b6115cf" category="section-title">2026年11月9日</block>
-  <block id="2b3c56a48b86120d7fe5c64dfa29d907" category="inline-link-macro">使用 NetApp AFF 上的 SMB 3 持续可用共享在 Windows Server 2025 上部署 Microsoft SQL Server 2025</block>
-  <block id="88a76713cf7b76c7692d58c125f4b421" category="paragraph">添加了 SQL Server SMB 文档： <block ref="87713d86ecb117cf408e007449958e4a" category="inline-link-macro-rx"></block></block>
   <block id="87841e293a5b7dec649c737a77757ef3" category="sidebar">基于 NetApp AFF 的 SQL Server</block>
-  <block id="4885a19799c2ffd6767615a13415ab02" category="sidebar">关于 NetApp AFF 上的 SQL Server 2025</block>
-  <block id="daed062f8c9f45acfab189258d1f4694" category="sidebar">在 NetApp AFF 上部署 SQL Server 2025</block>
+  <block id="d00ca7db8f5ec2ff422b2362077ef617" category="summary">SQL Server 2025 可以将数据库存储在运行 ONTAP 的 NetApp AFF 系统上的 iSCSI LUN 上。了解优势、解决方案组件、设计原则、多路径如何在路径和控制器故障期间使数据库保持在线，以及 NetApp Console 备份和恢复如何保护数据库。</block>
+  <block id="46d3b37d71fa8cc42115a457cedc1142" category="doc">了解采用 iSCSI LUN 的 NetApp AFF 上的 SQL Server 2025</block>
+  <block id="69d2ba1211214f0b84d3eb18c36f61bb" category="paragraph">SQL Server 2025 可以将数据库存储在运行 ONTAP 的 NetApp AFF 系统的 iSCSI LUN 上。了解此配置的优势、解决方案组件和设计原则，多路径如何在路径和控制器故障期间使数据库保持在线，以及 NetApp Console 备份和恢复如何保护数据库。</block>
+  <block id="bb7249bbac9f1f9117a294d12f3d899e" category="paragraph">iSCSI 通过标准 TCP/IP 以太网网络传输 SCSI 块命令。对于 Windows 和 SQL Server，iSCSI LUN 是本地磁盘：它使用 NTFS 进行初始化、分区和格式化，并获得驱动器号或挂载点。基于 iSCSI 的块存储是 SQL Server 最广泛使用和最容易理解的存储选项，每个 SQL Server 功能和每个第三方工具都支持它。</block>
+  <block id="197b05157e347bf55a0a1ff73513ac30" category="paragraph">AFF 全闪存系统上的 ONTAP 原生实现 iSCSI。结合 SQL Server 2025、Windows Server 2025 和 Microsoft MPIO 框架，这提供了一种存储架构，可提供始终如一的低延迟，容忍路径和控制器的故障，并与 NetApp 数据保护集成。</block>
+  <block id="8d82b8267d1820c701cb83a16367cd42" category="inline-link-macro">使用 iSCSI LUN 在 NetApp AFF 上部署 SQL Server 2025</block>
+  <block id="8bca35778216cd7e253c4a60ceb7af45" category="paragraph">要部署此配置，请参见 <block ref="ab7fa96e7e851b278887b6b87aa64e50" category="inline-link-macro-rx"></block>。</block>
+  <block id="90f45e57c9e93e2ab45667ece9e6dea3" category="section-title">采用 NetApp ONTAP 的 iSCSI 上的 SQL Server 的优势</block>
+  <block id="92a3b84ecf0fd733b85259c454fcce0b" category="cell">通用兼容性</block>
+  <block id="54f08d53a0fde75ffebe8ee96478a2dc" category="cell">iSCSI LUN 是用于 Windows 的本地 NTFS 磁盘。SQL Server、其工具和第三方应用程序不需要特殊配置；本地服务帐户和虚拟帐户正常工作。</block>
+  <block id="284cbe182ec16c08e0fafe11c22ce275" category="cell">标准以太网</block>
+  <block id="a40776d12447ce725d7c0291725281be" category="cell">iSCSI 在数据中心现有的以太网网络上运行。无需光纤通道架构、HBA 或 FC 交换机。</block>
+  <block id="b596b72f7d88b7d2cb226f5077b9abe9" category="cell">采用 ALUA 的 MPIO 使用多条路径连接到 HA 对的两个节点。路径故障、ONTAP 接管/交还和无中断升级由 Windows 多路径驱动程序透明地处理。</block>
+  <block id="f038d0505402715fc630823c6b7bef3e" category="cell">AFF 系统提供始终如一的低延迟。多个 iSCSI 会话跨多个网络路径和端口分布 I/O。</block>
+  <block id="c4d32dd24a37d4b16f6fcc3e27047134" category="cell">精简配置、实时重复数据删除、压缩和压实减少了数据库和备份所使用的物理容量。SCSI UNMAP 将释放的块返回给聚合。</block>
+  <block id="f2cbd7758797cee674c2e851379bdf99" category="cell">ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由 NetApp Console 备份和恢复进行编排，可在几秒钟内提供备份，在几分钟内完成还原，并提供即时数据库克隆。</block>
+  <block id="d40034f071b4d59d8edf5d40501b4577" category="cell">可以在 ONTAP 中在线扩展卷和 LUN，并且可以在 Windows 中在线扩展 NTFS 卷。</block>
+  <block id="3035c432fc87f83d8c96c3d7de6d3542" category="cell">运行 SQL Server 2025。SQL Server 二进制文件和系统数据库位于本地磁盘上<block ref="d7aa32b0c582222819b91c8e0ccca765" prefix=" " category="inline-code"></block>；用户数据库、日志、TempDB 和日志备份位于四个 NetApp LUN 上。</block>
+  <block id="1e8992b06acf27a162ebf2ee849f03e9" category="cell">Microsoft iSCSI 启动程序和 MPIO</block>
+  <block id="99f3333b20efa22ff4905b80ba6ab71d" category="cell">将主机连接到 SVM 的 iSCSI LIF，并将每个 LUN 的路径合并到一个多路径磁盘中。</block>
+  <block id="7da9dfd9d326b58ad40553868e03f037" category="cell">数据库引擎，默认实例<block ref="1170cb78c9cb5739ad3aa617ce7bb623" prefix=" " category="inline-code"></block>。</block>
+  <block id="8f416e08af6be37266b467f48a7ad76d" category="cell">域成员身份、SQL Server 管理员的 Windows 身份验证、名称解析和时间同步。</block>
+  <block id="6bce741dfa40a003fbc7ff4bfbd3457e" category="cell">两个具有共享 NVMe 存储的控制器。如果一个控制器发生故障或升级，配对节点将接管其存储，并且配对节点的 iSCSI 路径将变为活动状态。</block>
+  <block id="b5191763378b1f148c85ebd6d8c39534" category="cell">为 iSCSI 目标提供每个节点两个 iSCSI LIF、启动程序组<block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix=" " category="inline-code"></block>和四个 LUN，每个 LUN 都位于自己的 FlexVol volume 中。</block>
+  <block id="e8050df3a179f61b3d12b4a03cd201a2" category="cell">NetApp Console 备份和恢复</block>
+  <block id="615e1a2bfec0775b041e1a8106cfda3c" category="cell">创建应用程序一致性快照备份，并提供还原、克隆和复制。</block>
+  <block id="a1c5c431ea93d975be3f21536c5d5b2b" category="image-alt">解决方案架构：采用 NetApp AFF 的 iSCSI LUN 上的 SQL Server 2025</block>
+  <block id="4ebce9be5680a1b0bc974e677ade9e48" category="paragraph">该设计遵循基于 ONTAP SAN 存储的 SQL Server 的 NetApp 最佳实践：</block>
+  <block id="3039b900ad0257805193c3b9bd58eb49" category="list-text">*每个文件类型单独的 LUN 和卷。*数据、事务日志、TempDB 和日志备份放置在不同的 LUN 上，每个 LUN 都在自己的 FlexVol volume 中。每个卷都可以有自己的大小、QoS、效率、快照和复制设置，并且数据卷的快照永远不会包含 TempDB。</block>
+  <block id="54b29ac904ee41edde33ef80abe4f02b" category="list-text">*每个节点两个 iSCSI LIF。*每个 LUN 可通过四条路径到达：两条通过拥有 LUN 的节点的活动/优化路径，以及两条通过 HA 配对节点的活动/非优化路径。</block>
+  <block id="a6af72a2bf3ea2102f07c27e472f4f6c" category="list-text">*带有 Microsoft DSM 的 MPIO。*NetApp Windows Host Utilities 设置建议的超时和多路径策略。</block>
+  <block id="6102b3b71f769e490cd73a06bc812805" category="list-text">*数据库卷上采用精简配置，且没有计划的 ONTAP 快照。*备份必须与应用程序一致；它们由 NetApp Console 备份和恢复创建。</block>
+  <block id="4b0696e307ce085ebb6fb2262145bcac" category="list-text">*专用 iSCSI 网络。*为 iSCSI 使用专用 NIC 或 VLAN，端到端配置巨型帧（MTU 9000）。</block>
+  <block id="12b4208ad4a8804020c4e3ab7a7d1c1f" category="image-alt">存储布局：SQL Server 文件到 Windows 卷、LUN、卷和节点</block>
+  <block id="54ba898809926d559750513aaae38f5e" category="section-title">多路径如何保护 SQL Server</block>
+  <block id="63f687d62c50350aedcd501ae7351328" category="paragraph">ONTAP 使用非对称逻辑单元访问（ALUA）来告诉主机哪些路径最佳。通过拥有 LUN 的节点的 iSCSI LIF 的路径报告为*活动/优化*。通过 HA 配对节点的 LIF 的路径报告为*活动/未优化*；在这些路径上发送的 I/O 通过集群互连转发。Microsoft DSM 仅在优化路径（策略*带子集的轮询*）上发送 I/O，并将非优化路径保留为备用。</block>
+  <block id="29a6753b5779c27bec13c301d8b20e2d" category="paragraph">如果路径出现故障，MPIO 将继续使用剩余的优化路径。如果所属节点发生故障或因升级而被接管，则伙伴节点将接管聚合，ONTAP 会报告新的 ALUA 状态，并且 MPIO 会将 I/O 移动到新的优化路径。SQL Server 只会看到短暂的 I/O 暂停；数据库将保持联机状态。</block>
+  <block id="dfb3356bb58d7fd6d828f46bfd059314" category="image-alt">iSCSI 多路径与 MPIO 和 ALUA</block>
+  <block id="acc54d22efcdf3730cf9d8d307d0c29a" category="section-title">使用 NetApp Console 备份和恢复进行数据保护</block>
+  <block id="beba48556c515270b278a3316cf65127" category="paragraph">*NetApp Console* 是 NetApp 用于存储和数据服务的统一控制平面。其*备份和恢复*服务通过应用程序一致性快照保护 ONTAP 上的 Microsoft SQL Server 数据库，并且可以将它们复制到辅助 ONTAP 系统和对象存储。</block>
+  <block id="5aad755abd249c9dd8582097661e9bea" category="list-text">*NetApp Console* （SaaS）：用于清单、策略、计划、还原和克隆、作业监控、基于角色的访问控制和通知的 Web 界面。</block>
+  <block id="f4e13f6cc75ccd460e41ae629e47a98f" category="list-text">*控制台代理*：数据中心中连接控制台与 ONTAP 集群和 SQL Server 主机的 Linux 虚拟机。它仅通过出站 HTTPS 与控制台通信。</block>
+  <block id="0330f985ff4b996dbe9694bee02a5595" category="list-text">*适用于 SQL Server 和 Windows 的 SnapCenter 插件*：由控制台部署到 SQL Server 主机。它发现实例及其数据库，将数据库文件映射到 NetApp LUN，并在备份期间静默 SQL Server。该插件在端口 8145 上侦听，并且在主机上需要 PowerShell 7 和 .NET。</block>
+  <block id="dd0faa2c6eefeae934bc3370a790f46c" category="list-text">*ONTAP*：创建卷<block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix=" " category="inline-code"></block>和<block ref="0867c941ace37c466683434857f5b04f" prefix=" " category="inline-code"></block>的快照，并执行 SnapRestore 和 FlexClone 操作。SQL Server 本身继续通过 iSCSI 访问其文件。</block>
+  <block id="8d82661a4526cf82aafe1ace5dca1a62" category="image-alt">适用于 iSCSI LUN 上 SQL Server 的 NetApp Console 备份和恢复架构</block>
+  <block id="122e51bd52fb6203623f5288bc586674" category="section-title">本地快照备份的工作原理</block>
+  <block id="afa32de2da08f2e245aa6669c59eefe4" category="list-text">NetApp Console 启动备份作业，由保护策略计划或按需启动。</block>
+  <block id="fbe3a7b56a74d03bcb75bf4af6c8e928" category="list-text">该插件使用 SQL Server VDI/VSS 接口将数据库的写入 I/O 冻结几秒钟。</block>
+  <block id="c066dd0b42c3e71d285b59c3502caca8" category="list-text">ONTAP 创建数据和日志卷的一致快照<block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix="(" category="inline-code"></block>，<block ref="0867c941ace37c466683434857f5b04f" prefix=" " category="inline-code"></block>）。未复制任何数据。</block>
+  <block id="7225356b15cf471edc4fa8ea71b1210a" category="list-text">数据库恢复，备份记录在 SQL Server 备份历史记录 <block ref="fe2552ce114315ff0ef9ad5b1de6e028" prefix="(" category="inline-code"></block>）和 Console 目录中，连同其保留信息一起。</block>
+  <block id="15b7a3e939b85a25a655bac26be4b68d" category="list-text">事务日志备份以短间隔（例如每 15 分钟）运行<block ref="89bb07a01ac3af3002ff5e91b65f566c" prefix=" " category="inline-code"></block>，并允许时间点恢复。</block>
+  <block id="1283e5a6569df9b5badfbd28beeb5ec9" category="list-text">可选：快照使用 SnapMirror 复制到辅助 ONTAP 系统，或备份到对象存储，以实现 3-2-1 备份策略。</block>
+  <block id="59b24357314cc9229dded37143d1a980" category="image-alt">适用于 SQL Server 的 NetApp Console 本地备份工作流</block>
+  <block id="8e20573211bec72cea828a05cda6f1e9" category="section-title">适用于 SQL Server 的 NetApp Console 的优势</block>
+  <block id="2c3c2450a2ff010c02876a6fc042c284" category="list-text">*数秒内完成备份。*对于任何大小的数据库，快照备份只需几秒钟即可完成；备份窗口几乎不复存在。</block>
+  <block id="46da155050113af72a479b8abc7da621" category="list-text">*不会影响性能。*不会在主机上或通过网络读取或复制任何数据。SQL Server 只会静默几秒钟。</block>
+  <block id="3e954a0b4c784a1dd09ee1ff80188f8d" category="list-text">*几分钟内还原。*数据库文件几乎立即从快照中还原。结合日志备份，您可以恢复到任何时间点。</block>
+  <block id="098f14b6992d784e3b2b824d94b29e15" category="list-text">*节省空间的备份。*快照仅存储更改的块，因此您只需极少的额外容量即可保留许多还原点。</block>
+  <block id="806e2cece0078237e602ed2749c98560" category="list-text">*即时克隆。*FlexClone 可在几秒钟内创建生产数据库的可写副本，用于开发、测试、报告或故障排除。在数据更改之前，它们不会使用额外的容量。</block>
+  <block id="24164a74f94a156aa41a2e22b6802352" category="list-text">*通过一个策略实现 3-2-1 保护。*本地快照、到辅助 ONTAP 系统的复制以及到对象存储的备份（例如 NetApp StorageGRID 或公有云）均在同一个保护策略中配置。</block>
+  <block id="fe8106758b929d1b4ee5ef23beef24db" category="list-text">*无需维护备份基础架构。*控制平面作为服务提供；仅轻量级 Console 代理在本地运行。没有要安装、修补或保护的备份服务器或目录数据库。</block>
+  <block id="ee0d5398bbb342a1072fa3efd84f7c4a" category="list-text">*集中管理。*所有 SQL Server 主机的清单、策略、计划、保留、基于角色的访问控制、作业监控和通知都在一个 Web 界面中，并具有用于自动化的 REST API。</block>
+  <block id="110d15e472f80d3c04a951dd56357356" category="list-text">*从 SnapCenter 平滑过渡。*可以将现有 SnapCenter 配置导入到 NetApp Console。</block>
+  <block id="c160ad37945c72d87f9487e373f96302" category="list-text">*勒索软件弹性。*ONTAP 快照为只读，但特权用户可以删除未锁定的快照。使用具有保留期的 ONTAP 防篡改快照锁定来防止删除，并在支持的情况下将其与自主勒索软件保护相结合。</block>
+  <block id="82825d9d3142cee081c7d4a295323fd5" category="summary">在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和日志备份放置在 NetApp AFF 系统的 iSCSI LUN 上。此过程包括在 ONTAP SVM 上配置 iSCSI、配置启动程序组和 LUN、配置 Windows iSCSI 启动程序、MPIO 和磁盘，以及安装 SQL Server。</block>
+  <block id="87a4f5af9f7f6f7ebf6f6a9e5ec91c25" category="paragraph">此过程在单个 Windows Server 2025 主机上部署独立的 SQL Server 2025 实例，并在 iSCSI LUN 上配置用户数据库、事务日志、TempDB 和日志备份。相同的存储设计适用于 SQL Server 故障转移集群实例（FCI）和 Always On 可用性组，但不包括其特定于集群的配置。SQL Server 性能调整和规模估算也超出了范围。有关优势、解决方案组件、设计原则、多路径工作原理以及使用 NetApp Console 备份和恢复进行数据保护的说明，请参阅 <block ref="40072446b7f8b916ce6977f066fb4144" category="inline-link-macro-rx"></block>。</block>
+  <block id="70e397b7ee91fb91b7523cc611c1540b" category="list-text">*存储管理员*，负责配置 ONTAP 集群、SVM、iSCSI LIF、启动程序组和 LUN。</block>
+  <block id="1ddc89a83086f38f019d8df53f4b099b" category="list-text">*Windows 管理员*，负责准备 Windows Server 2025 主机、iSCSI 启动程序、MPIO 和磁盘。</block>
+  <block id="109fd29f2764732411e439b7152b0666" category="cell">NetApp AFF A50 HA 对，集群<block ref="61763985ee975379cf39f9e8e90af6ef" prefix=" " category="inline-code"></block>（节点<block ref="ef26dd2e7a697cb984cbe8299e743638" prefix=" " category="inline-code"></block>，<block ref="7a82c04871bdfe63921ce68284df2e0c" prefix=" " category="inline-code"></block>），ONTAP 9.19.1</block>
+  <block id="7991c062f32dc3f39d1c544a58b542c5" category="cell"><block ref="0f9995c41e025956b46b86899a2f358e" prefix="" category="inline-code"></block></block>
+  <block id="03a235a6bcbd3a18ae38bfc5644fd5b0" category="cell">iSCSI 目标名称</block>
+  <block id="ebf058350ebad696d273878b503ed2d0" category="cell"><block ref="5685db22e3cffde13103d45eed5f61fc" prefix="" category="inline-code"></block>（别名<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block>）</block>
+  <block id="08f5df90a27c724935a56eb55c6ba7bb" category="cell">iSCSI LIF</block>
+  <block id="446e3d45640b092fe8b5f9d224623759" category="cell">192.168.175.134 和 192.168.175.135（节点<block ref="ef26dd2e7a697cb984cbe8299e743638" prefix=" " category="inline-code"></block>），192.168.175.136 和 192.168.175.137（节点<block ref="7a82c04871bdfe63921ce68284df2e0c" prefix=" " category="inline-code"></block>），子网 /24，广播域<block ref="7656d036234fcc74520ae37e9ca83f9b" prefix=" " category="inline-code"></block></block>
+  <block id="d0172b5e6dbe2fceb2f08ced0e56539d" category="cell">主机 iSCSI 启动程序</block>
+  <block id="ed8a1ec2e4653a8a1bee4442fd5006d3" category="cell"><block ref="c45f6932e9ce13c3daaf760a478ae653" prefix="" category="inline-code"></block>，iSCSI IP 地址 192.168.175.44</block>
+  <block id="ce80429f47c6d1e3421c806a1dea10e4" category="cell">启动程序组</block>
+  <block id="cfab9d4d6db91bd15f0531aede42390b" category="cell"><block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix="" category="inline-code"></block>, 主机操作系统 *Windows*</block>
+  <block id="9c51981ba402de2937c2effb7a3e45ba" category="cell">SQL Server 2025 企业版，默认实例<block ref="1170cb78c9cb5739ad3aa617ce7bb623" prefix=" " category="inline-code"></block></block>
+  <block id="b26e74ed6e2892c7e2bb95e414d460c6" category="cell">LUN</block>
+  <block id="bd7a9717d29c5ddcab1bc175eda1e298" category="cell">卷</block>
+  <block id="f2c6151d6c0d99f3666129b97e2100f5" category="cell">驱动器</block>
+  <block id="3c9e061b023f35f1f3b95e38b478ba98" category="cell"><block ref="dfb9d43d4da78ba585b1c35841ea07b8" prefix="" category="inline-code"></block></block>
+  <block id="6f04271b200271d036095307e82d9db8" category="cell"><block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix="" category="inline-code"></block></block>
+  <block id="21964423cf01ad74768512e9dc96f614" category="cell">520 GiB</block>
+  <block id="a5845bd87558b89513e1bd6668f82678" category="cell"><block ref="be292f40d00f9e2ee34c55ad060f5e81" prefix="" category="inline-code"></block> （数据）</block>
+  <block id="bd5727defa5741c497f19f96da91e534" category="cell">用户数据库数据文件 <block ref="937f38432beb92fdba3d47780720bdf7" prefix="(" category="inline-code"></block>,<block ref="4442d437b1e8cc735e4bd36be19ff09e" prefix=" " category="inline-code"></block>) 在<block ref="0f029e32fc6b4e7fdd554bf75eb28e08" prefix=" " category="inline-code"></block></block>
+  <block id="5eded45a731e94eca845f77459d9b26a" category="cell"><block ref="ba0218a7315eeb67c5e430aa642fa1e9" prefix="" category="inline-code"></block></block>
+  <block id="e4c2ecbe069ae7875bbc03d9f7f92810" category="cell"><block ref="0867c941ace37c466683434857f5b04f" prefix="" category="inline-code"></block></block>
+  <block id="272fce320d1d39a47ad589ea9ebc2af6" category="cell">250 GiB</block>
+  <block id="58119c19db32b06e07b4859606d66521" category="cell"><block ref="436b49c01e3f50a85f494ad0883c3179" prefix="" category="inline-code"></block> （日志）</block>
+  <block id="fc85d29b30bfec5220744ab730dac4bd" category="cell">用户数据库事务日志文件 <block ref="cb15b9539ae0d984ff8740c68b52561c" prefix="(" category="inline-code"></block>）位于<block ref="f885b03746c72a0d0b715f4a25ca0248" prefix=" " category="inline-code"></block></block>
+  <block id="5d0eba81059db9800ed610b579734bed" category="cell"><block ref="598e739fc2313e02b005aaabe5c8992c" prefix="" category="inline-code"></block></block>
+  <block id="99b050a7e332727438d0cbc74ba3adef" category="cell"><block ref="5c5d35efb3b15ce33bf245fbfe739af9" prefix="" category="inline-code"></block></block>
+  <block id="67442f351d8c8cc5def8c6836a5e8821" category="cell">150 GiB</block>
+  <block id="96e9d805bf82830af95d0513a12f739c" category="cell"><block ref="1795dbe6ce82c40261d933fcdd607daa" prefix="" category="inline-code"></block> （tempdb）</block>
+  <block id="74516d166c11d3ee1bd2f0866db7a7ab" category="cell"><block ref="1b588b633b9d33fb133f4bd39ef56974" prefix=" " category="inline-code"></block> 和 <block ref="fe65deede8968795d0d459bedf3ff10b" prefix=" " category="inline-code"></block> 中的 TempDB 数据和日志文件</block>
+  <block id="b9593e9e44f70b4f0b22cfe164a74504" category="cell"><block ref="8930a142402d0a07005d96970e3b89c7" prefix="" category="inline-code"></block></block>
+  <block id="63ff3c1752eb1b2c00bc6547f561e70d" category="cell"><block ref="9e009e013fb3740369b3f82ec4ab8668" prefix="" category="inline-code"></block></block>
+  <block id="0edbcf83e4e2aea2841ddd3b140c6d4b" category="cell">300 GiB</block>
+  <block id="1fa9005b373af7e68e45998461b19d32" category="cell"><block ref="bb50f32a65ec9424482f1c340bb5ebae" prefix="" category="inline-code"></block> （日志备份）</block>
+  <block id="590d920550359f067b2316081c5bdd7d" category="cell">本机 SQL Server 备份文件 <block ref="5030a024be59c18a2cddf887ae389093" prefix="(" category="inline-code"></block>，<block ref="d19cf29da96e6d78382d934869ac10da" prefix=" " category="inline-code"></block>）在<block ref="89bb07a01ac3af3002ff5e91b65f566c" prefix=" " category="inline-code"></block></block>
+  <block id="e540195904ff4f35ec6487b5c522536f" category="admonition">每个卷使用一个 LUN，并为数据、日志、TempDB 和备份使用单独的卷。这使您可以为每个卷应用不同的 QoS、快照、效率和复制设置。它还可以将不断变化的 TempDB 排除在用户数据库的快照之外。</block>
+  <block id="e9d14901d30f335e9da148af5a821634" category="admonition">在不同控制器上使用其他 LUN 用于其他辅助数据文件 (.ndf) 以分散负载。</block>
+  <block id="4d9eb9a83cc112f439154b10077aa9f5" category="list-text">已安装 iSCSI 许可证。它包含在 ONTAP One 中。</block>
+  <block id="0ba9a7fc08e3a854e2ee5c02d1ef7878" category="list-text">SVM 存在。在此过程中，将使用现有的 SVM<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block>；向其添加 iSCSI。要为 SAN 创建专用 SVM，请使用 menu:Cluster[Storage VMs &gt; Add] 并选择 *iSCSI* 作为访问协议。</block>
+  <block id="bc5543e632a0a628f1f04a750f111b77" category="list-text">iSCSI LIF 的数据网络端口、广播域和（可选）VLAN 已配置。在实验室中，广播域<block ref="7656d036234fcc74520ae37e9ca83f9b" prefix=" " category="inline-code"></block>使用巨型帧。</block>
+  <block id="991287de5a2d0240670b19964b67baae" category="list-text">时间通过 NTP 在集群、主机和 Active Directory 之间同步。</block>
+  <block id="3f5ee5831228c363e09f4d82c5a383a4" category="list-text">SQL Server 主机在 iSCSI 子网或 VLAN 中至少有一个（最好是两个）iSCSI 专用 NIC。</block>
+  <block id="c2d2c0bce8c2dc25f226d07951d48592" category="list-text">MTU 在端到端（主机 NIC、交换机、ONTAP 端口）保持一致。从主机使用<block ref="0cf8fb7227d7e7ca53a16f9b678880ab" prefix=" " category="inline-code"></block>验证巨型帧。</block>
+  <block id="697ea025ecb303d4f40d1bf3a8b4bde0" category="inline-link">NetApp 互操作性矩阵工具 (IMT)</block>
+  <block id="238448fb476c77ade1d8287fda60686f" category="list-text">支持 Windows Server 2025 的 NetApp Windows 主机实用程序版本现已可用（请参阅<block ref="f93341e63c1888be05256ff042174623" category="inline-link-rx"></block>）。</block>
+  <block id="a2a301d28bbb1e1991f880fe558c8044" category="admonition">与 SMB 文件共享不同，LUN 不需要 SQL Server 服务的域帐户。可以使用默认虚拟帐户 <block ref="9fa960199cf8ab6d2d53d06ba5927ce1" prefix="(" category="inline-code"></block> ）。如果实例需要网络访问，例如备份到文件共享或进行 Kerberos 身份验证，则仍建议使用域帐户或 gMSA。</block>
+  <block id="13eb578cf9e88d5d1ca6f6608a9f3a92" category="section-title">步骤 1：在 storage VM 上启用 iSCSI</block>
+  <block id="a2b2bb7a7922501629d2aa604e85d68f" category="paragraph">将 iSCSI 协议添加到 SVM，并在 HA 对的每个节点上创建两个 iSCSI LIF。</block>
+  <block id="667bb550ce6a0a3b69c52fae2fd77ada" category="list-text">在 SVM 上启用 iSCSI，并使用 System Manager 或 CLI 创建 iSCSI LIF：</block>
+  <block id="2382bbf3a3390299ac847658404a3350" category="list-text">转至菜单：Cluster［Storage VMs］，单击 SVM<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block>，然后打开 *Settings* 选项卡。在 *Protocols* 下，*iSCSI* 磁贴显示 *Not configured*。单击 *iSCSI* 磁贴上的齿轮图标。</block>
+  <block id="2fef6d33c44fd20fa86dde8ee9c64dfc" category="inline-image-macro">Storage VM a50-sql 设置（iSCSI 未配置），width=800</block>
+  <block id="bebe699a6406f3dd84c35be4df01abce" category="paragraph"><block ref="bebe699a6406f3dd84c35be4df01abce" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="9118db08a821619045baf6f0bfb00778" category="list-text">在 *Configure iSCSI* 对话框中，创建 iSCSI 网络接口。System Manager 建议每个节点配置两个网络接口。输入以下值：</block>
+  <block id="0c58fd1d132b7426be99190168f1392e" category="list-text">节点<block ref="ef26dd2e7a697cb984cbe8299e743638" prefix=" " category="inline-code"></block>：IP 地址<block ref="75813d382bd9a9796e98922186e0a9d4" prefix=" " category="inline-code"></block>、子网掩码<block ref="1ff1de774005f8da13f42943881c655f" prefix=" " category="inline-code"></block>、*广播域和端口*<block ref="7656d036234fcc74520ae37e9ca83f9b" prefix=" " category="inline-code"></block></block>
+  <block id="88306af01dc5b3137b66ae6186d96f76" category="list-text">选择*为以下所有接口使用相同的子网掩码、网关和广播域*。</block>
+  <block id="5d9e417c485e8de6b5e09eb103585762" category="list-text"><block ref="ef26dd2e7a697cb984cbe8299e743638" prefix=" " category="inline-code"></block> 上的第二个接口：<block ref="5f14ead95e52c0f6f07ade73b357d2e4" prefix=" " category="inline-code"></block></block>
+  <block id="fea869af49d1ffd34f200fa01f36e21e" category="list-text">节点<block ref="7a82c04871bdfe63921ce68284df2e0c" prefix=" " category="inline-code"></block>：<block ref="9213444a2242a1b74be28154b96f73cf" prefix=" " category="inline-code"></block>和<block ref="2a769166ce6f44958e3f6a6a31502f72" prefix=" " category="inline-code"></block></block>
+  <block id="9f5b169bd1be41255538e399ed1c6615" category="admonition">当主机和 LIF 位于同一子网时，不需要网关。不要路由 iSCSI 流量。</block>
+  <block id="06fb407d96de836921f7d9e6940351e5" category="inline-image-macro">配置 iSCSI 对话框，每个节点有两个 LIF，width=800</block>
+  <block id="82bf8c80995ea8a51b26a4ac937dda49" category="paragraph"><block ref="82bf8c80995ea8a51b26a4ac937dda49" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="6a232e8d68ad0e4e19864abe8f7b64c0" category="list-text">System Manager 创建 iSCSI 服务和四个 LIF。*iSCSI* 磁贴现在显示 *已启用*，*目标节点名称* <block ref="5685db22e3cffde13103d45eed5f61fc" prefix="(" category="inline-code"></block>）和 *目标别名*<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block>。注意目标节点名称；您需要它来验证来自主机的连接。</block>
+  <block id="366b99d48bc85a85509120dbd6c70fd6" category="inline-image-macro">使用目标节点名称和别名启用 iSCSI，宽度=800</block>
+  <block id="3fc4a4bb3cf9c59e748e33d340f5e995" category="paragraph"><block ref="3fc4a4bb3cf9c59e748e33d340f5e995" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="88e4ca8bbb95d4efd8da21ae895646e5" category="paragraph">以下命令从 CLI 创建相同的配置。替换尖括号中的占位符值。记下 <block ref="e9779cac0c8b72bb10932e146af544c5" prefix=" " category="inline-code"></block> 输出中的目标名称；您需要它来验证来自主机的连接。</block>
+  <block id="aa7cf92fd2349d3d4a7a7b2e5b2a009a" category="admonition">iSCSI LIF 在接管期间不会迁移。高可用性由配对节点的 LIF 路径提供，因此始终在 HA 对的两个节点上创建 iSCSI LIF。</block>
+  <block id="993977631d33d4f24ba0108f984b9161" category="section-title">步骤 2：准备 Windows 主机</block>
+  <block id="3a63e16ce8a93085d2a9a81a7d1b33fe" category="paragraph">启动 Microsoft iSCSI 启动程序，并安装 MPIO 和 NetApp Windows 主机实用程序。以本地管理员身份在 SQL Server 主机<block ref="a510313d4617c90ad449cc16a56aeb37" prefix=" " category="inline-code"></block>上执行以下步骤。</block>
+  <block id="5206ccb4233b0837f16c61458c8808f7" category="admonition">在连接到 LUN *之前*安装和配置 MPIO。如果没有 MPIO，Windows 将为每个 LUN 的每条路径显示一个磁盘（在此配置中，每个 LUN 四个磁盘）。</block>
+  <block id="d8d86b2edd235c1366f7d9b00d04db7c" category="list-text">[[host-initiator,启动 iSCSI 启动程序]]启动 iSCSI 启动程序，并使用服务器管理器或 PowerShell 获取启动程序名称：</block>
+  <block id="8627e4dc5f78e8ab96314755b3954d0f" category="open-title">服务器管理器</block>
+  <block id="8fc5c29facd6a244803abbfbe6d170c6" category="list-text">在 *Server Manager* 中，打开菜单：Tools[iSCSI Initiator]。</block>
+  <block id="01ef67e6ea5a3c8cedbfd3081645dfb9" category="inline-image-macro">带有 iSCSI 启动程序的服务器管理器工具菜单，宽度=800</block>
+  <block id="8b7c8486405e3e712c0c752ca286da27" category="paragraph"><block ref="8b7c8486405e3e712c0c752ca286da27" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="2ba93de941dffbe2024e0477e6d4ac23" category="list-text">首次启动 iSCSI 启动程序时，会出现一条消息，报告 Microsoft iSCSI 服务未运行。单击*是*以启动服务并将其设置为自动启动。</block>
+  <block id="3a69baf38a7ad56c85ee79fb6c8815ae" category="inline-image-macro">Microsoft iSCSI 服务未运行对话框,width=800</block>
+  <block id="705e59f9822a002ee086590cd8a3dec7" category="paragraph"><block ref="705e59f9822a002ee086590cd8a3dec7" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="a1509e196ccf94c1b339adb044d42654" category="list-text">在 *iSCSI 启动程序属性* 中，打开 *配置* 选项卡。复制 *启动程序名称* <block ref="c45f6932e9ce13c3daaf760a478ae653" prefix="(" category="inline-code"></block>）。您需要使用它在 ONTAP 中创建启动程序组。</block>
+  <block id="fd97ed6c55c1a85cb2ee842bc8c206c4" category="inline-image-macro">iSCSI Initiator Properties Configuration 选项卡，带有启动程序名称，宽度=800</block>
+  <block id="73378d45f5a381f08a28331bae663fc1" category="paragraph"><block ref="73378d45f5a381f08a28331bae663fc1" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="3d265b4e1eeef0ddf17881fa003b18cc" category="open-title">PowerShell</block>
+  <block id="9c81f1176efff4bbbc0f7b25ae7b4c99" category="paragraph">最后一个命令返回启动程序名称。您需要使用它在 ONTAP 中创建启动程序组。</block>
+  <block id="1da2678b3bf26f786641714b723ccf5b" category="list-text">使用服务器管理器或 PowerShell 安装多路径 I/O 并为 iSCSI 设备启用 MPIO 支持：</block>
+  <block id="d1f2b24eec6073cafc495d3c94cb3af6" category="list-text">在*服务器管理器*中，单击 menu:Manage[Add Roles and Features]。在*功能*页面上，选择*多路径 I/O*并单击*安装*。</block>
+  <block id="8561bb34873415d1b1c799feee5c19c0" category="inline-image-macro">添加角色和功能向导选择功能页面，width=800</block>
+  <block id="b334f1f68b4eb924eb73221acf2024a6" category="paragraph"><block ref="b334f1f68b4eb924eb73221acf2024a6" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="b6baa3bdd736b1dc9deb67912776a871" category="list-text">打开菜单：工具[MPIO]，选择*发现多路径*选项卡，选择*添加对 iSCSI 设备的支持*，然后单击*添加*。出现提示时重新启动服务器。</block>
+  <block id="ef6f11a17e6f96ba9f183a288f043f1b" category="paragraph">重新启动后，复选框将被选中并显示为灰色，这意味着 MPIO 将声明所有 iSCSI 设备。连接 LUN 后（请参阅 <block ref="412410c879bd59d1d1dfee21c51ff02b" category="inline-xref-macro-rx"></block>），<block ref="851121cd9e704862f2fcab49f70df9b5" prefix=" " category="inline-code"></block> 仅列出每个 NetApp LUN 一次，如 PowerShell 窗口中所示。</block>
+  <block id="84e03030b45a88761c82400cdac9ecd0" category="inline-image-macro">MPIO 属性通过 iSCSI 支持和 Get-Disk 输出发现多路径,width=800</block>
+  <block id="439549534b83da9162a8d24952dce2c0" category="paragraph"><block ref="439549534b83da9162a8d24952dce2c0" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="92970d9454ab881924faf376db41b041" category="list-text">安装 *NetApp Windows 主机实用程序*（运行<block ref="a59ffcba1df1ef37d432a025861b3faa" prefix=" " category="inline-code"></block>并选择 *多路径 I/O 支持*），并在出现提示时重新启动服务器。主机实用程序会设置 Windows 磁盘和 iSCSI 超时以及 NetApp 建议的 MPIO 参数，以便主机顺利度过 ONTAP 接管和交还过程。</block>
+  <block id="b6ba7723ebf13e7977779703fad5dbeb" category="section-title">步骤 3：创建启动程序组</block>
+  <block id="32a17de27fd94717be0004c45a589e71" category="paragraph">启动程序组（igroup）用于定义哪些主机可以访问 LUN。为每个主机（或 FCI 的每个群集）创建一个 igroup。</block>
+  <block id="7ccf1785212432b7610e13775b4097b1" category="list-text">使用 System Manager 或 CLI 创建启动程序组：</block>
+  <block id="4276f9506beaad4c84d808087e17b4c4" category="list-text">在 System Manager 中，转到 menu:主机[SAN 启动程序组]，然后单击 *+ 添加*。</block>
+  <block id="313897e3bd2795d0eb804ec770303d9a" category="inline-image-macro">SAN 启动程序组页面,width=800</block>
+  <block id="132251e398f2e4e1868b1c2f5399398f" category="paragraph"><block ref="132251e398f2e4e1868b1c2f5399398f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="3edd4d632ecc87c1a375d2dde0417521" category="list-text">在*添加启动程序组*对话框中，输入：</block>
+  <block id="95f82b776929232ed124c10ed29ad1b2" category="list-text">*名称*：<block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix=" " category="inline-code"></block></block>
+  <block id="2818c8d2c50006c8d32268b1fa738faa" category="list-text">*主机操作系统*：*Windows*</block>
+  <block id="93c094727546b96e775d0ebeafa78e71" category="list-text">*Storage VM*：<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block></block>
+  <block id="7c37968a9bc4a7441ef6c91a5257cb1f" category="list-text">*启动程序组成员*：*主机启动程序*</block>
+  <block id="2b01c2d1489d6a72bca600ff37cf44c1" category="list-text">*iSCSI 启动程序* &gt; *新建启动程序*：粘贴主机的启动程序名称，<block ref="c45f6932e9ce13c3daaf760a478ae653" prefix=" " category="inline-code"></block></block>
+  <block id="e16a0ba756511a1059e58ad81f220178" category="inline-image-macro">"添加带有名称、操作系统和 IQN 的启动程序组对话框",width=800</block>
+  <block id="d7774dfdd9358bf65cff9c86e0445b01" category="paragraph"><block ref="d7774dfdd9358bf65cff9c86e0445b01" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="e326716c66a8bdbaa21e0f23c9782170" category="list-text">启动程序将添加到列表中。单击*保存*。</block>
+  <block id="62083b33e0c831c9c3edd59539594320" category="inline-image-macro">启动程序 IQN 已添加到启动程序组,width=800</block>
+  <block id="a096170091499565db13a88366bd8dcc" category="paragraph"><block ref="a096170091499565db13a88366bd8dcc" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="91db950d6369cd5828fae8c74c94e410" category="list-text">已创建启动程序组<block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix=" " category="inline-code"></block>。在映射第一个 LUN 之前，连接状态为 *未映射 LUN*。</block>
+  <block id="8e2894e5edb594d0616653a3b13a776a" category="inline-image-macro">启动程序组 sql-iscsi-1，未映射任何 LUN，width=800</block>
+  <block id="b727b19b75f0e33a80769d1488696c6f" category="paragraph"><block ref="b727b19b75f0e33a80769d1488696c6f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="2eaa85d0843a831b5a63a791816faa23" category="admonition">System Manager 使用协议 *混合（iSCSI &amp; FC）* 创建 igroup。这适用于 iSCSI。如果您的标准需要仅包含 iSCSI 的 igroup，请使用 CLI 创建它 <block ref="32a950ef4be9a95a580310510653dc5b" prefix="(" category="inline-code"></block>），如 *ONTAP CLI* 选项卡中所示。</block>
+  <block id="977d03d3d4cdd338da5eec2d1640c5dc" category="section-title">步骤 4：创建 SQL Server LUN</block>
+  <block id="4c4e8dbcd406e4cce0503732ad6a21a4" category="paragraph">为每种文件类型创建一个 LUN。System Manager 会创建一个以 *名称前缀* 命名的 FlexVol volume 和一个带有后缀<block ref="5d98ec0427152056397e9e35f357be87" prefix=" " category="inline-code"></block>的 LUN，并将该 LUN 映射到选定的 igroup。</block>
+  <block id="fa8e30f334254e1973a62ab8e429d09c" category="list-text">使用 System Manager 或 CLI 创建数据、日志、TempDB 和日志备份 LUN：</block>
+  <block id="0146ea62d007eb622fcf0e7fca9f0690" category="list-text">在 System Manager 中，展开 *Storage* 并单击 *LUNs*。</block>
+  <block id="0d16c2ed323c6ce9e30890fdd3921e8b" category="inline-image-macro">选定 LUN 的存储菜单，宽度=800</block>
+  <block id="5501902976b97255e9327270122fbfa5" category="paragraph"><block ref="5501902976b97255e9327270122fbfa5" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="eaf1d0fff54d9f4ff01fe4a23b86efe2" category="list-text">单击 *+ Add* 并为数据 LUN 输入以下值：</block>
+  <block id="3bdbd7e1035827c0b9de2b938db85b60" category="list-text">*名称前缀*：<block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix=" " category="inline-code"></block></block>
+  <block id="7be94383929ff899ecb89d4a05a56481" category="list-text">*LUN 数量*:<block ref="c4ca4238a0b923820dcc509a6f75849b" prefix=" " category="inline-code"></block>, *每个 LUN 的容量*:<block ref="21964423cf01ad74768512e9dc96f614" prefix=" " category="inline-code"></block></block>
+  <block id="8a3027b6f6e9e025d914a0ee2ebbc522" category="list-text">*保护*：保持 *启用快照（本地）* 和 *启用 SnapMirror（本地或远程）* 处于清除状态。应用程序一致性备份由 NetApp Console 备份和恢复创建（请参阅 <block ref="34bef8ca9fd57759484622d96b741096" category="inline-link-macro-rx"></block>）。</block>
+  <block id="26e98775c65438387498c4ea3368504e" category="list-text">*主机信息*：*主机操作系统* *Windows*，*LUN 格式* *Windows 2008*（此格式适用于自 Windows Server 2008 以来的所有 Windows 版本，包括 Windows Server 2025）</block>
+  <block id="e860af6d627a903d7b33960523249c90" category="list-text">*主机映射*：*现有启动程序组*，选择<block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix=" " category="inline-code"></block></block>
+  <block id="042d40dd6853205b40a056da68325710" category="admonition">要控制在哪个节点上创建卷，请选择 *Manual placement* 并选择本地层。将数据卷和备份卷放置在节点 1 上，将日志卷和 TempDB 卷放置在节点 2 上。</block>
+  <block id="914329b999481ad7b08aa2bf37f702e1" category="inline-image-macro">添加 520 GiB 数据 LUN 的 LUN 对话框,width=600</block>
+  <block id="2c68688e59f7382b5dd523981e19d63c" category="paragraph"><block ref="2c68688e59f7382b5dd523981e19d63c" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="e9642e52d934f4300758618b535a5be8" category="list-text">系统显示消息 *The LUNs were added*，并且 LUN<block ref="dfb9d43d4da78ba585b1c35841ea07b8" prefix=" " category="inline-code"></block> 列在 volume<block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix=" " category="inline-code"></block> 中。</block>
+  <block id="267c6723ee042a8b1b34c93be3986318" category="list-text">使用 <block ref="aaa1c396c737a3dbcedf45725a6e0bc3" category="inline-xref-macro-rx"></block> 中列出的名称和大小，对日志、TempDB 和日志备份 LUN 重复这些步骤。</block>
+  <block id="2a9a25958c857da79139ec94a0d4417d" category="list-text">所有四个 LUN 现在均已在 SVM<block ref="0f9995c41e025956b46b86899a2f358e" prefix=" " category="inline-code"></block> 上创建并映射到 igroup<block ref="4dda8ef4b14f74fc75e18981159a99b7" prefix=" " category="inline-code"></block>。</block>
+  <block id="b3e158ca1733b2e810639a1920b4b5f7" category="inline-image-macro">列出的所有四个 SQL Server LUN，width=800</block>
+  <block id="253dcec974492a65c96ea80b1b6c7271" category="paragraph"><block ref="253dcec974492a65c96ea80b1b6c7271" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="e70201b320b4c25ff9b2ad07e6ade29a" category="paragraph">以下命令创建数据卷和 LUN，并将 LUN 映射到 igroup。对日志、TempDB 和日志备份 LUN 重复<block ref="4784dd0ffa42c3d1b43b0afd079dfc17" prefix=" " category="inline-code"></block>、<block ref="7c192459e62b85875b59970db3d2b9ee" prefix=" " category="inline-code"></block>和<block ref="ea8d49f93749ae57e0c20950605c6607" prefix=" " category="inline-code"></block>（请参见<block ref="9572c2b0fedc5321a3805eee5d37ef9e" category="inline-xref-macro-rx"></block>）。</block>
+  <block id="d5d7739cc17c5637754e6c2799b0b32b" category="section-title">第 5 步：查看卷和 LUN 设置</block>
+  <block id="98b9862ef7aa95c856275221075ccfe0" category="paragraph">查看四个卷的空间和快照设置。System Manager 使用合理的默认值；建议对 SQL Server LUN 进行以下设置：</block>
+  <block id="fffcb4d1e12c96b2f571f77ad25878b8" category="cell">原因</block>
+  <block id="9bdb8096003c40d81ca110c8ba362cac" category="cell">空间保证（卷）</block>
+  <block id="748f09a3f072b66dc09fa7a4be68c2e4" category="cell"><block ref="334c4a4c42fdb79d7ebc3e73b517e6f8" prefix="" category="inline-code"></block> （精简）</block>
+  <block id="e87b7d74d54c9a32a42dcb250110af60" category="cell">只有在写入数据时才会占用容量。</block>
+  <block id="ace72ec54e17777d27eb8bdb9d57e782" category="cell">LUN 空间预留</block>
+  <block id="c1aabca08afb7e9a5d4bf352383d3da2" category="cell"><block ref="075ae3d2fc31640504f814f60e5ef713" prefix="" category="inline-code"></block> （精简）</block>
+  <block id="e3afff7a8bb5f3e79d85133e022557a7" category="cell">精简卷中的精简 LUN。</block>
+  <block id="514aa7792a71ab4ab677eb2385131aae" category="cell">LUN 空间分配</block>
+  <block id="84e11a15fc9335dfc7156e7044e279a2" category="cell"><block ref="a10311459433adf322f2590a4987c423" prefix="" category="inline-code"></block></block>
+  <block id="5bb63defe497df42965bb6a6ddb70081" category="cell">启用 SCSI UNMAP，以便将 NTFS 中释放的空间返回到 ONTAP，并允许主机在卷空间耗尽时正确响应。</block>
+  <block id="56d058c51fcd79545706c62569ba5a19" category="cell"><block ref="334c4a4c42fdb79d7ebc3e73b517e6f8" prefix="" category="inline-code"></block></block>
+  <block id="c5f19d3a93aac338e12d55d110e3c78c" category="cell">不符合应用程序一致性的快照对 SQL Server 无用。备份由 NetApp Console 备份和恢复创建。</block>
+  <block id="5755a6275c3ecd99e8159efc58a8ff6c" category="cell">Snapshot 预留</block>
+  <block id="e015722b1e92fc649291988acaa47bbe" category="cell"><block ref="cfcd208495d565ef66e7dff9f98764da" prefix="" category="inline-code"></block> %</block>
+  <block id="c36e5bb07721fde53952fde123f966dc" category="cell">改为使用卷自动调整大小来监控 Snapshot 空间。</block>
+  <block id="5a5328bccf5dc4ccfc5837669d9fc26b" category="cell"><block ref="4d200fce73a8e1cc965cfc2c43343824" prefix="" category="inline-code"></block>，最大值约为卷大小的 130%</block>
+  <block id="908a7c85f9987757486aba3a856b9198" category="cell">防止快照占用空间时 LUN 脱机。</block>
+  <block id="b085b43df3dadd18346f183cffb8749e" category="cell">已启用（在 AFF 上默认）</block>
+  <block id="ac02c2903a9b3cfa5bcb5ddce727055c" category="cell">实时重复数据删除、压缩和压实不会对 SQL Server 性能产生可衡量的影响。</block>
+  <block id="51dfe984b88555c53c32bb0d4fad66b2" category="paragraph">使用以下命令应用并验证设置（针对<block ref="81dbc9c14af7a55489eeda0dfbba0f19" prefix=" " category="inline-code"></block>显示）：</block>
+  <block id="fc51cb96ce82f16f6b244c18a15a7dd3" category="admonition">在现有 LUN 上更改<block ref="82373a2016779f9c20fdc0d8b48101a7" prefix=" " category="inline-code"></block> 需要该 LUN 处于脱机状态。请在创建时或在主机连接到 LUN 之前进行设置。</block>
+  <block id="ba9cbde42f610b53ac97101848c0523d" category="section-title">第 6 步：将主机连接到 iSCSI 目标</block>
+  <block id="efb7cc29f10fb359385083a2933dbace" category="paragraph">将 Windows 主机连接到 SVM，与四个 iSCSI LIF 中的每一个建立一个 iSCSI 会话，以便每个 LUN 都有四条路径。</block>
+  <block id="a96762815dcce3b14548d06a620c2276" category="list-text">发现目标门户，并使用 iSCSI 启动程序或 PowerShell 连接 iSCSI 会话：</block>
+  <block id="ea1672c458249f4cd963963cb02f7aef" category="open-title">iSCSI 启动程序</block>
+  <block id="68c2a568c2daedcc7c94d9aa666ca8fd" category="list-text">打开 *iSCSI 启动程序*（菜单：服务器管理器[工具 &gt; iSCSI 启动程序]），选择 *发现* 选项卡，然后单击 *发现门户……*。</block>
+  <block id="2841385dc68a7cd758838fe002fcbd1d" category="inline-image-macro">iSCSI 启动程序属性发现选项卡，width=500</block>
+  <block id="3674f381ab5bd3805e4761d29d2183b0" category="paragraph"><block ref="3674f381ab5bd3805e4761d29d2183b0" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="26eec80cd6f2b1dc9fa4670e27eeb7ca" category="list-text">输入 SVM 的一个 iSCSI LIF（在实验室中<block ref="5f14ead95e52c0f6f07ade73b357d2e4" prefix=" " category="inline-code"></block>）的 IP 地址和端口<block ref="d54ce9de9df77c579775a7b6b1a4bdc0" prefix=" " category="inline-code"></block>，然后单击 *确定*。ONTAP 会将 SVM 的所有 iSCSI LIF 返回给启动程序（SendTargets 发现），因此一个门户就足够了。</block>
+  <block id="8ba8c462de7e93067c30df6b5776a3dc" category="inline-image-macro">发现目标门户对话框，IP 为 192.168.175.135，端口为 3260，width=500</block>
+  <block id="ee5715d0be1c7ea7ad76b8473c2cf6fc" category="paragraph"><block ref="ee5715d0be1c7ea7ad76b8473c2cf6fc" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="5ab337b4a7edfb5302514967d3f0af7b" category="list-text">门户列在*目标门户*下。</block>
+  <block id="fa944da48e49396af23a6e7edf062aa6" category="inline-image-macro">目标门户 192.168.175.135 端口 3260 已列出，width=500</block>
+  <block id="04cb0709470efe48e8abf4c55bc9024f" category="paragraph"><block ref="04cb0709470efe48e8abf4c55bc9024f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="06569c7fcc64f0ce65fdc4030cd209ed" category="list-text">选择*目标*选项卡。目标<block ref="5685db22e3cffde13103d45eed5f61fc" prefix=" " category="inline-code"></block>以 *Inactive* 状态列出。选择它并单击*连接*。</block>
+  <block id="51609f9b77f5005c7b39b17e93f40fd9" category="inline-image-macro">NetApp 目标处于非活动状态的“目标”选项卡，width=500</block>
+  <block id="cd5c7e37afc11bf760398eb2a918afef" category="paragraph"><block ref="cd5c7e37afc11bf760398eb2a918afef" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="26318340a27bbe816e10b25f14725c7c" category="list-text">在 *Connect To Target* 对话框中，选择：</block>
+  <block id="227862b0384853e7d153ea99e43cda21" category="list-text">*将此连接添加到收藏夹目标列表*，以便在重新启动后自动恢复会话</block>
+  <block id="679556c7bf1af97cc17d50b17e4159fc" category="list-text">*启用多路径*</block>
+  <block id="bdcc1dfbd229594cd73fe11e319914d9" category="paragraph">单击*高级……*。</block>
+  <block id="9ee3f8c902f2bac4231ee210385d1659" category="inline-image-macro">选择了收藏夹和多路径的“连接到目标”对话框，width=500</block>
+  <block id="14762e1c1ffabbe5a17a55c2880b42aa" category="paragraph"><block ref="14762e1c1ffabbe5a17a55c2880b42aa" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="c47a6df3360ccc4b51fca99ad1296ef4" category="list-text">在*高级设置*中，选择：</block>
+  <block id="927da3a40b4366c6c66e9709d034a03e" category="list-text">*本地适配器*：*Microsoft iSCSI 启动程序*</block>
+  <block id="29708c0011e1e68fcaf3e0a68abd112c" category="list-text">*启动程序 IP*：主机的 iSCSI IP 地址 <block ref="be19c5ce9af858953fb193cc75f9b6f5" prefix="(" category="inline-code"></block>）</block>
+  <block id="333a363745acce89634a8d03526801f1" category="list-text">*目标门户 IP*：第一个 iSCSI LIF（在实验室中<block ref="e381fb75da9804ec283db45ed45ab03f" prefix=" " category="inline-code"></block>）</block>
+  <block id="771e250ae8e4cdaed772abaa9db73894" category="paragraph">除非您的安全策略要求，否则请保持 CHAP 处于清除状态。如果需要 CHAP，请首先使用<block ref="984ee77a1967f88e87a8f24544e228a5" prefix=" " category="inline-code"></block>在 ONTAP SVM 上为主机的启动程序 IQN 配置匹配的凭据，然后在 Windows iSCSI 启动程序中输入这些凭据。单击 *确定* 两次。</block>
+  <block id="ee342d316e3b1b2edb9ff8c9d7a12b8d" category="inline-image-macro">包含启动程序 IP 和目标门户 IP 的高级设置，width=500</block>
+  <block id="93628d9196a352bfe2604640661ee7e6" category="paragraph"><block ref="93628d9196a352bfe2604640661ee7e6" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="98f4dc9d24a8de72c6fad41e3b4fda96" category="list-text">目标的状态更改为*已连接*。</block>
+  <block id="72b286de3120e8e1cbb025024121822b" category="inline-image-macro">已连接 NetApp 目标的目标选项卡，width=500</block>
+  <block id="3903175caeba065fefe1fa6b83423e70" category="paragraph"><block ref="3903175caeba065fefe1fa6b83423e70" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="1bf27a4c0fb2d661a3973b9d78c579f0" category="list-text">一个会话只使用一条路径。为每个剩余的 iSCSI LIF 添加一个会话：在*目标*选项卡上，选择目标并单击*属性……*。在*会话*选项卡上，单击*添加会话*。</block>
+  <block id="95799bc551578336e8a608eb28392b2f" category="list-text">在*连接到目标*对话框中，选择*启用多路径*和*将此连接添加到收藏夹目标列表*，单击*高级……*，选择相同的*启动程序 IP*和下一个*目标门户 IP*，然后单击*确定*两次。</block>
+  <block id="1a1692ac91650b85a23ef5b76b684450" category="admonition">确保为每个会话选择了 *Enable multi-path*。屏幕截图显示的是选中该复选框之前的对话框。</block>
+  <block id="30b1e91638d6fd282c92124045cb9e59" category="inline-image-macro">带有添加会话对话框的目标属性会话选项卡，width=500</block>
+  <block id="f9a0a4def952d5c36df07032f6bcb13e" category="paragraph"><block ref="f9a0a4def952d5c36df07032f6bcb13e" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="8d4c561ee3458ce2f45727a2798ca8f3" category="list-text">重复上一步骤，直到 *Sessions* 选项卡列出四个会话，每个目标门户各一个：192.168.175.134、.135、.136 和 .137。如果主机有两个 iSCSI NIC，请从两个 iSCSI 启动程序 IP 地址创建会话。</block>
+  <block id="65faa3cd3d3e43250063339839606280" category="paragraph">以下命令可发现目标门户，并为每个 iSCSI LIF 创建一个持久的、启用多路径的会话。</block>
+  <block id="0464450ce490ae156da668598e7d245f" category="list-text">[[connect-verify,Verify the paths]]验证每个 LUN 是否由 MPIO 声明并具有四个路径，其中两个为 *活动/优化*：</block>
+  <block id="3a0bda0d86c8fc80753ff1bbc101c04f" category="paragraph">负载平衡策略为 *RRWS*（带子集的轮询）。</block>
+  <block id="48146db7a0491e684e17923b49df657d" category="list-text">在 ONTAP 中，验证会话和 LUN 路径：</block>
+  <block id="837900cefa77dfee5d94332e755cdcfd" category="section-title">第 7 步：初始化和格式化磁盘</block>
+  <block id="4bf6b1c3a9908c47b801f89d1d0a11a3" category="paragraph">在 Windows 中使四个 NetApp LUN 联机，对其进行初始化，并在每个 LUN 上创建一个带有驱动器号的 NTFS 卷。</block>
+  <block id="e5f08ee0138127fc8bcbbe06b92ef78b" category="list-text">使用“磁盘管理”或 PowerShell 初始化和格式化磁盘：</block>
+  <block id="0abb6bbc6875b644d4ee2dd40561a3d0" category="open-title">磁盘管理</block>
+  <block id="13a29d5d679866abfe84a7b3f58eb25b" category="list-text">打开菜单：服务器管理器［工具 &gt; 计算机管理］，然后选择菜单：存储［磁盘管理］。这四个 NetApp LUN 被列为 *磁盘 1* 到 *磁盘 4*（520、250、150 和 300 GB）。它们处于 *脱机* 状态，因为 Windows Server 的默认 SAN 策略会使新的共享磁盘保持脱机状态。</block>
+  <block id="68a8b22ac316f7c48eff7e140c5c8bbc" category="inline-image-macro">具有四个脱机 NetApp 磁盘的磁盘管理，width=800</block>
+  <block id="704d639d93901cf11878936a672a9c3f" category="paragraph"><block ref="704d639d93901cf11878936a672a9c3f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="097567493fe9c34d71eb3f2a36774c7f" category="list-text">右键单击每个新磁盘并选择*联机*。然后右键单击其中一个磁盘并选择*初始化磁盘*。</block>
+  <block id="8905d5acb860d83064e8bea1dabad6c2" category="inline-image-macro">磁盘管理上下文菜单（包含"初始化磁盘"选项），width=800</block>
+  <block id="aa54e055bb9a77de958416bc095a7ff4" category="paragraph"><block ref="aa54e055bb9a77de958416bc095a7ff4" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="175f5c8ca3d0640fdb43e5e5f81e66c2" category="list-text">选择所有四个磁盘，选择 *GPT（GUID 分区表）*，然后单击 *OK*。</block>
+  <block id="59196e9f5b06908277dc79946ab0bce6" category="inline-image-macro">带有四个磁盘和 GPT 的“初始化磁盘”对话框，宽度=800</block>
+  <block id="73ba2af8a1e880e66f50c06e2e04b7e8" category="paragraph"><block ref="73ba2af8a1e880e66f50c06e2e04b7e8" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="080bb176422913982860f9ec19d3427f" category="list-text">右键单击*磁盘 1*（520 GB）的未分配空间并选择*新建简单卷……*。</block>
+  <block id="7761733203915933e99cecd926920435" category="inline-image-macro">上下文菜单新建磁盘 1 上的简单卷,width=800</block>
+  <block id="b2763ca0254c89c514881d336803531c" category="paragraph"><block ref="b2763ca0254c89c514881d336803531c" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="2ebda246de4f07e8ea978c69fb633759" category="list-text">*新建简单卷向导*启动。单击*下一步*，并接受最大卷大小。</block>
+  <block id="e6f48b11ff91511fd105bf21a2eeb20a" category="inline-image-macro">新建简单卷向导欢迎页面，width=800</block>
+  <block id="6d5f5c225bb8d65c3a10190c30547775" category="paragraph"><block ref="6d5f5c225bb8d65c3a10190c30547775" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="19a38e9d40e275030624282865f8b74e" category="list-text">选择*分配以下驱动器号*<block ref="3a3ea00cfc35332cedf6e5e9a32e94da" prefix=" " category="inline-code"></block>，然后单击*下一步*。</block>
+  <block id="bc6922e092dc7dd482c8ecbb663cedd2" category="admonition">对于具有多个数据库的实例，可以在空 NTFS 文件夹（装载点）中装载 LUN，而不是使用驱动器号。</block>
+  <block id="1be37ea2b112112337b321a05687747d" category="inline-image-macro">使用驱动器号 E 分配驱动器号或路径，width=800</block>
+  <block id="3625abc78f88827ce6616c0af4cfe3ad" category="paragraph"><block ref="3625abc78f88827ce6616c0af4cfe3ad" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="f474bfaa9a944c61ce1b3db68a1c651c" category="list-text">选择*使用以下设置格式化此卷*：</block>
+  <block id="268a23c1cc464cc0a39f0655affe22a4" category="list-text">*文件系统*：*NTFS*</block>
+  <block id="ef6cda397f741e7efe0e333e33c0e34b" category="list-text">*分配单位大小*：*64K*（建议用于 SQL Server 数据、日志和 TempDB 卷；实验室屏幕截图显示*默认值*）</block>
+  <block id="a903ec3fb396db21d1ac15e3ef3bdaca" category="list-text">*卷标*：<block ref="8d777f385d3dfec8815d20f7496026dc" prefix=" " category="inline-code"></block></block>
+  <block id="b5e3edd46fef6c283f0c0c037ca2e427" category="list-text">*执行快速格式化*：已选择</block>
+  <block id="5a378b18f7bf0c4cabc6c655cd2f535e" category="paragraph">单击*下一步*。</block>
+  <block id="7ee90e98d53fd566d8a118387fcf8b92" category="inline-image-macro">使用 NTFS 和卷标数据格式化分区，width=800</block>
+  <block id="f68078c8fa4a4c20a19d341f15ed1566" category="paragraph"><block ref="f68078c8fa4a4c20a19d341f15ed1566" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="bf1f3a4a60c760467633f1d23cafa259" category="list-text">查看设置并单击 *完成*。</block>
+  <block id="7512cf9d2f0fa22af621d5af6b56279e" category="inline-image-macro">完成新建简单卷向导，width=800</block>
+  <block id="ae906ce232dfa01a40fe762e23eb1577" category="paragraph"><block ref="ae906ce232dfa01a40fe762e23eb1577" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="ee6348766b36c3689ce1a38a73a49d93" category="list-text">对其他磁盘重复前五个步骤：</block>
+  <block id="380dbc8d9d2c8a17f6ebb0b2c62d3e85" category="cell">磁盘</block>
+  <block id="2fd93710037364874693d0231e709aea" category="cell">驱动器号</block>
+  <block id="4f0dbbd4761dc25e461d953cdd839278" category="cell">卷标</block>
+  <block id="55b609b2658e52d05fb8463e5c8e86be" category="cell">磁盘 1</block>
+  <block id="41ba1d5e164f25e65b2b1a381c5e36ed" category="cell">520 GB</block>
+  <block id="d9bb6efd9221564f774a5617ee35650a" category="cell"><block ref="be292f40d00f9e2ee34c55ad060f5e81" prefix="" category="inline-code"></block></block>
+  <block id="3ae5c21d96b7127a320f42ba6a2550e0" category="cell"><block ref="8d777f385d3dfec8815d20f7496026dc" prefix="" category="inline-code"></block></block>
+  <block id="1379e03f20ca5a7b0cd120793e13cd65" category="cell">磁盘 2</block>
+  <block id="9e1073c39a940a0a015423c9150e1fbe" category="cell">250 GB</block>
+  <block id="6b0a01c62346f1608fb9c267b232f40c" category="cell"><block ref="436b49c01e3f50a85f494ad0883c3179" prefix="" category="inline-code"></block></block>
+  <block id="5c74215afd7892d2a4b1f676c3f9af1e" category="cell"><block ref="dc1d71bbb5c4d2a5e936db79ef10c19f" prefix="" category="inline-code"></block></block>
+  <block id="6e1801d4db6bd5c6fc51f058574deee4" category="cell">磁盘 3</block>
+  <block id="cd1fdb6c973c0fb43ff64828431fcaae" category="cell">150 GB</block>
+  <block id="c34441facdaedfb50c423d353bf83abb" category="cell"><block ref="1795dbe6ce82c40261d933fcdd607daa" prefix="" category="inline-code"></block></block>
+  <block id="a29d0dbc171e4b73489a216492fac593" category="cell"><block ref="51cc3f29f55624d2bdac8721d4e4c249" prefix="" category="inline-code"></block></block>
+  <block id="b7a95d021758ea6fd1d723f47571d23d" category="cell">磁盘 4</block>
+  <block id="0f67dbac157f4257347a568b21028cdf" category="cell">300 GB</block>
+  <block id="5ea218a2ad697a3d03499241a56b438b" category="cell"><block ref="bb50f32a65ec9424482f1c340bb5ebae" prefix="" category="inline-code"></block></block>
+  <block id="3e6fb6e7814973a4a9c6dc9b2b9bed35" category="cell"><block ref="d2ea3ff9ca2517b606a8d29cf2f7a61b" prefix="" category="inline-code"></block></block>
+  <block id="35a796100c7fc025087ad1b5b7d08d40" category="list-text">为 SQL Server 创建文件夹：<block ref="0f029e32fc6b4e7fdd554bf75eb28e08" prefix=" " category="inline-code"></block>、<block ref="f885b03746c72a0d0b715f4a25ca0248" prefix=" " category="inline-code"></block>、<block ref="1b588b633b9d33fb133f4bd39ef56974" prefix=" " category="inline-code"></block>、<block ref="fe65deede8968795d0d459bedf3ff10b" prefix=" " category="inline-code"></block> 和 <block ref="89bb07a01ac3af3002ff5e91b65f566c" prefix=" " category="inline-code"></block>。</block>
+  <block id="628c983b0a5d58c02a910de70998bfc5" category="paragraph">以下命令使 NetApp 磁盘联机，使用 GPT 对其进行初始化，在每个磁盘上创建并格式化一个分配单元大小为 64K 的 NTFS 卷，并为 SQL Server 创建文件夹。</block>
+  <block id="37699f761e3de3a37f6fa57f3ba05037" category="admonition">仅当这些 LUN 是连接到系统的唯一原始 LUN 时，才运行这些命令。如果有其他原始 LUN 连接到系统，则需要手动创建文件夹并格式化卷。</block>
+  <block id="0f441f85b9c0c2695efe97e50677fdc3" category="admonition">不要将数据库文件直接放在驱动器的根目录中。文件夹使权限、挂载点和以后的迁移更轻松。</block>
+  <block id="6ed29c3d6d62c238b5ae900a0cec6a59" category="section-title">第 8 步：安装 SQL Server 2025</block>
+  <block id="37ad6ae05841b75c0ca8a8f114c7bba3" category="paragraph">使用安装向导在 Windows Server 主机上安装 SQL Server 2025。在本地磁盘上安装二进制文件和系统数据库，并将用户数据库、事务日志、TempDB 和备份位置指向 NetApp LUN 上的文件夹。</block>
+  <block id="909659a059a894f9ec5421874fa20cc9" category="inline-image-macro">文件资源管理器中的 SQL Server 2025 安装介质，width=800</block>
+  <block id="7b7dab139b56c2fb4182dda612b82231" category="paragraph"><block ref="7b7dab139b56c2fb4182dda612b82231" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="1a8fa30fe27f05c65703f5bc3a2d94a3" category="inline-image-macro">SQL Server 安装中心,width=800</block>
+  <block id="2043b35440a9f4cfd3533885f2976a97" category="paragraph"><block ref="2043b35440a9f4cfd3533885f2976a97" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="1e89cb1bf05fdf418334323c2054644d" category="list-text">在*版本*页面上，选择*输入产品密钥*并输入您的产品密钥，或选择免费版本（评估、企业开发人员、标准开发人员或 Express）。选择适用于您的许可证类型（在实验室中，*我拥有带有软件保障或 SQL 软件订阅的 SQL Server 许可证*），然后单击*下一步*。</block>
+  <block id="a14909aef564883499133a7e71b780c0" category="inline-image-macro">版本页面（产品密钥已编辑），width=800</block>
+  <block id="8012ee70b68bb45bf7ade52606e590e8" category="paragraph"><block ref="8012ee70b68bb45bf7ade52606e590e8" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="f72c96d35ca1a9deb0d267cf63cc2b67" category="inline-image-macro">许可条款页面,width=800</block>
+  <block id="7b826cf520b8753783cec213f5f67860" category="paragraph"><block ref="7b826cf520b8753783cec213f5f67860" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="9fb63771d8541833114c1c51cfc6fd55" category="inline-image-macro">Microsoft Update 页面,width=800</block>
+  <block id="fe2bb1c90702e8f4b7c2a1ca637d5a0f" category="paragraph"><block ref="fe2bb1c90702e8f4b7c2a1ca637d5a0f" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="184212a20a4950cf7491aadc968e8fd7" category="list-text">选择要安装的 SQL Server 功能和实例。二进制文件保留在本地磁盘上；只有数据库文件放置在 NetApp LUN 上。</block>
+  <block id="858a9977ed2ebadf29459353096f7305" category="list-text">在*功能选择*页面上，选择*数据库引擎服务*和您需要的任何其他功能。将*实例根目录*和*共享功能目录*保留在本地磁盘上<block ref="d7aa32b0c582222819b91c8e0ccca765" prefix=" " category="inline-code"></block>。</block>
+  <block id="daa99015671b2fad1f0f00e9e3cbaf41" category="inline-image-macro">具有 Database Engine Services 的功能选择页面，width=800</block>
+  <block id="2b6fc7d513e4e71cf4f67bba80fd7183" category="paragraph"><block ref="2b6fc7d513e4e71cf4f67bba80fd7183" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="25d09705435568c4907640a0cd7f8993" category="inline-image-macro">实例配置页面，width=800</block>
+  <block id="4ac423fe18b7ecbb684390e1ff9d0805" category="paragraph"><block ref="4ac423fe18b7ecbb684390e1ff9d0805" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="b61439be4431bbc6e4a741dabdae85bb" category="list-text">查看 SQL Server 数据库引擎和 SQL Server 代理的服务帐户。</block>
+  <block id="d6487413d08b7a5b5fc563edfec6cb12" category="list-text">在 *服务器配置* 页面的 *服务帐户* 选项卡上，查看服务帐户。本实验使用默认虚拟帐户 <block ref="9fa960199cf8ab6d2d53d06ba5927ce1" prefix="(" category="inline-code"></block> 用于数据库引擎）。由于数据库位于本地 NTFS 卷上，因此无需额外权限。如果您使用 SQL Server 代理作业或日志备份，请将 *SQL Server 代理* 的 *启动类型* 设置为 *自动*。</block>
+  <block id="2116f6634c07679d619cbd5e9aac67f6" category="admonition">选择*将执行卷维护任务的权限授予 SQL Server 数据库引擎服务*（在屏幕截图中清除）。这可以实现即时文件初始化，从而大大加快数据库创建、文件增长和恢复的速度。</block>
+  <block id="7d0d9b71959305e2ecd37d5ef353ab7e" category="inline-image-macro">服务器配置 - 服务帐户,width=800</block>
+  <block id="18d0f186079a8154ceee0a9a703673fb" category="paragraph"><block ref="18d0f186079a8154ceee0a9a703673fb" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="9d3647d7ce76d42d0b0f3e24588302fb" category="list-text">设置身份验证模式和 SQL Server 管理员，并在 NetApp LUN 上输入用户数据库、事务日志、备份和 TempDB 文件的文件夹。</block>
+  <block id="394605c9b4fc9dc2f46369a3e1824db9" category="inline-image-macro">数据库引擎配置 - 身份验证,width=800</block>
+  <block id="805409161a888eab7c76135f4d580ad3" category="paragraph"><block ref="805409161a888eab7c76135f4d580ad3" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="ca2a190a910e519b63d76ea66a8ed70a" category="list-text">在*数据目录*选项卡上，输入 NetApp LUN 上的文件夹：</block>
+  <block id="e9d97e14906eec410b0e0e3f13706ee5" category="cell"><block ref="0f029e32fc6b4e7fdd554bf75eb28e08" prefix="" category="inline-code"></block></block>
+  <block id="c1f4640b3fe4111b89fa5ef07608d8b3" category="cell"><block ref="f885b03746c72a0d0b715f4a25ca0248" prefix="" category="inline-code"></block></block>
+  <block id="bcb36740d371acbeda374b8dc76e0d3b" category="cell"><block ref="89bb07a01ac3af3002ff5e91b65f566c" prefix="" category="inline-code"></block></block>
+  <block id="03db1c8f2f822b75a93e66e7069c423a" category="inline-image-macro">"带有 E:\data、F:\log 和 H:\backup 的数据目录",width=800</block>
+  <block id="1b76873202de55cd8fb9fcfbb3ae180e" category="paragraph"><block ref="1b76873202de55cd8fb9fcfbb3ae180e" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="444dc44fd90b93c770f82f8e72260497" category="list-text">在 *TempDB* 选项卡上，默认数据和日志目录由安装程序设置。选择*数据目录*中的条目，单击*删除*，然后单击*添加……*。</block>
+  <block id="28e70e9ab1a565730e8e1eac07f78573" category="inline-image-macro">具有默认目录的 TempDB 选项卡，width=800</block>
+  <block id="8f11a1c1f68122b26a94304521c72cae" category="paragraph"><block ref="8f11a1c1f68122b26a94304521c72cae" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="30d0f49453b6532afdf26566655b3234" category="list-text">在*浏览文件夹*对话框中，选择驱动器 *tempdb (G:)* 和文件夹<block ref="1b588b633b9d33fb133f4bd39ef56974" prefix=" " category="inline-code"></block>。如果文件夹尚不存在，请使用*创建新文件夹*创建它们。单击*确定*。</block>
+  <block id="f032dbff95107910e9c4325ea6dcd312" category="inline-image-macro">浏览 G: 上包含 tempdb 数据和日志文件夹的文件夹,width=800</block>
+  <block id="504585452ddf0b7baf6ec1028cfc3e2e" category="paragraph"><block ref="504585452ddf0b7baf6ec1028cfc3e2e" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="fabe0260c2e10cad3f0993af53d108b3" category="list-text">将 *日志目录* 设置为<block ref="fe65deede8968795d0d459bedf3ff10b" prefix=" " category="inline-code"></block>（单击 *……* ）。该实验室使用 8 个 TempDB 数据文件。</block>
+  <block id="623d8b7dc28a662f62d1b1674d1347ea" category="inline-image-macro">在 G:\tempdb\data 和 G:\tempdb\log 上配置的 TempDB,width=800</block>
+  <block id="20b2cc942419ef3c4850b73040b3bcc1" category="paragraph"><block ref="20b2cc942419ef3c4850b73040b3bcc1" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="25412ee0f5c0ff79744b079f309c306b" category="inline-image-macro">准备安装摘要,width=800</block>
+  <block id="c88ea97296dd5611c3eaecee0b122821" category="paragraph"><block ref="c88ea97296dd5611c3eaecee0b122821" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="1bc00d42a08ab2d60a4ab19dd64d7162" category="inline-image-macro">安装完成,width=800</block>
+  <block id="13987a311d9d42978f7b870c4a221ac8" category="paragraph"><block ref="13987a311d9d42978f7b870c4a221ac8" category="inline-image-macro-rx" type="image"></block></block>
+  <block id="249518266bd0e4b4127dbe83a85861b1" category="section-title">第 9 步：验证安装</block>
+  <block id="a22595fc5d661a5c43f7abfd7283da0d" category="paragraph">创建测试数据库，并验证其数据和日志文件是否在 NetApp LUN 上，以及存储路径是否正常。</block>
+  <block id="9abb466fee8d5ca963e30af56aeed040" category="list-text">启动 SSMS 并使用 Windows 身份验证连接到实例 <block ref="a510313d4617c90ad449cc16a56aeb37" prefix="(" category="inline-code"></block>）。创建测试数据库；其数据和日志文件默认为 <block ref="0f029e32fc6b4e7fdd554bf75eb28e08" prefix=" " category="inline-code"></block> 和 <block ref="f885b03746c72a0d0b715f4a25ca0248" prefix=" " category="inline-code"></block>。</block>
+  <block id="b749f323e5c242765866c75a5e91b487" category="list-text">确认已启用即时文件初始化：</block>
+  <block id="710d391c061219e95eb8e4993477b8d1" category="list-text">从主机和 ONTAP 验证存储：</block>
+  <block id="6843583b7544b4e1f4a0e311b26264c8" category="list-text">可选：测试高可用性。对测试数据库运行工作负载，并对拥有数据卷的节点执行 ONTAP 接管和交还 <block ref="d1a13c33791422523bf2fbe8c2c1ece5" prefix="(" category="inline-code"></block> /<block ref="032b9566ac005b60cb077281c9a7f2be" prefix=" " category="inline-code"></block>）。工作负载暂停几秒钟并继续；数据库保持在线。</block>
+  <block id="01e12de62fa77fda2815719aed8ff892" category="paragraph-title">下一步</block>
+  <block id="ae03c60064ce1f196b38542b4a41eb78" category="paragraph">使用应用程序一致性快照备份保护数据库。有关体系结构、备份工作流和优势，请参见<block ref="34bef8ca9fd57759484622d96b741096" category="inline-link-macro-rx"></block>。</block>
+  <block id="2ba505bce6eb3ca25edbdfb91cd664f8" category="admonition">将卷分布在两个节点的聚合中，例如节点 1 上的数据和日志备份，以及节点 2 上的日志和 TempDB。这将使用两个控制器的资源。</block>
+  <block id="98ca598ad82a2e0a423cf577b3f4aff8" category="section-title">使用 PowerShell 脚本一次性配置主机</block>
+  <block id="6af273791ef48c63f34ac627c42a0932" category="paragraph">以下脚本包含此过程中的完整主机配置。在提升的 PowerShell 会话中运行它；MPIO 部分需要重新启动。</block>
+  <block id="39fba8b8961f73933a9a33aa0a5ba221" category="admonition">分别运行每个部分。第 1 部分需要重新启动主机，因此其他部分在重新启动后不会继续。</block>
+  <block id="0ca59f4a2783da3f4b4aee78fc7ef430" category="admonition">仅当这些 LUN 是连接到系统的唯一 RAW LUN 时，才运行第 3 部分中的命令。如果有其他 RAW LUN 连接到系统，则需要手动创建文件夹并格式化卷。</block>
+  <block id="0abe2bf261d0e67218108321d4d12f80" category="inline-link">采用 ONTAP 的 Microsoft SQL Server</block>
+  <block id="f27a6702540fe0dd8e4d866fea5be40a" category="list-text">NetApp：<block ref="f3fb0b145ff136b8a05a5c660ab939ba" category="inline-link-rx"></block></block>
+  <block id="53406d96a5f4726851003f28cf19b334" category="inline-link">ONTAP SAN 存储管理</block>
+  <block id="b5fac3cd86b8220e79894bdcec99f78a" category="list-text">NetApp：<block ref="a727bca5822bcf3a576f75a1a8cece4b" category="inline-link-rx"></block></block>
+  <block id="bc5ec30cd3249636e4dc6b792074194d" category="inline-link">ONTAP SAN 主机配置</block>
+  <block id="f0609d07f5184a9c6efdbf2999c584ec" category="list-text">NetApp：<block ref="55a646cf7272459ac58f783ae404875d" category="inline-link-rx"></block></block>
+  <block id="33a68bb421f766681add791745f98cd3" category="inline-link">NetApp Windows 主机实用程序</block>
+  <block id="6fd55068b372c4328ea474bf2f6b722a" category="list-text">NetApp：<block ref="c098de5d75adf9b8daa94776fcd75a7a" category="inline-link-rx"></block></block>
+  <block id="6013f655f0cf2d59e415bf7809c91142" category="inline-link">MPIO PowerShell 模块</block>
+  <block id="ee1644fef054fcff5d8f8ff096b96bc6" category="list-text">Microsoft：<block ref="951e5318cdc225dc9e018d8c30ae9a61" category="inline-link-rx"></block></block>
+  <block id="7f6e43bac59d3955bb9bc90f20286059" category="inline-link">安装 SQL Server</block>
+  <block id="c46f882511db7664a53602697a98a022" category="list-text">Microsoft：<block ref="86d65a6c3559d504b8a86c05314fe853" category="inline-link-rx"></block></block>
+  <block id="bef219d35a4468480b0ce759221cdceb" category="inline-link">NetApp Backup and Recovery 文档</block>
+  <block id="a242e07baa5a1714829930c5304953ee" category="list-text">NetApp：<block ref="2065490f97920374dc3207f730ad1ecb" category="inline-link-rx"></block></block>
+  <block id="805c9517e95d3e9efc4b46738ab825fc" category="inline-link">NetApp SnapCenter</block>
+  <block id="a8f312cf47829fa296cc85e7ce4c29fb" category="cell">ONTAP 快照、SnapRestore、FlexClone 和 SnapMirror 由 <block ref="27ce80d966d32ea83e1910263f431eb7" category="inline-link-rx"></block> 编排，可提供秒级备份、分钟级恢复和即时数据库克隆。</block>
+  <block id="8112dfb7ebafb3f00ed42003d617caee" category="summary">在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统上持续可用的 SMB 3 共享上。此过程包括配置 ONTAP SVM、卷和共享，然后安装 SQL Server。</block>
+  <block id="94b5f192ba902db02d1408bec63d4340" category="list-text">*保护*：保持 *启用快照（本地）* 处于未选中状态。应用程序一致性备份由 NetApp SnapCenter 创建（请参见<block ref="4c1fa64d0dfe5b1b91276f2754412741" category="inline-xref-macro-rx"></block>）。</block>
+  <block id="8789ff4926a937a9912e09c6d7421b85" category="list-text">*计划快照*：已清除。非应用程序一致的快照对 SQL Server 无用；请改用 NetApp SnapCenter（请参阅 <block ref="4c1fa64d0dfe5b1b91276f2754412741" category="inline-xref-macro-rx"></block>）。</block>
+  <block id="915ff3f4971afffdc671ac4bb1e52630" category="section-title">2026年11月23日</block>
+  <block id="cce97218b4c862254efb874a82a02c86" category="inline-link-macro">基于 NetApp AFF 使用 iSCSI 在 Windows Server 2025 上运行的 Microsoft SQL Server 2025</block>
+  <block id="5e4e01b01d60ef361b6e71349a2477a4" category="paragraph">添加了 SQL Server iSCSI 文档： <block ref="b756ce56fb27007c8ec2655e1ba8bbb5" category="inline-link-macro-rx"></block></block>
+  <block id="9b3c614278fb2bd977845bdb8a2f042e" category="inline-link-macro">在 Windows Server 2025 上使用 NetApp AFF 上的 SMB 3 持续可用共享的 Microsoft SQL Server 2025</block>
+  <block id="9c7c35db476e8c73eb8ea5e49e391ec8" category="paragraph">添加了 SQL Server SMB 文档： <block ref="d13e1924dbd0e18221eca772ad243a79" category="inline-link-macro-rx"></block></block>
+  <block id="908c489bec6a906f6958938cf8558804" category="sidebar">了解采用 SMB 的 NetApp AFF 上的 SQL Server 2025</block>
+  <block id="cd80b91165cda12d90776c9a68dd46a1" category="sidebar">使用 SMB 在 NetApp AFF 上部署 SQL Server 2025</block>
+  <block id="60459d3c33943a5f5f5482a5c0f42e26" category="sidebar">了解采用 iSCSI 的 NetApp AFF 上的 SQL Server 2025</block>
+  <block id="463cc940e5111a782358fd89f8141133" category="sidebar">使用 iSCSI 在 NetApp AFF 上部署 SQL Server 2025</block>
+  <block id="7132634e9b963307efb4930831529366" category="sidebar">关于带有 SMB 的 SQL Server 2025</block>
+  <block id="7b3f74e4d76d782036bb88aedfdb3d05" category="sidebar">在带有 SMB 的 NetApp AFF 上部署 SQL Server 2025</block>
+  <block id="cf9a2e45d1fcb356c977a0ce2db89367" category="sidebar">关于带有 iSCSI 的 SQL Server 2025</block>
+  <block id="2f7b47f79d7ef09e530383fba425cc64" category="sidebar">使用 iSCSI 部署 SQL Server 2025</block>
+  <block id="bc9f86ef95e04b674e06185052a84f99" category="sidebar">AWS FSx ONTAP 上的 SQL Server</block>
 </blocks>

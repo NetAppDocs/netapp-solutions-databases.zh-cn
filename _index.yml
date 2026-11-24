@@ -50,6 +50,14 @@ indexpage:
       url: "/oracle/gcp-oracle-gcnv-overview.html"
   - title: 适用于云和本地的 SQL 服务器解决方案
     links:
+    - title: 了解采用 SMB 的 NetApp AFF 上的 SQL Server 2025
+      url: "/mssql/sql-smb3-aff-overview.html"
+    - title: 使用 SMB 在 NetApp AFF 上部署 SQL Server 2025
+      url: "/mssql/sql-smb3-aff.html"
+    - title: 了解采用 iSCSI 的 NetApp AFF 上的 SQL Server 2025
+      url: "/mssql/sql-iscsi-aff-overview.html"
+    - title: 使用 iSCSI 在 NetApp AFF 上部署 SQL Server 2025
+      url: "/mssql/sql-iscsi-aff.html"
     - title: 在 AWS FSx ONTAP上备份和恢复 SQL Server
       url: "/mssql/sqlsb-backup-restore-aws-fsxn.html"
     - title: 使用 FSx ONTAP在 AWS EC2 上运行 SQL Server
@@ -58,10 +66,6 @@ indexpage:
       url: "/mssql/sql-srv-anf-overview.html"
     - title: 在 Google Cloud NetApp Volumes 上运行 SQL Server
       url: "/mssql/gcnv-sql-aoag-setup.html"
-    - title: 了解具有 SMB 3 持续可用性的 NetApp AFF 上的 SQL Server 2025
-      url: "/mssql/sql-smb3-aff-overview.html"
-    - title: 使用 SMB 3 持续可用共享在 NetApp AFF 上部署 SQL Server 2025
-      url: "/mssql/sql-smb3-aff.html"
     - title: 将本地 SQL 工作负载迁移至 FSx ONTAP
       url: "/mssql/customer-usecase-mssql-fsx1.html"
     - title: 在 Windows 上使用集群数据ONTAP 的SAP 与 Microsoft SQL Server

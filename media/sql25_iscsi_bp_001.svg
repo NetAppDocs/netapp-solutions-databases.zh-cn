@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="Segoe UI, Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2E8540"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7B8C"/>
+    </marker>
+  </defs>
+  <style>
+    .title { font-size: 24px; font-weight: 700; fill: #003366; }
+    .sub { font-size: 14px; fill: #4A5A6A; }
+    .hdr { font-size: 15px; font-weight: 700; fill: #FFFFFF; }
+    .t { font-size: 13px; fill: #1F2D3D; }
+    .tb { font-size: 13px; font-weight: 700; fill: #1F2D3D; }
+    .ts { font-size: 11.5px; fill: #4A5A6A; }
+    .tw { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+    .lbl { font-size: 12px; fill: #2E8540; font-weight: 700; }
+    .lblg { font-size: 12px; fill: #6B7B8C; font-style: italic; }
+  </style>
+
+  <rect width="1200" height="800" fill="#FFFFFF"/>
+  <text x="40" y="40" class="title">Solution architecture: SQL Server 2025 on iSCSI LUNs with NetApp AFF</text>
+  <text x="40" y="64" class="sub">Windows Server 2025 host with MPIO, SVM a50-sql on an AFF A50 HA pair, data protection with NetApp Console</text>
+
+  <!-- Active Directory -->
+  <rect x="40" y="110" width="280" height="160" rx="8" fill="#F2F4F7" stroke="#6B7B8C" stroke-width="1.5"/>
+  <rect x="40" y="110" width="280" height="32" rx="8" fill="#6B7B8C"/>
+  <rect x="40" y="130" width="280" height="12" fill="#6B7B8C"/>
+  <text x="56" y="132" class="hdr">Active Directory / DNS</text>
+  <text x="56" y="166" class="tb">sapcc.stl.netapp.com</text>
+  <text x="56" y="190" class="t">Domain membership of the host</text>
+  <text x="56" y="212" class="t">SQL Server administrators</text>
+  <text x="56" y="234" class="t">Windows authentication</text>
+  <text x="56" y="256" class="t">DNS + NTP for host and cluster</text>
+
+  <!-- SQL host -->
+  <rect x="380" y="90" width="440" height="230" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="2"/>
+  <rect x="380" y="90" width="440" height="34" rx="8" fill="#0067C5"/>
+  <rect x="380" y="110" width="440" height="14" fill="#0067C5"/>
+  <text x="600" y="113" class="hdr" text-anchor="middle">Windows Server 2025 · sql-iscsi-1</text>
+  <rect x="400" y="136" width="400" height="44" rx="5" fill="#0067C5"/>
+  <text x="600" y="155" class="tw" text-anchor="middle">SQL Server 2025 Enterprise</text>
+  <text x="600" y="172" class="tw" text-anchor="middle" style="font-weight:400">default instance MSSQLSERVER</text>
+  <rect x="400" y="188" width="400" height="32" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="600" y="209" class="t" text-anchor="middle">NTFS volumes E: data · F: log · G: tempdb · H: log backup</text>
+  <rect x="400" y="228" width="400" height="32" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="600" y="249" class="t" text-anchor="middle">Microsoft iSCSI initiator + MPIO (Microsoft DSM, ALUA)</text>
+  <rect x="430" y="276" width="120" height="30" rx="4" fill="#003366"/>
+  <text x="490" y="296" class="tw" text-anchor="middle">iSCSI NIC</text>
+  <rect x="650" y="276" width="120" height="30" rx="4" fill="#003366"/>
+  <text x="710" y="296" class="tw" text-anchor="middle">iSCSI NIC 2 (opt.)</text>
+
+  <!-- Data protection -->
+  <rect x="880" y="110" width="280" height="160" rx="8" fill="#EEF7F0" stroke="#2E8540" stroke-width="1.5"/>
+  <rect x="880" y="110" width="280" height="32" rx="8" fill="#2E8540"/>
+  <rect x="880" y="130" width="280" height="12" fill="#2E8540"/>
+  <text x="896" y="132" class="hdr">Data protection</text>
+  <text x="896" y="166" class="tb">NetApp Console</text>
+  <text x="896" y="188" class="t">Backup and Recovery for SQL</text>
+  <text x="896" y="208" class="t">Server, plug-in on sql-iscsi-1</text>
+  <text x="896" y="234" class="t">App-consistent snapshots,</text>
+  <text x="896" y="254" class="t">restore, clone, replication</text>
+
+  <!-- connectors -->
+  <line x1="320" y1="190" x2="378" y2="190" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <line x1="880" y1="190" x2="822" y2="190" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="851" y="182" class="lblg" text-anchor="middle">plug-in</text>
+  <line x1="1020" y1="270" x2="1020" y2="438" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)"/>
+  <text x="1030" y="350" class="lblg">Console agent</text>
+  <text x="1030" y="366" class="lblg">ONTAP REST API</text>
+  <line x1="180" y1="270" x2="180" y2="438" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="190" y="360" class="lblg">DNS, NTP</text>
+
+  <!-- iSCSI paths -->
+  <line x1="490" y1="306" x2="490" y2="522" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <line x1="710" y1="306" x2="710" y2="522" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <text x="478" y="380" class="lbl" text-anchor="end">iSCSI sessions</text>
+  <text x="478" y="396" class="ts" text-anchor="end">TCP 3260, MTU 9000</text>
+  <text x="722" y="380" class="lbl">iSCSI sessions</text>
+  <text x="722" y="396" class="ts">25/100 GbE</text>
+  <rect x="512" y="346" width="176" height="64" rx="6" fill="#FFFFFF" stroke="#2E8540" stroke-width="1.5"/>
+  <text x="600" y="366" class="lbl" text-anchor="middle">4 paths per LUN</text>
+  <text x="600" y="383" class="ts" text-anchor="middle">2 optimized (owner node)</text>
+  <text x="600" y="400" class="ts" text-anchor="middle">2 non-optimized (partner)</text>
+
+  <!-- AFF cluster -->
+  <rect x="40" y="440" width="1120" height="345" rx="10" fill="#F7F9FB" stroke="#003366" stroke-width="2"/>
+  <rect x="40" y="440" width="1120" height="34" rx="10" fill="#003366"/>
+  <rect x="40" y="460" width="1120" height="14" fill="#003366"/>
+  <text x="56" y="463" class="hdr">NetApp AFF A50 HA pair · cluster SAPCC-A50-01-02 · ONTAP 9.19.1</text>
+
+  <!-- SVM band -->
+  <rect x="70" y="490" width="1060" height="70" rx="6" fill="#FFF6E5" stroke="#E08A00" stroke-width="1.5"/>
+  <text x="90" y="514" class="tb">Storage VM a50-sql · iSCSI target iqn.1992-08.com.netapp:sn.b35a2cdb…:vs.8</text>
+  <text x="90" y="536" class="t">igroup sql-iscsi-1 (Windows) · 4 iSCSI LIFs: 192.168.175.134/.135 (node 01) · 192.168.175.136/.137 (node 02)</text>
+
+  <!-- Node 1 -->
+  <rect x="70" y="575" width="510" height="195" rx="8" fill="#FFFFFF" stroke="#0067C5" stroke-width="1.5"/>
+  <text x="90" y="600" class="tb">Node SAPCC-A50-01</text>
+  <rect x="90" y="612" width="220" height="44" rx="5" fill="#EAF3FC" stroke="#9DB9D8"/>
+  <text x="200" y="631" class="tb" text-anchor="middle">vol sql_iscsi_1_data</text>
+  <text x="200" y="648" class="ts" text-anchor="middle">LUN …_data_1 · 520 GiB → E:</text>
+  <rect x="330" y="612" width="230" height="44" rx="5" fill="#EAF3FC" stroke="#9DB9D8"/>
+  <text x="445" y="631" class="tb" text-anchor="middle">vol sql_iscsi_1_logbackup</text>
+  <text x="445" y="648" class="ts" text-anchor="middle">LUN …_logbackup_1 · 300 GiB → H:</text>
+  <rect x="90" y="672" width="470" height="40" rx="5" fill="#F2F4F7" stroke="#6B7B8C"/>
+  <text x="325" y="697" class="t" text-anchor="middle">Local tier (aggregate) node 01 · NVMe SSD</text>
+  <rect x="90" y="722" width="100" height="30" rx="4" fill="#003366"/><text x="140" y="742" class="tw" text-anchor="middle">LIF .134</text>
+  <rect x="200" y="722" width="100" height="30" rx="4" fill="#003366"/><text x="250" y="742" class="tw" text-anchor="middle">LIF .135</text>
+
+  <!-- Node 2 -->
+  <rect x="620" y="575" width="510" height="195" rx="8" fill="#FFFFFF" stroke="#0067C5" stroke-width="1.5"/>
+  <text x="640" y="600" class="tb">Node SAPCC-A50-02</text>
+  <rect x="640" y="612" width="220" height="44" rx="5" fill="#EAF3FC" stroke="#9DB9D8"/>
+  <text x="750" y="631" class="tb" text-anchor="middle">vol sql_iscsi_1_log</text>
+  <text x="750" y="648" class="ts" text-anchor="middle">LUN …_log_1 · 250 GiB → F:</text>
+  <rect x="880" y="612" width="230" height="44" rx="5" fill="#EAF3FC" stroke="#9DB9D8"/>
+  <text x="995" y="631" class="tb" text-anchor="middle">vol sql_iscsi_1_tempdb</text>
+  <text x="995" y="648" class="ts" text-anchor="middle">LUN …_tempdb_1 · 150 GiB → G:</text>
+  <rect x="640" y="672" width="470" height="40" rx="5" fill="#F2F4F7" stroke="#6B7B8C"/>
+  <text x="875" y="697" class="t" text-anchor="middle">Local tier (aggregate) node 02 · NVMe SSD</text>
+  <rect x="640" y="722" width="100" height="30" rx="4" fill="#003366"/><text x="690" y="742" class="tw" text-anchor="middle">LIF .136</text>
+  <rect x="750" y="722" width="100" height="30" rx="4" fill="#003366"/><text x="800" y="742" class="tw" text-anchor="middle">LIF .137</text>
+
+  <!-- HA interconnect -->
+  <line x1="580" y1="690" x2="620" y2="690" stroke="#E08A00" stroke-width="3" stroke-dasharray="4 3"/>
+  <text x="600" y="781" class="lblg" text-anchor="middle">HA interconnect</text>
+</svg>

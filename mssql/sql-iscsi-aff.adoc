@@ -1,0 +1,1149 @@
+---
+sidebar: sidebar 
+permalink: mssql/sql-iscsi-aff.html 
+keywords: Microsoft SQL server, iSCSI, AFF, ONTAP, MPIO 
+summary: 在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和日志备份放置在 NetApp AFF 系统的 iSCSI LUN 上。此过程包括在 ONTAP SVM 上配置 iSCSI、配置启动程序组和 LUN、配置 Windows iSCSI 启动程序、MPIO 和磁盘，以及安装 SQL Server。 
+---
+= 使用 iSCSI LUN 在 NetApp AFF 上部署 SQL Server 2025
+:allow-uri-read: 
+
+
+[role="lead"]
+在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和日志备份放置在 NetApp AFF 系统的 iSCSI LUN 上。此过程包括在 ONTAP SVM 上配置 iSCSI、配置启动程序组和 LUN、配置 Windows iSCSI 启动程序、MPIO 和磁盘，以及安装 SQL Server。
+
+
+
+[[scope]]
+[[intro-scope]]
+== 范围
+
+此过程在单个 Windows Server 2025 主机上部署独立的 SQL Server 2025 实例，并在 iSCSI LUN 上配置用户数据库、事务日志、TempDB 和日志备份。相同的存储设计适用于 SQL Server 故障转移集群实例（FCI）和 Always On 可用性组，但不包括其特定于集群的配置。SQL Server 性能调整和规模估算也超出了范围。有关优势、解决方案组件、设计原则、多路径工作原理以及使用 NetApp Console 备份和恢复进行数据保护的说明，请参阅 link:sql-iscsi-aff-overview.html["了解采用 iSCSI LUN 的 NetApp AFF 上的 SQL Server 2025"]。
+
+
+
+[[audience]]
+[[intro-audience]]
+== 受众
+
+此过程用于：
+
+* *存储管理员*，负责配置 ONTAP 集群、SVM、iSCSI LIF、启动程序组和 LUN。
+* *Windows 管理员*，负责准备 Windows Server 2025 主机、iSCSI 启动程序、MPIO 和磁盘。
+* *数据库管理员*，负责安装和配置 SQL Server 2025 并设置备份和恢复。
+
+
+假设您具备 ONTAP System Manager、Windows Server 和 SQL Server 管理的基本知识。
+
+
+
+[[lab-environment]]
+[[overview]]
+== 实验室环境
+
+本过程中的屏幕截图是在以下实验室环境中截取的。将这些值替换为您所在环境的值。
+
+[cols="1,2"]
+|===
+| 组件 | 实验室中使用的值 
+
+
+| 存储系统 | NetApp AFF A50 HA 对，集群 `{cluster}`（节点 `{node1}`， `{node2}`），ONTAP 9.19.1 
+
+
+| SVM | `{svm}` 
+
+
+| iSCSI 目标名称 | `{tgt-iqn}`（别名 `{svm}`） 
+
+
+| iSCSI LIF | 192.168.175.134 和 192.168.175.135（节点 `{node1}`），192.168.175.136 和 192.168.175.137（节点 `{node2}`），子网 /24，广播域 `MT9000` 
+
+
+| Active Directory 域 | `{domain}` (`{fqdn-domain}`) 
+
+
+| SQL Server 主机 | `{host}.{fqdn-domain}`，Windows Server 2025 数据中心（桌面体验） 
+
+
+| 主机 iSCSI 启动程序 | `{init-iqn}`，iSCSI IP 地址 192.168.175.44 
+
+
+| 启动程序组 | `{igroup}`, 主机操作系统 *Windows* 
+
+
+| SQL 服务器 | SQL Server 2025 企业版，默认实例 `MSSQLSERVER` 
+|===
+[cols="2,2,1,1,2"]
+|===
+| LUN | 卷 | 大小 | 驱动器 | 内容 
+
+
+| `sql_iscsi_1_data_1` | `sql_iscsi_1_data` | 520 GiB | `E:` （数据） | 用户数据库数据文件 (`.mdf`, `.ndf`) 在 `E:\data` 
+
+
+| `sql_iscsi_1_log_1` | `sql_iscsi_1_log` | 250 GiB | `F:` （日志） | 用户数据库事务日志文件 (`.ldf`）位于 `F:\log` 
+
+
+| `sql_iscsi_1_tempdb_1` | `sql_iscsi_1_tempdb` | 150 GiB | `G:` （tempdb） |  `G:\tempdb\data` 和  `G:\tempdb\log` 中的 TempDB 数据和日志文件 
+
+
+| `sql_iscsi_1_logbackup_1` | `sql_iscsi_1_logbackup` | 300 GiB | `H:` （日志备份） | 本机 SQL Server 备份文件 (`.bak`， `.trn`）在 `H:\backup` 
+|===
+
+TIP: 每个卷使用一个 LUN，并为数据、日志、TempDB 和备份使用单独的卷。这使您可以为每个卷应用不同的 QoS、快照、效率和复制设置。它还可以将不断变化的 TempDB 排除在用户数据库的快照之外。
+
+
+TIP: 在不同控制器上使用其他 LUN 用于其他辅助数据文件 (.ndf) 以分散负载。
+
+
+
+[[prerequisites]]
+== 前提条件
+
+在开始之前，请确保满足以下要求：
+
+.NetApp ONTAP
+* AFF HA 对已安装，并且集群已设置且运行正常。
+* 已安装 iSCSI 许可证。它包含在 ONTAP One 中。
+* 每个节点上至少存在一个数据聚合（本地层）。
+* SVM 存在。在此过程中，将使用现有的 SVM `{svm}`；向其添加 iSCSI。要为 SAN 创建专用 SVM，请使用 menu:Cluster[Storage VMs > Add] 并选择 *iSCSI* 作为访问协议。
+* iSCSI LIF 的数据网络端口、广播域和（可选）VLAN 已配置。在实验室中，广播域 `MT9000`使用巨型帧。
+* 时间通过 NTP 在集群、主机和 Active Directory 之间同步。
+
+
+.网络
+* SQL Server 主机在 iSCSI 子网或 VLAN 中至少有一个（最好是两个）iSCSI 专用 NIC。
+* MTU 在端到端（主机 NIC、交换机、ONTAP 端口）保持一致。从主机使用 `ping -f -l 8972 <LIF-IP>`验证巨型帧。
+
+
+.Windows Server
+* Windows Server 2025（桌面体验）已安装、修补并加入域。
+* 支持 Windows Server 2025 的 NetApp Windows 主机实用程序版本现已可用（请参阅 https://imt.netapp.com/matrix/["NetApp 互操作性矩阵工具 (IMT)"^]）。
+* SQL Server 2025 安装介质（ISO）和有效的产品密钥（或免费版本）可用。
+
+
+
+NOTE: 与 SMB 文件共享不同，LUN 不需要 SQL Server 服务的域帐户。可以使用默认虚拟帐户 (`NT Service\MSSQLSERVER` ）。如果实例需要网络访问，例如备份到文件共享或进行 Kerberos 身份验证，则仍建议使用域帐户或 gMSA。
+
+
+
+[[step-1-enable-iscsi-on-the-storage-vm]]
+[[svm-iscsi]]
+== 步骤 1：在 storage VM 上启用 iSCSI
+
+将 iSCSI 协议添加到 SVM，并在 HA 对的每个节点上创建两个 iSCSI LIF。
+
+.步骤
+. 在 SVM 上启用 iSCSI，并使用 System Manager 或 CLI 创建 iSCSI LIF：
++
+[role="tabbed-block"]
+====
+.System Manager
+--
+.. 打开 Web 浏览器并连接到 ONTAP System Manager，网址为 `+https://<cluster-management-IP>+`。使用集群管理员帐户登录。
+.. 转至菜单：Cluster［Storage VMs］，单击 SVM `{svm}`，然后打开 *Settings* 选项卡。在 *Protocols* 下，*iSCSI* 磁贴显示 *Not configured*。单击 *iSCSI* 磁贴上的齿轮图标。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_004.png["Storage VM a50-sql 设置（iSCSI 未配置），width=800"]
+
+=====
+.. 在 *Configure iSCSI* 对话框中，创建 iSCSI 网络接口。System Manager 建议每个节点配置两个网络接口。输入以下值：
++
+*** 节点 `{node1}`：IP 地址 `192.168.175.134`、子网掩码 `24`、*广播域和端口* `MT9000`
+*** 选择*为以下所有接口使用相同的子网掩码、网关和广播域*。
+***  `{node1}` 上的第二个接口： `192.168.175.135`
+*** 节点 `{node2}`： `192.168.175.136`和 `192.168.175.137`
++
+点击*保存*。
+
++
+
+TIP: 当主机和 LIF 位于同一子网时，不需要网关。不要路由 iSCSI 流量。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_005.png["配置 iSCSI 对话框，每个节点有两个 LIF，width=800"]
+
+=====
+
+
+.. System Manager 创建 iSCSI 服务和四个 LIF。*iSCSI* 磁贴现在显示 *已启用*，*目标节点名称* (`{tgt-iqn}`）和 *目标别名* `{svm}`。注意目标节点名称；您需要它来验证来自主机的连接。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_006.png["使用目标节点名称和别名启用 iSCSI，宽度=800"]
+
+=====
+
+
+--
+.ONTAP 命令行界面
+--
+以下命令从 CLI 创建相同的配置。替换尖括号中的占位符值。记下  `vserver iscsi show` 输出中的目标名称；您需要它来验证来自主机的连接。
+
+[source, console]
+----
+cluster::> vserver add-protocols -vserver a50-sql -protocols iscsi
+cluster::> vserver iscsi create -vserver a50-sql -target-alias a50-sql
+
+cluster::> network interface create -vserver a50-sql -lif a50-sql_iscsi_n1_1 -service-policy default-data-iscsi -home-node SAPCC-A50-01 -home-port <port> -address 192.168.175.134 -netmask 255.255.255.0
+cluster::> network interface create -vserver a50-sql -lif a50-sql_iscsi_n1_2 -service-policy default-data-iscsi -home-node SAPCC-A50-01 -home-port <port> -address 192.168.175.135 -netmask 255.255.255.0
+cluster::> network interface create -vserver a50-sql -lif a50-sql_iscsi_n2_1 -service-policy default-data-iscsi -home-node SAPCC-A50-02 -home-port <port> -address 192.168.175.136 -netmask 255.255.255.0
+cluster::> network interface create -vserver a50-sql -lif a50-sql_iscsi_n2_2 -service-policy default-data-iscsi -home-node SAPCC-A50-02 -home-port <port> -address 192.168.175.137 -netmask 255.255.255.0
+
+cluster::> vserver iscsi show -vserver a50-sql
+cluster::> network interface show -vserver a50-sql -data-protocol iscsi
+----
+--
+====
+
+
+
+NOTE: iSCSI LIF 在接管期间不会迁移。高可用性由配对节点的 LIF 路径提供，因此始终在 HA 对的两个节点上创建 iSCSI LIF。
+
+
+
+[[step-2-prepare-the-windows-host]]
+[[host-prep]]
+== 步骤 2：准备 Windows 主机
+
+启动 Microsoft iSCSI 启动程序，并安装 MPIO 和 NetApp Windows 主机实用程序。以本地管理员身份在 SQL Server 主机 `{host}`上执行以下步骤。
+
+
+IMPORTANT: 在连接到 LUN *之前*安装和配置 MPIO。如果没有 MPIO，Windows 将为每个 LUN 的每条路径显示一个磁盘（在此配置中，每个 LUN 四个磁盘）。
+
+.步骤
+. [[host-initiator,启动 iSCSI 启动程序]]启动 iSCSI 启动程序，并使用服务器管理器或 PowerShell 获取启动程序名称：
++
+[role="tabbed-block"]
+====
+.服务器管理器
+--
+.. 在 *Server Manager* 中，打开菜单：Tools[iSCSI Initiator]。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_007.png["带有 iSCSI 启动程序的服务器管理器工具菜单，宽度=800"]
+
+=====
+.. 首次启动 iSCSI 启动程序时，会出现一条消息，报告 Microsoft iSCSI 服务未运行。单击*是*以启动服务并将其设置为自动启动。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_008.png["Microsoft iSCSI 服务未运行对话框,width=800"]
+
+=====
+.. 在 *iSCSI 启动程序属性* 中，打开 *配置* 选项卡。复制 *启动程序名称* (`{init-iqn}`）。您需要使用它在 ONTAP 中创建启动程序组。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_009.png["iSCSI Initiator Properties Configuration 选项卡，带有启动程序名称，宽度=800"]
+
+=====
+
+
+--
+.PowerShell
+--
+最后一个命令返回启动程序名称。您需要使用它在 ONTAP 中创建启动程序组。
+
+[source, powershell]
+----
+PS C:\> Set-Service -Name MSiSCSI -StartupType Automatic
+PS C:\> Start-Service -Name MSiSCSI
+PS C:\> (Get-InitiatorPort | Where-Object ConnectionType -eq 'iSCSI').NodeAddress
+----
+--
+====
+. 使用服务器管理器或 PowerShell 安装多路径 I/O 并为 iSCSI 设备启用 MPIO 支持：
++
+[role="tabbed-block"]
+====
+.服务器管理器
+--
+.. 在*服务器管理器*中，单击 menu:Manage[Add Roles and Features]。在*功能*页面上，选择*多路径 I/O*并单击*安装*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_010.png["添加角色和功能向导选择功能页面，width=800"]
+
+=====
+.. 打开菜单：工具[MPIO]，选择*发现多路径*选项卡，选择*添加对 iSCSI 设备的支持*，然后单击*添加*。出现提示时重新启动服务器。
++
+重新启动后，复选框将被选中并显示为灰色，这意味着 MPIO 将声明所有 iSCSI 设备。连接 LUN 后（请参阅 <<connect>>）， `Get-Disk` 仅列出每个 NetApp LUN 一次，如 PowerShell 窗口中所示。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_011.png["MPIO 属性通过 iSCSI 支持和 Get-Disk 输出发现多路径,width=800"]
+
+=====
+
+
+--
+.PowerShell
+--
+[source, powershell]
+----
+PS C:\> Install-WindowsFeature -Name Multipath-IO
+PS C:\> Enable-MSDSMAutomaticClaim -BusType iSCSI
+PS C:\> Restart-Computer
+----
+--
+====
+. 安装 *NetApp Windows 主机实用程序*（运行 `.msi`并选择 *多路径 I/O 支持*），并在出现提示时重新启动服务器。主机实用程序会设置 Windows 磁盘和 iSCSI 超时以及 NetApp 建议的 MPIO 参数，以便主机顺利度过 ONTAP 接管和交还过程。
+
+
+
+
+[[step-3-create-the-initiator-group]]
+[[igroup]]
+== 步骤 3：创建启动程序组
+
+启动程序组（igroup）用于定义哪些主机可以访问 LUN。为每个主机（或 FCI 的每个群集）创建一个 igroup。
+
+.步骤
+. 使用 System Manager 或 CLI 创建启动程序组：
++
+[role="tabbed-block"]
+====
+.System Manager
+--
+.. 在 System Manager 中，转到 menu:主机[SAN 启动程序组]，然后单击 *+ 添加*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_012.png["SAN 启动程序组页面,width=800"]
+
+=====
+.. 在*添加启动程序组*对话框中，输入：
++
+*** *名称*： `{igroup}`
+*** *主机操作系统*：*Windows*
+*** *Storage VM*： `{svm}`
+*** *启动程序组成员*：*主机启动程序*
+*** *iSCSI 启动程序* > *新建启动程序*：粘贴主机的启动程序名称， `{init-iqn}`
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_013.png["\"添加带有名称、操作系统和 IQN 的启动程序组对话框\",width=800"]
+
+=====
+
+
+.. 启动程序将添加到列表中。单击*保存*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_014.png["启动程序 IQN 已添加到启动程序组,width=800"]
+
+=====
+.. 已创建启动程序组 `{igroup}`。在映射第一个 LUN 之前，连接状态为 *未映射 LUN*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_015.png["启动程序组 sql-iscsi-1，未映射任何 LUN，width=800"]
+
+=====
++
+
+NOTE: System Manager 使用协议 *混合（iSCSI & FC）* 创建 igroup。这适用于 iSCSI。如果您的标准需要仅包含 iSCSI 的 igroup，请使用 CLI 创建它 (`-protocol iscsi`），如 *ONTAP CLI* 选项卡中所示。
+
+
+
+--
+.ONTAP 命令行界面
+--
+[source, console]
+----
+cluster::> lun igroup create -vserver a50-sql -igroup sql-iscsi-1 -protocol iscsi -ostype windows -initiator iqn.1991-05.com.microsoft:sql-iscsi-1.sapcc.stl.netapp.com
+cluster::> lun igroup show -vserver a50-sql -igroup sql-iscsi-1
+----
+--
+====
+
+
+
+
+[[step-4-create-the-sql-server-luns]]
+[[luns]]
+== 步骤 4：创建 SQL Server LUN
+
+为每种文件类型创建一个 LUN。System Manager 会创建一个以 *名称前缀* 命名的 FlexVol volume 和一个带有后缀 `_1`的 LUN，并将该 LUN 映射到选定的 igroup。
+
+.步骤
+. 使用 System Manager 或 CLI 创建数据、日志、TempDB 和日志备份 LUN：
++
+[role="tabbed-block"]
+====
+.System Manager
+--
+.. 在 System Manager 中，展开 *Storage* 并单击 *LUNs*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_016.png["选定 LUN 的存储菜单，宽度=800"]
+
+=====
+.. 单击 *+ Add* 并为数据 LUN 输入以下值：
++
+*** *名称前缀*： `sql_iscsi_1_data`
+*** *Storage VM*： `{svm}`
+*** *LUN 数量*: `1`, *每个 LUN 的容量*: `520 GiB`
+*** *性能服务级别*：*自定义*，*分配 QoS 策略组*：*现有* > `none`
+*** *保护*：保持 *启用快照（本地）* 和 *启用 SnapMirror（本地或远程）* 处于清除状态。应用程序一致性备份由 NetApp Console 备份和恢复创建（请参阅 link:sql-iscsi-aff-overview.html#console["使用 NetApp Console 备份和恢复进行数据保护"]）。
+*** *主机信息*：*主机操作系统* *Windows*，*LUN 格式* *Windows 2008*（此格式适用于自 Windows Server 2008 以来的所有 Windows 版本，包括 Windows Server 2025）
+*** *主机映射*：*现有启动程序组*，选择 `{igroup}`
++
+点击*保存*。
+
++
+
+TIP: 要控制在哪个节点上创建卷，请选择 *Manual placement* 并选择本地层。将数据卷和备份卷放置在节点 1 上，将日志卷和 TempDB 卷放置在节点 2 上。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_017.png["添加 520 GiB 数据 LUN 的 LUN 对话框,width=600"]
+
+=====
+
+
+.. 系统显示消息 *The LUNs were added*，并且 LUN `sql_iscsi_1_data_1` 列在 volume `sql_iscsi_1_data` 中。
+.. 使用 <<overview>> 中列出的名称和大小，对日志、TempDB 和日志备份 LUN 重复这些步骤。
+.. 所有四个 LUN 现在均已在 SVM `{svm}` 上创建并映射到 igroup `{igroup}`。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_024.png["列出的所有四个 SQL Server LUN，width=800"]
+
+=====
+
+
+--
+.ONTAP 命令行界面
+--
+以下命令创建数据卷和 LUN，并将 LUN 映射到 igroup。对日志、TempDB 和日志备份 LUN 重复 `volume create`、 `lun create`和 `lun mapping create`（请参见<<cli-script>>）。
+
+[source, console]
+----
+cluster::> volume create -vserver a50-sql -volume sql_iscsi_1_data -aggregate <aggr_node1> -size 560GB -space-guarantee none -snapshot-policy none -percent-snapshot-space 0
+cluster::> lun create -vserver a50-sql -path /vol/sql_iscsi_1_data/sql_iscsi_1_data_1 -size 520GB -ostype windows_2008 -space-reserve disabled -space-allocation enabled
+cluster::> lun mapping create -vserver a50-sql -path /vol/sql_iscsi_1_data/sql_iscsi_1_data_1 -igroup sql-iscsi-1
+
+cluster::> lun show -vserver a50-sql -fields path,size,ostype,mapped,state
+cluster::> lun mapping show -vserver a50-sql
+----
+--
+====
+
+
+
+
+[[step-5-review-the-volume-and-lun-settings]]
+[[volume-settings]]
+== 第 5 步：查看卷和 LUN 设置
+
+查看四个卷的空间和快照设置。System Manager 使用合理的默认值；建议对 SQL Server LUN 进行以下设置：
+
+[cols="1,1,3"]
+|===
+| 设置 | 值 | 原因 
+
+
+| 空间保证（卷） | `none` （精简） | 只有在写入数据时才会占用容量。 
+
+
+| LUN 空间预留 | `disabled` （精简） | 精简卷中的精简 LUN。 
+
+
+| LUN 空间分配 | `enabled` | 启用 SCSI UNMAP，以便将 NTFS 中释放的空间返回到 ONTAP，并允许主机在卷空间耗尽时正确响应。 
+
+
+| Snapshot 策略 | `none` | 不符合应用程序一致性的快照对 SQL Server 无用。备份由 NetApp Console 备份和恢复创建。 
+
+
+| Snapshot 预留 | `0` % | 改为使用卷自动调整大小来监控 Snapshot 空间。 
+
+
+| 自动调整大小 | `grow`，最大值约为卷大小的 130% | 防止快照占用空间时 LUN 脱机。 
+
+
+| 存储效率 | 已启用（在 AFF 上默认） | 实时重复数据删除、压缩和压实不会对 SQL Server 性能产生可衡量的影响。 
+|===
+使用以下命令应用并验证设置（针对 `sql_iscsi_1_data`显示）：
+
+[source, console]
+----
+cluster::> volume modify -vserver a50-sql -volume sql_iscsi_1_data -snapshot-policy none -percent-snapshot-space 0 -autosize-mode grow -max-autosize 730GB
+cluster::> lun modify -vserver a50-sql -path /vol/sql_iscsi_1_data/sql_iscsi_1_data_1 -space-allocation enabled
+cluster::> volume show -vserver a50-sql -volume sql_iscsi_1_* -fields aggregate,size,space-guarantee,snapshot-policy,autosize-mode
+----
+
+NOTE: 在现有 LUN 上更改 `space-allocation` 需要该 LUN 处于脱机状态。请在创建时或在主机连接到 LUN 之前进行设置。
+
+
+
+[[step-6-connect-the-host-to-the-iscsi-target]]
+[[connect]]
+== 第 6 步：将主机连接到 iSCSI 目标
+
+将 Windows 主机连接到 SVM，与四个 iSCSI LIF 中的每一个建立一个 iSCSI 会话，以便每个 LUN 都有四条路径。
+
+.步骤
+. 发现目标门户，并使用 iSCSI 启动程序或 PowerShell 连接 iSCSI 会话：
++
+[role="tabbed-block"]
+====
+.iSCSI 启动程序
+--
+.. 打开 *iSCSI 启动程序*（菜单：服务器管理器[工具 > iSCSI 启动程序]），选择 *发现* 选项卡，然后单击 *发现门户……*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_025.png["iSCSI 启动程序属性发现选项卡，width=500"]
+
+=====
+.. 输入 SVM 的一个 iSCSI LIF（在实验室中 `192.168.175.135`）的 IP 地址和端口 `3260`，然后单击 *确定*。ONTAP 会将 SVM 的所有 iSCSI LIF 返回给启动程序（SendTargets 发现），因此一个门户就足够了。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_026.png["发现目标门户对话框，IP 为 192.168.175.135，端口为 3260，width=500"]
+
+=====
+.. 门户列在*目标门户*下。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_027.png["目标门户 192.168.175.135 端口 3260 已列出，width=500"]
+
+=====
+.. 选择*目标*选项卡。目标 `{tgt-iqn}`以 *Inactive* 状态列出。选择它并单击*连接*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_028.png["NetApp 目标处于非活动状态的“目标”选项卡，width=500"]
+
+=====
+.. 在 *Connect To Target* 对话框中，选择：
++
+*** *将此连接添加到收藏夹目标列表*，以便在重新启动后自动恢复会话
+*** *启用多路径*
++
+单击*高级……*。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_029.png["选择了收藏夹和多路径的“连接到目标”对话框，width=500"]
+
+=====
+
+
+.. 在*高级设置*中，选择：
++
+*** *本地适配器*：*Microsoft iSCSI 启动程序*
+*** *启动程序 IP*：主机的 iSCSI IP 地址 (`192.168.175.44`）
+*** *目标门户 IP*：第一个 iSCSI LIF（在实验室中 `192.168.175.137 / 3260`）
++
+除非您的安全策略要求，否则请保持 CHAP 处于清除状态。如果需要 CHAP，请首先使用 `vserver iscsi security`在 ONTAP SVM 上为主机的启动程序 IQN 配置匹配的凭据，然后在 Windows iSCSI 启动程序中输入这些凭据。单击 *确定* 两次。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_030.png["包含启动程序 IP 和目标门户 IP 的高级设置，width=500"]
+
+=====
+
+
+.. 目标的状态更改为*已连接*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_031.png["已连接 NetApp 目标的目标选项卡，width=500"]
+
+=====
+.. 一个会话只使用一条路径。为每个剩余的 iSCSI LIF 添加一个会话：在*目标*选项卡上，选择目标并单击*属性……*。在*会话*选项卡上，单击*添加会话*。
+.. 在*连接到目标*对话框中，选择*启用多路径*和*将此连接添加到收藏夹目标列表*，单击*高级……*，选择相同的*启动程序 IP*和下一个*目标门户 IP*，然后单击*确定*两次。
++
+
+IMPORTANT: 确保为每个会话选择了 *Enable multi-path*。屏幕截图显示的是选中该复选框之前的对话框。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_032.png["带有添加会话对话框的目标属性会话选项卡，width=500"]
+
+=====
+.. 重复上一步骤，直到 *Sessions* 选项卡列出四个会话，每个目标门户各一个：192.168.175.134、.135、.136 和 .137。如果主机有两个 iSCSI NIC，请从两个 iSCSI 启动程序 IP 地址创建会话。
+
+
+--
+.PowerShell
+--
+以下命令可发现目标门户，并为每个 iSCSI LIF 创建一个持久的、启用多路径的会话。
+
+[source, powershell]
+----
+PS C:\> New-IscsiTargetPortal -TargetPortalAddress 192.168.175.135 -InitiatorPortalAddress 192.168.175.44
+P PS C:\> $target = Get-IscsiTarget -NodeAddress '<target-IQN-recorded-in-Step-1>'
+PS C:\> foreach ($lif in '192.168.175.134','192.168.175.135','192.168.175.136','192.168.175.137') {
+          Connect-IscsiTarget -NodeAddress $target.NodeAddress -TargetPortalAddress $lif `
+            -InitiatorPortalAddress 192.168.175.44 -IsMultipathEnabled $true -IsPersistent $true
+        }
+PS C:\> Get-IscsiSession | Format-Table TargetNodeAddress,InitiatorPortalAddress,IsConnected,IsPersistent
+----
+--
+====
+. [[connect-verify,Verify the paths]]验证每个 LUN 是否由 MPIO 声明并具有四个路径，其中两个为 *活动/优化*：
++
+[source, powershell]
+----
+PS C:\> mpclaim -s -d
+PS C:\> mpclaim -s -d <MPIO-disk-number>
+----
++
+负载平衡策略为 *RRWS*（带子集的轮询）。
+
+. 在 ONTAP 中，验证会话和 LUN 路径：
++
+[source, console]
+----
+cluster::> vserver iscsi session show -vserver a50-sql
+cluster::> vserver iscsi connection show -vserver a50-sql
+cluster::> lun mapping show -vserver a50-sql -igroup sql-iscsi-1
+----
+
+
+
+
+[[step-7-initialize-and-format-the-disks]]
+[[disks]]
+== 第 7 步：初始化和格式化磁盘
+
+在 Windows 中使四个 NetApp LUN 联机，对其进行初始化，并在每个 LUN 上创建一个带有驱动器号的 NTFS 卷。
+
+.步骤
+. 使用“磁盘管理”或 PowerShell 初始化和格式化磁盘：
++
+[role="tabbed-block"]
+====
+.磁盘管理
+--
+.. 打开菜单：服务器管理器［工具 > 计算机管理］，然后选择菜单：存储［磁盘管理］。这四个 NetApp LUN 被列为 *磁盘 1* 到 *磁盘 4*（520、250、150 和 300 GB）。它们处于 *脱机* 状态，因为 Windows Server 的默认 SAN 策略会使新的共享磁盘保持脱机状态。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_033.png["具有四个脱机 NetApp 磁盘的磁盘管理，width=800"]
+
+=====
+.. 右键单击每个新磁盘并选择*联机*。然后右键单击其中一个磁盘并选择*初始化磁盘*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_034.png["磁盘管理上下文菜单（包含\"初始化磁盘\"选项），width=800"]
+
+=====
+.. 选择所有四个磁盘，选择 *GPT（GUID 分区表）*，然后单击 *OK*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_035.png["带有四个磁盘和 GPT 的“初始化磁盘”对话框，宽度=800"]
+
+=====
+.. 右键单击*磁盘 1*（520 GB）的未分配空间并选择*新建简单卷……*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_036.png["上下文菜单新建磁盘 1 上的简单卷,width=800"]
+
+=====
+.. *新建简单卷向导*启动。单击*下一步*，并接受最大卷大小。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_037.png["新建简单卷向导欢迎页面，width=800"]
+
+=====
+.. 选择*分配以下驱动器号* `E`，然后单击*下一步*。
++
+
+TIP: 对于具有多个数据库的实例，可以在空 NTFS 文件夹（装载点）中装载 LUN，而不是使用驱动器号。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_038.png["使用驱动器号 E 分配驱动器号或路径，width=800"]
+
+=====
+.. 选择*使用以下设置格式化此卷*：
++
+*** *文件系统*：*NTFS*
+*** *分配单位大小*：*64K*（建议用于 SQL Server 数据、日志和 TempDB 卷；实验室屏幕截图显示*默认值*）
+*** *卷标*： `data`
+*** *执行快速格式化*：已选择
++
+单击*下一步*。
+
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_039.png["使用 NTFS 和卷标数据格式化分区，width=800"]
+
+=====
+
+
+.. 查看设置并单击 *完成*。
++
+.显示示例
+[%collapsible]
+=====
+image:sql25_iscsi_bp_040.png["完成新建简单卷向导，width=800"]
+
+=====
+.. 对其他磁盘重复前五个步骤：
++
+[cols="1,1,1,1"]
+|===
+| 磁盘 | 大小 | 驱动器号 | 卷标 
+
+
+| 磁盘 1 | 520 GB | `E:` | `data` 
+
+
+| 磁盘 2 | 250 GB | `F:` | `log` 
+
+
+| 磁盘 3 | 150 GB | `G:` | `tempdb` 
+
+
+| 磁盘 4 | 300 GB | `H:` | `Log backup` 
+|===
+.. 为 SQL Server 创建文件夹： `E:\data`、 `F:\log`、 `G:\tempdb\data`、 `G:\tempdb\log` 和  `H:\backup`。
+
+
+--
+.PowerShell
+--
+以下命令使 NetApp 磁盘联机，使用 GPT 对其进行初始化，在每个磁盘上创建并格式化一个分配单元大小为 64K 的 NTFS 卷，并为 SQL Server 创建文件夹。
+
+[source, powershell]
+----
+PS C:\> $layout = @{ 520GB = 'E','data'; 250GB = 'F','log'; 150GB = 'G','tempdb'; 300GB = 'H','Log backup' }
+PS C:\> foreach ($d in Get-Disk | Where-Object FriendlyName -like 'NETAPP*') {
+          $l = $layout[[int64]$d.Size]
+          Set-Disk -Number $d.Number -IsOffline $false
+          Set-Disk -Number $d.Number -IsReadOnly $false
+          Initialize-Disk -Number $d.Number -PartitionStyle GPT
+          New-Partition -DiskNumber $d.Number -UseMaximumSize -DriveLetter $l[0] |
+            Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 -NewFileSystemLabel $l[1] -Confirm:$false
+        }
+PS C:\> 'E:\data','F:\log','G:\tempdb\data','G:\tempdb\log','H:\backup' | ForEach-Object { New-Item -ItemType Directory -Path $_ }
+PS C:\> Get-Volume -DriveLetter E,F,G,H | Format-Table DriveLetter,FileSystemLabel,FileSystem,AllocationUnitSize,Size
+----
+
+CAUTION: 仅当这些 LUN 是连接到系统的唯一原始 LUN 时，才运行这些命令。如果有其他原始 LUN 连接到系统，则需要手动创建文件夹并格式化卷。
+
+--
+====
+
+
+
+TIP: 不要将数据库文件直接放在驱动器的根目录中。文件夹使权限、挂载点和以后的迁移更轻松。
+
+
+
+[[step-8-install-sql-server-2025]]
+[[sql-install]]
+== 第 8 步：安装 SQL Server 2025
+
+使用安装向导在 Windows Server 主机上安装 SQL Server 2025。在本地磁盘上安装二进制文件和系统数据库，并将用户数据库、事务日志、TempDB 和备份位置指向 NetApp LUN 上的文件夹。
+
+.步骤
+. 从 SQL Server 安装中心启动独立安装。
++
+.. 装载 SQL Server 2025 ISO 映像。在文件资源管理器中，打开实验室中的 DVD 驱动器 (`D:`）并双击 *setup*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_041.png["文件资源管理器中的 SQL Server 2025 安装介质，width=800"]
+
+====
+.. 此时将打开 *SQL Server 安装中心*。选择左窗格中的*安装*，然后单击*新建 SQL Server 独立安装或向现有安装添加功能*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_042.png["SQL Server 安装中心,width=800"]
+
+====
+
+
+. 选择 SQL Server 版本，接受许可条款，然后让安装程序检查产品更新。
++
+.. 在*版本*页面上，选择*输入产品密钥*并输入您的产品密钥，或选择免费版本（评估、企业开发人员、标准开发人员或 Express）。选择适用于您的许可证类型（在实验室中，*我拥有带有软件保障或 SQL 软件订阅的 SQL Server 许可证*），然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_043.png["版本页面（产品密钥已编辑），width=800"]
+
+====
+.. 在*许可条款*页面上，阅读条款，选择*我接受许可条款和隐私声明*，然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_044.png["许可条款页面,width=800"]
+
+====
+.. 在 *Microsoft Update* 页面上，选择 *使用 Microsoft Update 检查更新（推荐）*，然后单击 *下一步*。安装程序随后运行 *全局规则*、*产品更新*、*安装安装文件* 和 *安装规则* 检查。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_045.png["Microsoft Update 页面,width=800"]
+
+====
+
+
+. 选择要安装的 SQL Server 功能和实例。二进制文件保留在本地磁盘上；只有数据库文件放置在 NetApp LUN 上。
++
+.. 在*功能选择*页面上，选择*数据库引擎服务*和您需要的任何其他功能。将*实例根目录*和*共享功能目录*保留在本地磁盘上 `C:`。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_046.png["具有 Database Engine Services 的功能选择页面，width=800"]
+
+====
+.. 在*实例配置*页面上，选择*默认实例* (`MSSQLSERVER`），或输入命名实例，然后单击*下一步*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_047.png["实例配置页面，width=800"]
+
+====
+
+
+. 查看 SQL Server 数据库引擎和 SQL Server 代理的服务帐户。
++
+.. 在 *服务器配置* 页面的 *服务帐户* 选项卡上，查看服务帐户。本实验使用默认虚拟帐户 (`NT Service\MSSQLSERVER` 用于数据库引擎）。由于数据库位于本地 NTFS 卷上，因此无需额外权限。如果您使用 SQL Server 代理作业或日志备份，请将 *SQL Server 代理* 的 *启动类型* 设置为 *自动*。
++
+
+TIP: 选择*将执行卷维护任务的权限授予 SQL Server 数据库引擎服务*（在屏幕截图中清除）。这可以实现即时文件初始化，从而大大加快数据库创建、文件增长和恢复的速度。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_048.png["服务器配置 - 服务帐户,width=800"]
+
+====
+
+
+. 设置身份验证模式和 SQL Server 管理员，并在 NetApp LUN 上输入用户数据库、事务日志、备份和 TempDB 文件的文件夹。
++
+.. 在*数据库引擎配置*页面的*服务器配置*选项卡上，选择身份验证模式。实验室使用*混合模式*，并为 `sa`帐户提供强密码。单击*添加当前用户*和*添加……*以添加 SQL Server 管理员（用户，最好是 AD 组）。
++
+
+TIP: 请使用 *Windows 身份验证模式*，除非应用程序需要 SQL Server 登录。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_049.png["数据库引擎配置 - 身份验证,width=800"]
+
+====
+.. 在*数据目录*选项卡上，输入 NetApp LUN 上的文件夹：
++
+[cols="1,2"]
+|===
+| 设置 | 值 
+
+
+| 数据根目录 | `C:\Program Files\Microsoft SQL Server\` （本地；系统数据库保留在 `C:`） 
+
+
+| 用户数据库目录 | `E:\data` 
+
+
+| 用户数据库日志目录 | `F:\log` 
+
+
+| 备份目录 | `H:\backup` 
+|===
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_050.png["\"带有 E:\data、F:\log 和 H:\backup 的数据目录\",width=800"]
+
+====
+.. 在 *TempDB* 选项卡上，默认数据和日志目录由安装程序设置。选择*数据目录*中的条目，单击*删除*，然后单击*添加……*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_051.png["具有默认目录的 TempDB 选项卡，width=800"]
+
+====
+.. 在*浏览文件夹*对话框中，选择驱动器 *tempdb (G:)* 和文件夹 `G:\tempdb\data`。如果文件夹尚不存在，请使用*创建新文件夹*创建它们。单击*确定*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_052.png["浏览 G: 上包含 tempdb 数据和日志文件夹的文件夹,width=800"]
+
+====
+.. 将 *日志目录* 设置为 `G:\tempdb\log`（单击 *……* ）。该实验室使用 8 个 TempDB 数据文件。
++
+
+TIP: 每个逻辑 CPU 核心使用一个 TempDB 数据文件，最多 8 个文件。将初始大小设置为预期的 TempDB 工作集，以便 TempDB 在运行期间不需要增长。所有数据文件必须具有相同的大小和自动增长。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_053.png["在 G:\tempdb\data 和 G:\tempdb\log 上配置的 TempDB,width=800"]
+
+====
+.. 根据您的规模配置 *MaxDOP* 和 *Memory* 选项卡（建议的默认值是一个很好的起点），然后单击 *Next*。
+
+
+. 查看安装摘要，运行安装，并确认已成功安装所有功能。
++
+.. 在*准备安装*页面上，查看摘要并单击*安装*。
++
+
+TIP: 复制 *配置文件路径* 下显示的 `ConfigurationFile.ini`。您可以将其用于其他 SQL Server 主机的无人参与安装(`setup.exe /ConfigurationFile=<path>`）。
+
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_054.png["准备安装摘要,width=800"]
+
+====
+.. 安装完成后，验证所有功能是否显示*成功*，然后单击*关闭*。
++
+.显示示例
+[%collapsible]
+====
+image:sql25_iscsi_bp_055.png["安装完成,width=800"]
+
+====
+
+
+
+
+
+
+[[step-9-verify-the-installation]]
+[[post-install]]
+== 第 9 步：验证安装
+
+创建测试数据库，并验证其数据和日志文件是否在 NetApp LUN 上，以及存储路径是否正常。
+
+.步骤
+. 在 Windows 防火墙中打开 SQL Server 端口：
++
+[source, powershell]
+----
+PS C:\> New-NetFirewallRule -DisplayName "SQL Server (TCP 1433)" -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow
+----
+. 从安装中心的 *安装 SQL Server 管理工具* 链接或从 Microsoft 网站安装 SQL Server Management Studio （SSMS）。
+. 启动 SSMS 并使用 Windows 身份验证连接到实例 (`{host}`）。创建测试数据库；其数据和日志文件默认为  `E:\data` 和  `F:\log`。
+. 使用 T-SQL 验证文件位置：
++
+[source, sql]
+----
+SELECT DB_NAME(database_id) AS database_name,
+       type_desc,
+       name AS logical_name,
+       physical_name,
+       size * 8 / 1024 AS size_mb
+FROM   sys.master_files
+ORDER  BY database_id, type_desc;
+----
+. 确认已启用即时文件初始化：
++
+[source, sql]
+----
+SELECT servicename, service_account, instant_file_initialization_enabled
+FROM   sys.dm_server_services;
+----
+. 从主机和 ONTAP 验证存储：
++
+[source, powershell]
+----
+PS C:\> Get-Disk | Where-Object FriendlyName -like 'NETAPP*' | Format-Table Number,FriendlyName,Size,OperationalStatus,PartitionStyle
+PS C:\> mpclaim -s -d
+----
++
+[source, console]
+----
+cluster::> lun show -vserver a50-sql -fields path,size,mapped,state
+cluster::> vserver iscsi session show -vserver a50-sql
+cluster::> qos statistics volume latency show -vserver a50-sql
+----
+. 可选：测试高可用性。对测试数据库运行工作负载，并对拥有数据卷的节点执行 ONTAP 接管和交还 (`storage failover takeover -ofnode <node>` / `storage failover giveback -ofnode <node>`）。工作负载暂停几秒钟并继续；数据库保持在线。
+
+
+.下一步
+使用应用程序一致性快照备份保护数据库。有关体系结构、备份工作流和优势，请参见link:sql-iscsi-aff-overview.html#console["使用 NetApp Console 备份和恢复进行数据保护"]。
+
+
+
+[[use-an-ontap-cli-script-to-configure-the-storage-in-one-pass]]
+[[cli-script]]
+== 使用 ONTAP CLI 脚本一次性配置存储
+
+以下脚本包含此过程的完整存储配置。在运行之前，请替换尖括号中的值。
+
+[source, console]
+----
+# --- iSCSI service and LIFs ----------------------------------------------
+vserver add-protocols -vserver a50-sql -protocols iscsi
+vserver iscsi create -vserver a50-sql -target-alias a50-sql
+
+network interface create -vserver a50-sql -lif a50-sql_iscsi_n1_1 -service-policy default-data-iscsi -home-node SAPCC-A50-01 -home-port <port> -address 192.168.175.134 -netmask 255.255.255.0
+network interface create -vserver a50-sql -lif a50-sql_iscsi_n1_2 -service-policy default-data-iscsi -home-node SAPCC-A50-01 -home-port <port> -address 192.168.175.135 -netmask 255.255.255.0
+network interface create -vserver a50-sql -lif a50-sql_iscsi_n2_1 -service-policy default-data-iscsi -home-node SAPCC-A50-02 -home-port <port> -address 192.168.175.136 -netmask 255.255.255.0
+network interface create -vserver a50-sql -lif a50-sql_iscsi_n2_2 -service-policy default-data-iscsi -home-node SAPCC-A50-02 -home-port <port> -address 192.168.175.137 -netmask 255.255.255.0
+
+# --- Initiator group -----------------------------------------------------
+lun igroup create -vserver a50-sql -igroup sql-iscsi-1 -protocol iscsi -ostype windows -initiator iqn.1991-05.com.microsoft:sql-iscsi-1.sapcc.stl.netapp.com
+
+# --- Volumes -------------------------------------------------------------
+volume create -vserver a50-sql -volume sql_iscsi_1_data      -aggregate <aggr_node1> -size 560GB -space-guarantee none -snapshot-policy none -percent-snapshot-space 0 -autosize-mode grow -max-autosize 730GB
+volume create -vserver a50-sql -volume sql_iscsi_1_log       -aggregate <aggr_node2> -size 270GB -space-guarantee none -snapshot-policy none -percent-snapshot-space 0 -autosize-mode grow -max-autosize 350GB
+volume create -vserver a50-sql -volume sql_iscsi_1_tempdb    -aggregate <aggr_node2> -size 165GB -space-guarantee none -snapshot-policy none -percent-snapshot-space 0 -autosize-mode grow -max-autosize 210GB
+volume create -vserver a50-sql -volume sql_iscsi_1_logbackup -aggregate <aggr_node1> -size 325GB -space-guarantee none -snapshot-policy none -percent-snapshot-space 0 -autosize-mode grow -max-autosize 420GB
+
+# --- LUNs ----------------------------------------------------------------
+lun create -vserver a50-sql -path /vol/sql_iscsi_1_data/sql_iscsi_1_data_1           -size 520GB -ostype windows_2008 -space-reserve disabled -space-allocation enabled
+lun create -vserver a50-sql -path /vol/sql_iscsi_1_log/sql_iscsi_1_log_1             -size 250GB -ostype windows_2008 -space-reserve disabled -space-allocation enabled
+lun create -vserver a50-sql -path /vol/sql_iscsi_1_tempdb/sql_iscsi_1_tempdb_1       -size 150GB -ostype windows_2008 -space-reserve disabled -space-allocation enabled
+lun create -vserver a50-sql -path /vol/sql_iscsi_1_logbackup/sql_iscsi_1_logbackup_1 -size 300GB -ostype windows_2008 -space-reserve disabled -space-allocation enabled
+
+# --- LUN mapping ---------------------------------------------------------
+lun mapping create -vserver a50-sql -path /vol/sql_iscsi_1_data/sql_iscsi_1_data_1           -igroup sql-iscsi-1
+lun mapping create -vserver a50-sql -path /vol/sql_iscsi_1_log/sql_iscsi_1_log_1             -igroup sql-iscsi-1
+lun mapping create -vserver a50-sql -path /vol/sql_iscsi_1_tempdb/sql_iscsi_1_tempdb_1       -igroup sql-iscsi-1
+lun mapping create -vserver a50-sql -path /vol/sql_iscsi_1_logbackup/sql_iscsi_1_logbackup_1 -igroup sql-iscsi-1
+
+# --- Verification ----------------------------------------------------------
+vserver iscsi show -vserver a50-sql
+network interface show -vserver a50-sql -data-protocol iscsi
+lun show -vserver a50-sql -fields path,size,ostype,space-allocation,mapped,state
+lun mapping show -vserver a50-sql
+vserver iscsi session show -vserver a50-sql
+----
+
+TIP: 将卷分布在两个节点的聚合中，例如节点 1 上的数据和日志备份，以及节点 2 上的日志和 TempDB。这将使用两个控制器的资源。
+
+
+
+[[use-a-powershell-script-to-configure-the-host-in-one-pass]]
+[[ps-script]]
+== 使用 PowerShell 脚本一次性配置主机
+
+以下脚本包含此过程中的完整主机配置。在提升的 PowerShell 会话中运行它；MPIO 部分需要重新启动。
+
+[source, powershell]
+----
+# --- Part 1: iSCSI service and MPIO (restart required) ------------------------
+Set-Service -Name MSiSCSI -StartupType Automatic
+Start-Service -Name MSiSCSI
+(Get-InitiatorPort | Where-Object ConnectionType -eq 'iSCSI').NodeAddress   # initiator IQN for the igroup
+Install-WindowsFeature -Name Multipath-IO
+Enable-MSDSMAutomaticClaim -BusType iSCSI
+# Install NetApp Windows Host Utilities (MPIO support) now, then:
+Restart-Computer
+
+# --- Part 2: connect the iSCSI sessions (after the LUNs are mapped in ONTAP) ---
+$initiatorIP = '192.168.175.44'
+$lifs        = '192.168.175.134','192.168.175.135','192.168.175.136','192.168.175.137'
+New-IscsiTargetPortal -TargetPortalAddress $lifs[0] -InitiatorPortalAddress $initiatorIP
+$target = Get-IscsiTarget | Where-Object NodeAddress -like 'iqn.1992-08.com.netapp:*'
+foreach ($lif in $lifs) {
+    Connect-IscsiTarget -NodeAddress $target.NodeAddress -TargetPortalAddress $lif `
+        -InitiatorPortalAddress $initiatorIP -IsMultipathEnabled $true -IsPersistent $true
+}
+Get-IscsiSession | Format-Table TargetNodeAddress,InitiatorPortalAddress,IsConnected,IsPersistent
+mpclaim -s -d
+
+# --- Part 3: disks, volumes and folders ---------------------------------------
+$layout = @{ 520GB = 'E','data'; 250GB = 'F','log'; 150GB = 'G','tempdb'; 300GB = 'H','Log backup' }
+foreach ($d in Get-Disk | Where-Object FriendlyName -like 'NETAPP*') {
+    $l = $layout[[int64]$d.Size]
+    Set-Disk -Number $d.Number -IsOffline $false
+    Set-Disk -Number $d.Number -IsReadOnly $false
+    Initialize-Disk -Number $d.Number -PartitionStyle GPT
+    New-Partition -DiskNumber $d.Number -UseMaximumSize -DriveLetter $l[0] |
+        Format-Volume -FileSystem NTFS -AllocationUnitSize 65536 -NewFileSystemLabel $l[1] -Confirm:$false
+}
+'E:\data','F:\log','G:\tempdb\data','G:\tempdb\log','H:\backup' | ForEach-Object { New-Item -ItemType Directory -Path $_ -Force }
+
+# --- Part 4: firewall for SQL Server -----------------------------------------
+New-NetFirewallRule -DisplayName "SQL Server (TCP 1433)" -Direction Inbound -Protocol TCP -LocalPort 1433 -Action Allow
+----
+
+NOTE: 分别运行每个部分。第 1 部分需要重新启动主机，因此其他部分在重新启动后不会继续。
+
+
+CAUTION: 仅当这些 LUN 是连接到系统的唯一 RAW LUN 时，才运行第 3 部分中的命令。如果有其他 RAW LUN 连接到系统，则需要手动创建文件夹并格式化卷。
+
+
+
+[[additional-information]]
+[[references]]
+== 追加信息
+
+有关此过程中主题的详细信息，请参见以下资源：
+
+* NetApp： https://docs.netapp.com/us-en/ontap-apps-dbs/mssql/mssql-overview.html["采用 ONTAP 的 Microsoft SQL Server"]
+* NetApp： https://docs.netapp.com/us-en/ontap/san-admin/index.html["ONTAP SAN 存储管理"]
+* NetApp： https://docs.netapp.com/us-en/ontap-sanhost/index.html["ONTAP SAN 主机配置"]
+* NetApp： https://docs.netapp.com/us-en/ontap-sanhost/hu-wuhu-80.html["NetApp Windows 主机实用程序"]
+* Microsoft： https://learn.microsoft.com/en-us/powershell/module/mpio/["MPIO PowerShell 模块"]
+* Microsoft： https://learn.microsoft.com/en-us/sql/database-engine/install-windows/install-sql-server["安装 SQL Server"]
+* NetApp： https://docs.netapp.com/us-en/data-services-backup-recovery/["NetApp Backup and Recovery 文档"]
+* NetApp： https://imt.netapp.com/matrix/["互操作性表工具 (IMT)"]
+

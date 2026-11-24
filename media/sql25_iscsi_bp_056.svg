@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" font-family="Segoe UI, Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2E8540"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6B7B8C"/>
+    </marker>
+    <marker id="arrb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0067C5"/>
+    </marker>
+  </defs>
+  <style>
+    .title { font-size: 24px; font-weight: 700; fill: #003366; }
+    .sub { font-size: 14px; fill: #4A5A6A; }
+    .hdr { font-size: 15px; font-weight: 700; fill: #FFFFFF; }
+    .t { font-size: 13px; fill: #1F2D3D; }
+    .tb { font-size: 13px; font-weight: 700; fill: #1F2D3D; }
+    .ts { font-size: 11.5px; fill: #4A5A6A; }
+    .tw { font-size: 13px; font-weight: 700; fill: #FFFFFF; }
+    .lbl { font-size: 12px; fill: #2E8540; font-weight: 700; }
+    .lblg { font-size: 12px; fill: #6B7B8C; font-style: italic; }
+    .lblb { font-size: 12px; fill: #0067C5; font-weight: 700; }
+  </style>
+
+  <rect width="1200" height="760" fill="#FFFFFF"/>
+  <text x="40" y="40" class="title">NetApp Console Backup and Recovery for SQL Server on iSCSI LUNs</text>
+  <text x="40" y="64" class="sub">SaaS control plane · Console agent on premises · SnapCenter plug-in for SQL Server on the host · ONTAP snapshots</text>
+
+  <!-- Cloud control plane -->
+  <rect x="300" y="90" width="600" height="120" rx="60" fill="#EAF3FC" stroke="#0067C5" stroke-width="2"/>
+  <text x="600" y="130" class="tb" text-anchor="middle" style="font-size:16px">NetApp Console (console.netapp.com)</text>
+  <text x="600" y="155" class="t" text-anchor="middle">Backup and Recovery · Microsoft SQL Server workload</text>
+  <text x="600" y="177" class="ts" text-anchor="middle">Inventory, policies, schedules, restore, clone, monitoring, RBAC, notifications</text>
+  <text x="600" y="195" class="ts" text-anchor="middle">Administrator access through a web browser</text>
+
+  <!-- Console agent -->
+  <rect x="460" y="270" width="280" height="90" rx="8" fill="#F2F4F7" stroke="#6B7B8C" stroke-width="1.5"/>
+  <rect x="460" y="270" width="280" height="32" rx="8" fill="#6B7B8C"/>
+  <rect x="460" y="290" width="280" height="12" fill="#6B7B8C"/>
+  <text x="600" y="292" class="hdr" text-anchor="middle">Console agent (on premises)</text>
+  <text x="600" y="326" class="t" text-anchor="middle">Linux VM in the data center</text>
+  <text x="600" y="346" class="ts" text-anchor="middle">outbound HTTPS only to the Console</text>
+  <line x1="600" y1="212" x2="600" y2="268" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)" marker-start="url(#arrg)"/>
+  <text x="610" y="245" class="lblg">HTTPS 443</text>
+
+  <!-- SQL host -->
+  <rect x="40" y="410" width="440" height="200" rx="8" fill="#EAF3FC" stroke="#0067C5" stroke-width="2"/>
+  <rect x="40" y="410" width="440" height="34" rx="8" fill="#0067C5"/>
+  <rect x="40" y="430" width="440" height="14" fill="#0067C5"/>
+  <text x="260" y="433" class="hdr" text-anchor="middle">sql-iscsi-1 · SQL Server 2025</text>
+  <rect x="60" y="456" width="400" height="40" rx="5" fill="#0067C5"/>
+  <text x="260" y="481" class="tw" text-anchor="middle">SnapCenter plug-in for SQL Server + Windows</text>
+  <rect x="60" y="504" width="400" height="32" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="260" y="525" class="t" text-anchor="middle">VSS / VDI quiesce of the databases</text>
+  <rect x="60" y="544" width="400" height="32" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="260" y="565" class="t" text-anchor="middle">E: data · F: log · G: tempdb · H: log backup</text>
+  <text x="260" y="598" class="ts" text-anchor="middle">Plug-in port 8145 (HTTPS) · PowerShell 7 · .NET</text>
+  <line x1="470" y1="340" x2="380" y2="408" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)"/>
+  <text x="330" y="380" class="lblg">deploy, control (8145)</text>
+
+  <!-- ONTAP -->
+  <rect x="720" y="410" width="440" height="200" rx="8" fill="#F7F9FB" stroke="#003366" stroke-width="2"/>
+  <rect x="720" y="410" width="440" height="34" rx="8" fill="#003366"/>
+  <rect x="720" y="430" width="440" height="14" fill="#003366"/>
+  <text x="940" y="433" class="hdr" text-anchor="middle">AFF A50 · SVM a50-sql</text>
+  <rect x="740" y="456" width="195" height="44" rx="5" fill="#FFF6E5" stroke="#E08A00"/>
+  <text x="837" y="475" class="tb" text-anchor="middle">sql_iscsi_1_data</text>
+  <text x="837" y="492" class="ts" text-anchor="middle">LUN + snapshots</text>
+  <rect x="945" y="456" width="195" height="44" rx="5" fill="#FFF6E5" stroke="#E08A00"/>
+  <text x="1042" y="475" class="tb" text-anchor="middle">sql_iscsi_1_log</text>
+  <text x="1042" y="492" class="ts" text-anchor="middle">LUN + snapshots</text>
+  <rect x="740" y="510" width="400" height="36" rx="5" fill="#FFFFFF" stroke="#9DB9D8"/>
+  <text x="940" y="533" class="t" text-anchor="middle">Snapshot · SnapRestore · FlexClone · SnapMirror</text>
+  <text x="940" y="575" class="ts" text-anchor="middle">Local snapshot copies: created in seconds,</text>
+  <text x="940" y="592" class="ts" text-anchor="middle">space-efficient, no data copied</text>
+  <line x1="730" y1="340" x2="820" y2="408" stroke="#6B7B8C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrg)"/>
+  <text x="790" y="380" class="lblg">ONTAP REST API</text>
+
+  <!-- iSCSI data path -->
+  <line x1="482" y1="530" x2="718" y2="530" stroke="#2E8540" stroke-width="4" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <text x="600" y="520" class="lbl" text-anchor="middle">iSCSI + MPIO</text>
+  <text x="600" y="548" class="ts" text-anchor="middle">database I/O</text>
+
+  <!-- 3-2-1 targets -->
+  <rect x="720" y="650" width="210" height="70" rx="8" fill="#EEF7F0" stroke="#2E8540" stroke-width="1.5"/>
+  <text x="825" y="678" class="tb" text-anchor="middle">Secondary ONTAP</text>
+  <text x="825" y="698" class="ts" text-anchor="middle">SnapMirror / SnapVault (opt.)</text>
+  <rect x="950" y="650" width="210" height="70" rx="8" fill="#EEF7F0" stroke="#2E8540" stroke-width="1.5"/>
+  <text x="1055" y="678" class="tb" text-anchor="middle">Object storage</text>
+  <text x="1055" y="698" class="ts" text-anchor="middle">StorageGRID / cloud (opt.)</text>
+  <line x1="825" y1="612" x2="825" y2="648" stroke="#0067C5" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrb)"/>
+  <line x1="1055" y1="612" x2="1055" y2="648" stroke="#0067C5" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrb)"/>
+
+  <rect x="40" y="650" width="640" height="70" rx="8" fill="#FFFFFF" stroke="#2E8540" stroke-width="1.5"/>
+  <text x="60" y="676" class="lbl">This guide: local backup and recovery</text>
+  <text x="60" y="698" class="t">Application-consistent snapshots on the primary AFF, log backups to H:,</text>
+  <text x="60" y="714" class="t">restore and clone. Replication and object storage are optional extensions.</text>
+</svg>

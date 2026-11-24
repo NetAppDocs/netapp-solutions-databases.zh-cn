@@ -2,7 +2,7 @@
 sidebar: sidebar 
 permalink: mssql/sql-smb3-aff.html 
 keywords: Microsoft SQL server, SMB 3, AFF, ONTAP 
-summary: 在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统的 SMB 3 持续可用共享上。此过程包括配置 ONTAP SVM、卷和共享，安装 SQL Server，以及使用 SnapCenter 保护数据库。 
+summary: 在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统上持续可用的 SMB 3 共享上。此过程包括配置 ONTAP SVM、卷和共享，然后安装 SQL Server。 
 ---
 = 使用 SMB 3 持续可用共享在 NetApp AFF 上部署 SQL Server 2025
 :allow-uri-read: 
@@ -21,7 +21,7 @@ summary: 在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据�
 
 
 [role="lead"]
-在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统的 SMB 3 持续可用共享上。此过程包括配置 ONTAP SVM、卷和共享，安装 SQL Server，以及使用 SnapCenter 保护数据库。
+在 Windows Server 2025 上部署 SQL Server 2025，并将用户数据库、事务日志、TempDB 和备份放置在 NetApp AFF 系统上持续可用的 SMB 3 共享上。此过程包括配置 ONTAP SVM、卷和共享，然后安装 SQL Server。
 
 
 
@@ -314,7 +314,7 @@ image:sql25_smb_bp_014.png["带过滤器的“卷”页面"]
 *** *容量*： `1024 GiB`
 *** *性能服务级别*：*自定义*，*分配 QoS 策略组*：*现有* > `none`
 *** *访问权限*：选择*通过 SMB/CIFS 共享*。共享名 `sql1_data`，授予用户访问权限 `Everyone`，权限*完全控制*。
-*** *保护*：保持*启用快照（本地）*处于清除状态。应用程序一致性备份由 NetApp SnapCenter 创建。
+*** *保护*：保持 *启用快照（本地）* 处于未选中状态。应用程序一致性备份由 NetApp SnapCenter 创建（请参见<<references>>）。
 +
 点击*保存*。
 
@@ -383,7 +383,7 @@ image:sql25_smb_bp_023.png["卷列表中的编辑图标"]
 ** *启用预留百分比（100%）*：已清除
 ** *安全类型*： `NTFS`
 ** *Snapshot 预留 %*： `5` (`0` 用于 `sql1_tempdb`）
-** *计划快照*：已清除。非应用程序一致的快照对 SQL Server 无用；请改用 NetApp SnapCenter。
+** *计划快照*：已清除。非应用程序一致的快照对 SQL Server 无用；请改用 NetApp SnapCenter（请参阅 <<references>>）。
 ** *向客户端显示快照目录*：可选（实验室将其保留为选中状态；清除此选项会从共享中隐藏 `~snapshot`）
 +
 单击*保存*，然后对 `sql1_log`、 `sql1_tempdb`和 `sql1_backups`重复此操作。
@@ -401,7 +401,7 @@ image:sql25_smb_bp_024.png["编辑卷 sql1_data 设置,width=450"]
 
 [source, console]
 ----
-cluster::> volume modify -vserver a50-sql -volume sql1_data -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
+cluster::> volume modify -vserver a50-sql -volume sql1_data -space-guarantee none -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
 ----
 
 TIP: 保持在 AFF 上启用存储效率（重复数据删除、压缩、数据压实）。它是内联的，对 SQL Server 性能没有可衡量的影响。
@@ -810,10 +810,10 @@ vserver cifs options modify -vserver a50-sql -smb3-enabled true -is-multichannel
 set -privilege admin
 
 # --- Volumes -------------------------------------------------------------
-volume create -vserver a50-sql -volume sql1_data    -aggregate <aggr_node1> -size 1TB   -security-style ntfs -junction-path /sql1_data    -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
-volume create -vserver a50-sql -volume sql1_log     -aggregate <aggr_node2> -size 512GB -security-style ntfs -junction-path /sql1_log     -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
-volume create -vserver a50-sql -volume sql1_tempdb  -aggregate <aggr_node2> -size 500GB -security-style ntfs -junction-path /sql1_tempdb  -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 0 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
-volume create -vserver a50-sql -volume sql1_backups -aggregate <aggr_node1> -size 2000GB -security-style ntfs -junction-path /sql1_backups -space-guarantee none -fractional-reserve 0 -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 2600GB
+volume create -vserver a50-sql -volume sql1_data    -aggregate <aggr_node1> -size 1TB   -security-style ntfs -junction-path /sql1_data    -space-guarantee none -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 1.3TB
+volume create -vserver a50-sql -volume sql1_log     -aggregate <aggr_node2> -size 512GB -security-style ntfs -junction-path /sql1_log     -space-guarantee none -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
+volume create -vserver a50-sql -volume sql1_tempdb  -aggregate <aggr_node2> -size 500GB -security-style ntfs -junction-path /sql1_tempdb  -space-guarantee none -percent-snapshot-space 0 -snapshot-policy none -autosize-mode grow -max-autosize 650GB
+volume create -vserver a50-sql -volume sql1_backups -aggregate <aggr_node1> -size 2000GB -security-style ntfs -junction-path /sql1_backups -space-guarantee none -percent-snapshot-space 5 -snapshot-policy none -autosize-mode grow -max-autosize 2600GB
 
 # --- CA shares -----------------------------------------------------------
 vserver cifs share create -vserver a50-sql -share-name sql1_data    -path /sql1_data    -share-properties oplocks,browsable,changenotify,continuously-available
